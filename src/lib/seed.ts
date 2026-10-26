@@ -7,7 +7,32 @@ import { addDaysISO, todayISO } from "@/lib/constants";
 
 let seeding: Promise<void> | null = null;
 
+/**
+ * Menentukan apakah data demo boleh diisi.
+ *
+ * Ini penting secara keamanan. Seeder membuat akun `admin@senjarimba.id` dengan
+ * password `admin123` — kredensial yang ada di repositori publik ini. Kalau
+ * seeder ikut jalan di production, pengunjung pertama yang membuka beranda akan
+ * memancing pembuatan akun admin tersebut, dan siapa pun bisa langsung masuk
+ * sebagai admin penuh.
+ *
+ * Kebijakan:
+ *   - development  → default NYALA (biar proyek langsung bisa dicoba)
+ *   - production   → default MATI; hanya nyala bila SEED_DEMO_DATA="true"
+ *
+ * Untuk membuat admin pertama di production, daftarkan akun biasa lewat
+ * halaman /daftar lalu naikkan perannya di database:
+ *   update public.users set role = 'admin' where email = 'email-anda@domain';
+ */
+function seedingEnabled() {
+  const flag = (process.env.SEED_DEMO_DATA || "").toLowerCase();
+  if (flag === "true" || flag === "1" || flag === "yes") return true;
+  if (flag === "false" || flag === "0" || flag === "no") return false;
+  return process.env.NODE_ENV !== "production";
+}
+
 export function ensureSeed() {
+  if (!seedingEnabled()) return Promise.resolve();
   if (!seeding) {
     seeding = runSeed().catch((e) => {
       seeding = null;

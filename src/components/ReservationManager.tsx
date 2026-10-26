@@ -421,7 +421,7 @@ function PaymentModal({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!f.proofUrl.startsWith("/api/media/")) {
+    if (!f.proofUrl.startsWith("/api/media/proof/")) {
       toast("error", "Unggah foto bukti transfer terlebih dahulu.");
       return;
     }
@@ -459,7 +459,7 @@ function PaymentModal({
           <Field label="Nominal transfer (Rp)"><input className="input" type="number" min={1} required value={f.amount} onChange={(e) => setF({ ...f, amount: Number(e.target.value) })} /></Field>
           <Field label="Tanggal transfer"><input className="input" type="date" required max={todayISO()} value={f.paidAt} onChange={(e) => setF({ ...f, paidAt: e.target.value })} /></Field>
         </div>
-        <ImageUpload label="Bukti transfer (wajib)" value={f.proofUrl} onChange={(u) => setF({ ...f, proofUrl: u })} aspect="aspect-[3/4]" />
+        <ImageUpload label="Bukti transfer (wajib)" value={f.proofUrl} onChange={(u) => setF({ ...f, proofUrl: u })} aspect="aspect-[3/4]" kind="proof" />
         <Field label="Catatan (opsional)"><input className="input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Contoh: transfer via m-banking" /></Field>
       </form>
     </Modal>

@@ -1,17 +1,26 @@
 {
-  "name": "nextjs-postgresql-template",
+  "name": "nabawi-cafe",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@photo-sphere-viewer/core": "^5.15.1",
     "@photo-sphere-viewer/markers-plugin": "^5.15.1",
+    "@supabase/supabase-js": "^2.118.0",
     "@types/three": "^0.186.0",
+    "@vercel/functions": "^3.10.3",
     "dotenv": "17.3.1",
     "drizzle-orm": "0.45.2",
     "lucide-react": "^1.61.0",

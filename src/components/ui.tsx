@@ -237,16 +237,38 @@ export function Field({
 }
 
 /* ---------- Unggah gambar ---------- */
+
+/** Jenis berkas: "media" = bucket publik (foto unit/panorama), "proof" = bucket privat (bukti transfer). */
+export type UploadKind = "media" | "proof";
+
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+/** Pengecekan awal di browser; server tetap menjadi penentu akhir. */
+const CLIENT_MAX_BYTES = 25 * 1024 * 1024;
+
+/**
+ * Unggah langsung (client-direct) ke Supabase Storage.
+ *
+ * Alurnya dua langkah:
+ *   1. POST /api/upload  → server memverifikasi login, lalu menerbitkan
+ *                          signed upload URL untuk satu path acak.
+ *   2. PUT ke Supabase   → file dikirim browser langsung ke storage.
+ *
+ * File tidak pernah melewati server aplikasi, jadi batas body 4.5 MB milik
+ * Vercel tidak berlaku dan tidak ada penulisan ke filesystem yang read-only.
+ * supabase-js diimpor secara lazy agar tidak membebani bundle awal.
+ */
 export function ImageUpload({
   value,
   onChange,
   label,
   aspect = "aspect-video",
+  kind = "media",
 }: {
   value: string;
   onChange: (url: string) => void;
   label: string;
   aspect?: string;
+  kind?: UploadKind;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -254,14 +276,45 @@ export function ImageUpload({
 
   async function onFile(file: File | undefined) {
     if (!file) return;
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      toast("error", "Format harus JPG, PNG, atau WebP.");
+      if (ref.current) ref.current.value = "";
+      return;
+    }
+    if (file.size > CLIENT_MAX_BYTES) {
+      toast("error", `Ukuran file maksimal ${Math.round(CLIENT_MAX_BYTES / 1024 / 1024)} MB.`);
+      if (ref.current) ref.current.value = "";
+      return;
+    }
+
     setBusy(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      onChange(data.url);
+      const grant = await apiFetch<{ bucket: string; path: string; token: string; value: string }>(
+        "/api/upload",
+        "POST",
+        { kind, contentType: file.type, size: file.size },
+      );
+
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!url || !anonKey) {
+        throw new Error(
+          "NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY belum di-set. " +
+            "Keduanya wajib ada saat build agar unggahan bisa berjalan.",
+        );
+      }
+
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabase = createClient(url, anonKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+
+      const { error } = await supabase.storage
+        .from(grant.bucket)
+        .uploadToSignedUrl(grant.path, grant.token, file, { contentType: file.type });
+      if (error) throw new Error(error.message);
+
+      onChange(grant.value);
     } catch (e) {
       toast("error", e instanceof Error ? e.message : "Gagal mengunggah.");
     } finally {
@@ -304,6 +357,10 @@ export function ImageUpload({
         </div>
       </div>
       <input ref={ref} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => onFile(e.target.files?.[0])} />
+      <p className="mt-1.5 text-[11px] text-stone-400">
+        JPG, PNG, atau WebP · maks. {Math.round(CLIENT_MAX_BYTES / 1024 / 1024)} MB
+        {kind === "proof" ? " · tersimpan di bucket privat, hanya Anda & admin yang bisa membuka" : ""}
+      </p>
     </div>
   );
 }
