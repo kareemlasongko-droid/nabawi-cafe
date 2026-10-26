@@ -1,0 +1,221 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+
+  --color-forest-50: #f1f7f3;
+  --color-forest-100: #dcebe1;
+  --color-forest-200: #b9d7c4;
+  --color-forest-300: #8dbb9f;
+  --color-forest-400: #5f9c79;
+  --color-forest-500: #3f8060;
+  --color-forest-600: #2f664c;
+  --color-forest-700: #265140;
+  --color-forest-800: #204135;
+  --color-forest-900: #1a352c;
+  --color-forest-950: #0d1f19;
+
+  --color-gold-50: #fbf7ee;
+  --color-gold-100: #f5ecd6;
+  --color-gold-200: #ebd8ab;
+  --color-gold-300: #dfbf7b;
+  --color-gold-400: #d3a652;
+  --color-gold-500: #c48f35;
+  --color-gold-600: #a8742b;
+  --color-gold-700: #865a25;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #faf8f3;
+  color: #1c1917;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Kontrol formulir */
+.input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #d6d3d1;
+  background: #fff;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.875rem;
+  color: #1c1917;
+  outline: none;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.input::placeholder {
+  color: #a8a29e;
+}
+.input:focus {
+  border-color: var(--color-forest-500);
+  box-shadow: 0 0 0 3px rgb(63 128 96 / 0.18);
+}
+.input:disabled {
+  background: #f5f5f4;
+  color: #78716c;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background 0.15s, transform 0.1s, opacity 0.15s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--color-forest-700);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-forest-800);
+}
+.btn-gold {
+  background: var(--color-gold-400);
+  color: var(--color-forest-950);
+}
+.btn-gold:hover:not(:disabled) {
+  background: var(--color-gold-300);
+}
+.btn-outline {
+  background: #fff;
+  border: 1px solid #d6d3d1;
+  color: #292524;
+}
+.btn-outline:hover:not(:disabled) {
+  background: #f5f5f4;
+}
+.btn-danger {
+  background: #e11d48;
+  color: #fff;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #be123c;
+}
+.btn-ghost {
+  color: #44403c;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: #f5f5f4;
+}
+.btn-sm {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+  border-radius: 0.6rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgb(28 25 23 / 0.04);
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #ece9e4;
+  border-radius: 0.75rem;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.6), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop-in {
+  animation: pop-in 0.2s ease-out;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Photo Sphere Viewer: marker hotspot */
+.psv-hotspot {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem 0.4rem 0.5rem;
+  border-radius: 999px;
+  background: rgb(13 31 25 / 0.78);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgb(255 255 255 / 0.35);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.15s;
+}
+.psv-hotspot:hover {
+  background: rgb(196 143 53 / 0.95);
+  transform: scale(1.05);
+}
+.psv-hotspot .dot {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-forest-800);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  animation: pulse-ring 2s infinite;
+}
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgb(255 255 255 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 0);
+  }
+}
