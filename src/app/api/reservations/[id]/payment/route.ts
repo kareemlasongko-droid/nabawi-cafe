@@ -23,7 +23,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (senderName.length < 2) return fail("Nama pengirim wajib diisi.");
   if (amount <= 0) return fail("Nominal transfer tidak valid.");
   if (!isISODate(body?.paidAt)) return fail("Tanggal transfer tidak valid.");
-  if (!proofUrl.startsWith("/api/media/")) return fail("Bukti transfer wajib diunggah.");
+  // Bukti transfer wajib berasal dari bucket privat yang diunggah lewat
+  // /api/upload. Prefix ini juga yang membuat route /api/media/[...path]
+  // menerapkan cek kepemilikan sebelum menyajikan berkasnya.
+  if (!proofUrl.startsWith("/api/media/proof/")) return fail("Bukti transfer wajib diunggah.");
 
   const [p] = await db
     .insert(payments)
