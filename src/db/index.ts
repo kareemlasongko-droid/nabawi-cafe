@@ -2,10 +2,37 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool, type PoolConfig } from "pg";
 import { attachDatabasePool } from "@vercel/functions/db-connections";
 
-const databaseUrl = process.env.DATABASE_URL;
+/**
+ * URL database runtime.
+ *
+ * `POSTGRES_URL` adalah nama yang disinkronkan otomatis oleh integrasi
+ * Supabase di Vercel Marketplace (transaction pooler). Kode menerima kedua
+ * nama agar jalur Marketplace berjalan tanpa set env manual, sementara
+ * `DATABASE_URL` tetap dipakai untuk setup manual/lokal.
+ */
+function resolveDatabaseUrl(): string | undefined {
+  const raw = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (!raw) return undefined;
+  try {
+    // Connection string dari integrasi bisa membawa parameter `supa=...`
+    // yang tidak dikenal driver `pg` — buang agar tidak dikirim ke server.
+    const u = new URL(raw);
+    if (u.searchParams.has("supa")) {
+      u.searchParams.delete("supa");
+      return u.toString();
+    }
+  } catch {
+    // Bukan URL valid — biarkan `pg` yang melaporkan errornya nanti.
+  }
+  return raw;
+}
+
+const databaseUrl = resolveDatabaseUrl();
 
 if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required");
+  throw new Error(
+    "DATABASE_URL is required — set DATABASE_URL atau POSTGRES_URL (integrasi Vercel Marketplace)",
+  );
 }
 
 const num = (v: string | undefined, fallback: number) => {

@@ -14,10 +14,16 @@ import { defineConfig } from "drizzle-kit";
  *
  *   DIRECT_URL  → untuk drizzle-kit (generate / migrate / push / studio)
  *   DATABASE_URL→ untuk aplikasi runtime (transaction pooler di Vercel)
+ *
+ * Nama bawaan integrasi Supabase di Vercel Marketplace juga diterima:
+ *   POSTGRES_URL_NON_POOLING ≈ DIRECT_URL (non-pooling, untuk migrasi)
+ *   POSTGRES_URL             ≈ DATABASE_URL (transaction pooler)
  */
 const url =
   process.env.DIRECT_URL ||
+  process.env.POSTGRES_URL_NON_POOLING ||
   process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
   "postgresql://postgres:postgres@127.0.0.1:5432/app_db";
 
 export default defineConfig({

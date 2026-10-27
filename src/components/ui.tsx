@@ -296,7 +296,13 @@ export function ImageUpload({
       );
 
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // Integrasi Supabase di Vercel Marketplace menyinkronkan nama
+      // NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY — terima keduanya. Keduanya
+      // ditulis sebagai akses literal agar Next.js bisa meng-inline-nya
+      // saat build.
+      const anonKey =
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
       if (!url || !anonKey) {
         throw new Error(
           "NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY belum di-set. " +

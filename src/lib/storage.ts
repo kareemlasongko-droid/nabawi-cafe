@@ -24,8 +24,11 @@ export function bucketFor(kind: BucketKind) {
   return kind === "proof" ? PROOF_BUCKET : MEDIA_BUCKET;
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+// Nama bawaan integrasi Supabase di Vercel Marketplace (SUPABASE_URL &
+// SUPABASE_SECRET_KEY) juga diterima agar jalur Marketplace langsung jalan.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
+const serviceRoleKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "";
 
 /** Apakah storage sudah dikonfigurasi? Dipakai untuk memberi pesan error yang jelas. */
 export function storageConfigured() {
@@ -41,8 +44,8 @@ let cached: SupabaseClient | null = null;
 export function adminStorage(): SupabaseClient {
   if (!storageConfigured()) {
     throw new Error(
-      "Supabase Storage belum dikonfigurasi. Set NEXT_PUBLIC_SUPABASE_URL dan " +
-        "SUPABASE_SERVICE_ROLE_KEY (lihat .env.example), lalu buat bucket '" +
+      "Supabase Storage belum dikonfigurasi. Set NEXT_PUBLIC_SUPABASE_URL (atau SUPABASE_URL) dan " +
+        "SUPABASE_SERVICE_ROLE_KEY (atau SUPABASE_SECRET_KEY) — lihat .env.example — lalu buat bucket '" +
         MEDIA_BUCKET +
         "' (public) dan '" +
         PROOF_BUCKET +
