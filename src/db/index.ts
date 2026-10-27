@@ -41,44 +41,62 @@ const num = (v: string | undefined, fallback: number) => {
 };
 
 /**
- * Menentukan konfigurasi TLS.
+ * Menentukan konfigurasi TLS. Urutan keputusan (pertama yang cocok menang):
  *
- * Latar belakang yang membuat fungsi ini perlu ada:
- * - Supabase menerima koneksi non-SSL secara default, jadi tanpa penanganan
- *   eksplisit lalu lintas ke database berjalan tanpa enkripsi.
- * - `pg` 8.x (lewat pg-connection-string >= 2.10) memperlakukan
- *   `sslmode=require` sebagai `verify-full`, BUKAN sekadar "encrypt" seperti
- *   libpq. Selain itu, bila `sslmode` ada di dalam URL, `pg` MENIMPA seluruh
- *   objek `ssl` yang kita kirim di kode. Karena itu keduanya tidak boleh
- *   dicampur — URL yang menang.
- * - Host pooler Supabase (*.pooler.supabase.com) memakai sertifikat dari CA
- *   publik sehingga verifikasi penuh berhasil. Host direct
- *   (db.<ref>.supabase.co) memakai CA internal Supabase dan akan gagal
- *   diverifikasi — itu salah satu alasan memakai pooler.
+ * 1. Host lokal                       → tanpa TLS (development).
+ * 2. DATABASE_SSL=disable             → tanpa TLS.
+ * 3. DATABASE_SSL=no-verify           → enkripsi, sertifikat tidak diverifikasi.
+ * 4. DATABASE_SSL_CA terisi (PEM)     → enkripsi + verifikasi terhadap CA tsb.
+ * 5. Host Supabase tanpa CA di atas   → enkripsi tanpa verifikasi.
+ * 6. Host lain                        → enkripsi + verifikasi CA publik.
+ *
+ * Kenapa ada langkah 5: sertifikat Supabase — direct (db.<ref>.supabase.co)
+ * MAUPUN pooler (*.pooler.supabase.com) — berantai ke root CA privat Supabase
+ * yang tidak ada di trust store Node, jadi verifikasi terhadap CA publik
+ * selalu gagal dengan SELF_SIGNED_CERT_IN_CHAIN (terverifikasi live lewat
+ * /api/health, 2026-10-27). Unduh sertifikat CA dari dashboard Supabase
+ * (Database → SSL → Download certificate) dan isi DATABASE_SSL_CA untuk
+ * naik ke langkah 4 kapan saja tanpa mengubah kode.
+ *
+ * Parameter TLS di connection string sudah dibuang resolveDatabaseUrl(),
+ * karena selama `sslmode` dkk. ada di URL, pg MENIMPA objek `ssl` dari kode.
+ * Perlu diingat juga: pg 8.x memperlakukan sslmode=require sebagai
+ * verify-full, bukan "encrypt saja" seperti libpq.
  */
 function buildSslConfig(raw: string): PoolConfig["ssl"] {
-  // Bila pengguna sudah menyetel sslmode/ssl di URL, hormati itu apa adanya.
-  const hasSslParam = /[?&](sslmode|ssl|sslrootcert|sslcert|sslkey)=/.test(raw);
-  if (hasSslParam) return undefined;
-
   let host = "";
   try {
-    host = new URL(raw).hostname;
+    host = new URL(raw).hostname.toLowerCase();
   } catch {
     host = "";
   }
 
-  // Koneksi lokal (development) biasanya tanpa TLS.
-  const isLocal = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(host);
-  if (isLocal) return undefined;
+  // 1) Koneksi lokal (development) biasanya tanpa TLS.
+  if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) return undefined;
 
   const mode = (process.env.DATABASE_SSL || "").toLowerCase();
+  // 2) Dimatikan eksplisit.
   if (mode === "disable" || mode === "off" || mode === "false") return undefined;
-  // Escape hatch untuk penyedia bersertifikat CA privat yang tidak bisa
-  // diverifikasi. Hindari dipakai bila tidak benar-benar perlu.
+  // 3) Enkripsi tanpa verifikasi, atas permintaan eksplisit.
   if (mode === "no-verify") return { rejectUnauthorized: false };
 
-  // Default: enkripsi + verifikasi sertifikat terhadap CA publik.
+  // 4) Verifikasi penuh terhadap CA kustom (mis. root CA Supabase).
+  //    Nilai env boleh berisi PEM asli atau dengan newline ter-escape (\n).
+  const ca = process.env.DATABASE_SSL_CA?.replace(/\\n/g, "\n").trim();
+  if (ca) return { ca, rejectUnauthorized: true };
+
+  // 5) Host Supabase tanpa CA di atas: enkripsi tanpa verifikasi, karena
+  //    verifikasi terhadap CA publik pasti gagal (CA privat Supabase).
+  const isSupabaseHost = host.endsWith(".supabase.co") || host.endsWith(".supabase.com");
+  if (isSupabaseHost) {
+    console.warn(
+      "[db] TLS ke Supabase tanpa verifikasi sertifikat (DATABASE_SSL_CA belum di-set). " +
+        "Isi DATABASE_SSL_CA dengan sertifikat CA dari dashboard Supabase untuk verifikasi penuh.",
+    );
+    return { rejectUnauthorized: false };
+  }
+
+  // 6) Default: enkripsi + verifikasi sertifikat terhadap CA publik.
   return { rejectUnauthorized: true };
 }
 
