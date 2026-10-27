@@ -64,9 +64,19 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # sem
    Ini dipakai cron mingguan yang mencegah project Supabase Free di-pause.
    `SEED_DEMO_DATA` **jangan diisi**.
 
-### Langkah 4 — Buat tabel + bucket dengan satu perintah
+### Langkah 4 — Tabel + bucket dibuat otomatis saat deploy
 
-Di folder repo pada komputer Anda:
+Tidak ada yang perlu dijalankan manual: `scripts/setup.mjs` berjalan otomatis
+di awal setiap build Vercel (lewat `buildCommand` di `vercel.json`), membuat
+**6 tabel**, **2 bucket Storage** (`media` publik, `bukti-transfer` privat),
+dan mengunci **RLS**, lalu mencetak hasil verifikasi (`RLS aktif : 6/6`) di
+log build. Aman dijalankan berulang di setiap deploy (idempotent) — migrasi
+dilewati bila tabel sudah ada, dan skrip mencoba beberapa kandidat koneksi
+(termasuk menurunkan varian session-pooler dari `POSTGRES_URL`) sampai ada
+yang berhasil connect.
+
+Alternatif manual (mis. menyiapkan database sebelum deploy pertama, atau
+untuk database lokal) tetap tersedia dari komputer Anda:
 
 ```bash
 npx vercel login            # sekali saja, membuka browser
@@ -75,15 +85,11 @@ npx vercel env pull .env.local
 npm run setup
 ```
 
-`npm run setup` akan membuat **6 tabel**, **2 bucket Storage**, dan mengunci **RLS**,
-lalu menampilkan hasil verifikasi. Keluaran akhirnya harus menunjukkan `RLS aktif : 6/6`
-dan kedua bucket (`media` publik, `bukti-transfer` privat). Perintah ini aman dijalankan
-berulang.
-
 ### Langkah 5 — Redeploy
 
 Vercel → **Deployments** → deployment terakhir → **⋯ → Redeploy**.
-Kali ini build harus **berhasil** karena env var dan tabel sudah siap.
+Kali ini build harus **berhasil**: env var sudah lengkap dan tabel dibuat
+otomatis di awal build.
 
 ### Langkah 6 — Verifikasi & admin pertama
 

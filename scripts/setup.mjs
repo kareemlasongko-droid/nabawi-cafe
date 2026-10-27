@@ -37,36 +37,87 @@ for (const f of [".env.local", ".env"]) {
 
 const TABLES = ["users", "sessions", "tour_scenes", "units", "reservations", "payments"];
 
-// Utamakan koneksi non-pooling/session (5432): DDL tidak andal lewat
-// transaction pooler (6543).
-function resolveUrl() {
-  const raw =
-    process.env.DIRECT_URL ||
-    process.env.POSTGRES_URL_NON_POOLING ||
-    process.env.DATABASE_URL ||
-    process.env.POSTGRES_URL ||
-    "";
-  if (!raw) return "";
+// Buang parameter yang mengganggu driver dari connection string:
+// - `supa=...` bawaan integrasi Vercel Marketplace (tidak dikenal driver pg);
+// - parameter TLS (sslmode/ssl/sslrootcert/sslcert/sslkey) — driver pg
+//   menjadikan parameter URL sebagai pengganti opsi `ssl` dari kode,
+//   sehingga harus dibuang agar setelan TLS dari sslFor() yang berlaku.
+function cleanUrl(raw) {
   try {
-    // Buang parameter `supa=...` bawaan integrasi yang tidak dikenal driver pg.
     const u = new URL(raw);
-    if (u.searchParams.has("supa")) {
-      u.searchParams.delete("supa");
-      return u.toString();
+    for (const p of ["supa", "sslmode", "ssl", "sslrootcert", "sslcert", "sslkey"]) {
+      u.searchParams.delete(p);
     }
+    return u.toString();
   } catch {
-    /* biarkan pg yang melaporkan bila URL tidak valid */
+    return raw; // biarkan pg yang melaporkan bila URL tidak valid
   }
-  return raw;
 }
 
-function sslFor(raw) {
-  if (/[?&](sslmode|ssl)=/.test(raw)) return undefined; // hormati setelan di URL
+// Bila host adalah Supabase pooler, turunkan varian port 5432 (session mode —
+// DDL tidak andal lewat transaction pooler 6543, dan koneksi direct
+// db.<ref>.supabase.co hanya punya IPv6 sehingga sering tidak terhubung dari
+// cloud builder). Hasilnya null bila tidak relevan / port sudah 5432.
+function sessionVariant(cleaned) {
   try {
-    const host = new URL(raw).hostname;
-    if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) return undefined;
+    const u = new URL(cleaned);
+    if (!u.hostname.endsWith("pooler.supabase.com")) return null;
+    if ((u.port || "5432") === "5432") return null;
+    u.port = "5432";
+    return u.toString();
   } catch {
-    /* lanjut dengan TLS terverifikasi */
+    return null;
+  }
+}
+
+// Daftar kandidat koneksi, dari yang paling sesuai DDL ke terakhir:
+//   1. DIRECT_URL / POSTGRES_URL_NON_POOLING (5432) apa adanya;
+//   2. varian session 5432 turunan dari URL pooler (POSTGRES_URL/DATABASE_URL);
+//   3. URL runtime apa adanya (umumnya 6543) sebagai upaya terakhir.
+// URL yang sama persis tidak diulang.
+function connectionCandidates() {
+  const seen = new Set();
+  const candidates = [];
+  const add = (source, raw) => {
+    if (!raw) return;
+    const cleaned = cleanUrl(raw);
+    if (seen.has(cleaned)) return;
+    seen.add(cleaned);
+    candidates.push({ source, url: cleaned });
+  };
+  add("DIRECT_URL", process.env.DIRECT_URL);
+  add("POSTGRES_URL_NON_POOLING", process.env.POSTGRES_URL_NON_POOLING);
+  for (const [source, raw] of [
+    ["POSTGRES_URL", process.env.POSTGRES_URL],
+    ["DATABASE_URL", process.env.DATABASE_URL],
+  ]) {
+    const sv = raw ? sessionVariant(cleanUrl(raw)) : null;
+    if (sv) add(`${source} (port→5432)`, sv);
+  }
+  add("POSTGRES_URL", process.env.POSTGRES_URL);
+  add("DATABASE_URL", process.env.DATABASE_URL);
+  return candidates;
+}
+
+// Cerminkan logika TLS runtime (src/db/index.ts): Supabase memakai CA
+// privat, jadi tanpa CA dari DATABASE_SSL_CA koneksi dienkripsi tanpa
+// verifikasi sertifikat; host lain tetap terverifikasi penuh.
+function sslFor(raw) {
+  let host = "";
+  try {
+    host = new URL(raw).hostname;
+  } catch {
+    /* fallback: perlakukan seperti host remote */
+  }
+  if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) return undefined;
+  if (process.env.DATABASE_SSL === "disable") return undefined;
+  if (process.env.DATABASE_SSL === "no-verify") return { rejectUnauthorized: false };
+  const ca = process.env.DATABASE_SSL_CA;
+  if (ca && ca.trim()) {
+    return { ca: ca.replace(/\\n/g, "\n"), rejectUnauthorized: true };
+  }
+  if (host === "supabase.co" || host.endsWith(".supabase.co") || host.endsWith(".supabase.com")) {
+    return { rejectUnauthorized: false };
   }
   return { rejectUnauthorized: true };
 }
@@ -74,8 +125,8 @@ function sslFor(raw) {
 async function main() {
   console.log("=== Setup Senja Rimba: tabel + bucket + RLS ===\n");
 
-  const url = resolveUrl();
-  if (!url) {
+  const candidates = connectionCandidates();
+  if (candidates.length === 0) {
     console.error("Connection string tidak ditemukan. Pilih salah satu cara:\n");
     console.error("  A) Jalur mudah (Vercel Marketplace) — setelah Supabase dibuat dari");
     console.error("     dashboard Vercel dan terhubung ke project ini:\n");
@@ -87,27 +138,55 @@ async function main() {
     process.exit(1);
   }
 
-  let hostPort = "";
-  try {
-    const u = new URL(url);
-    hostPort = `${u.hostname}:${u.port || 5432}`;
-  } catch {
-    /* hanya untuk tampilan */
-  }
-  console.log(`Menghubungkan ke ${hostPort || "database"} ...`);
-  if (hostPort.endsWith(":6543")) {
-    console.log(
-      "Catatan: URL memakai port 6543 (transaction pooler). Migrasi idealnya lewat 5432 — lanjut mencoba, " +
-        "bila gagal ganti ke DIRECT_URL / POSTGRES_URL_NON_POOLING.",
-    );
+  // Coba kandidat satu per satu; pakai yang pertama berhasil connect.
+  let pool = null;
+  let lastError = null;
+  for (const { source, url } of candidates) {
+    let hostPort = "";
+    try {
+      const u = new URL(url);
+      hostPort = `${u.hostname}:${u.port || 5432}`;
+    } catch {
+      /* hanya untuk tampilan */
+    }
+    const attempt = new Pool({
+      connectionString: url,
+      ssl: sslFor(url),
+      max: 1,
+      connectionTimeoutMillis: 10_000,
+    });
+    try {
+      await attempt.query("select 1");
+      console.log(`Terhubung via ${source} → ${hostPort || "database"}`);
+      if (hostPort.endsWith(":6543")) {
+        console.log(
+          "Catatan: koneksi terpilih memakai port 6543 (transaction pooler). " +
+            "Lanjut — bila DDL gagal, sediakan koneksi 5432 (DIRECT_URL / POSTGRES_URL_NON_POOLING).",
+        );
+      }
+      pool = attempt;
+      break;
+    } catch (err) {
+      lastError = err;
+      console.log(
+        `  ✗ ${source} (${hostPort || "?"}) gagal: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      await attempt.end().catch(() => {});
+    }
   }
 
-  const pool = new Pool({
-    connectionString: url,
-    ssl: sslFor(url),
-    max: 1,
-    connectionTimeoutMillis: 15_000,
-  });
+  if (!pool) {
+    console.error(
+      "\nSemua kandidat koneksi gagal. Error terakhir:",
+      lastError instanceof Error ? lastError.message : lastError,
+    );
+    console.error(
+      "Periksa: project Supabase aktif dan tidak ter-pause? Password benar dan karakter " +
+        "khususnya sudah di-URL-encode (@ → %40)? Bila memakai integrasi Marketplace, " +
+        "pastikan resource Storage terhubung ke project Vercel ini.",
+    );
+    process.exit(1);
+  }
 
   try {
     // --- 1) Tabel -----------------------------------------------------------
