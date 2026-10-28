@@ -65,7 +65,7 @@ export default function TourExplorer({
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
       <div className="min-w-0 space-y-4">
-        <div className="relative">
+        <div className="relative overflow-hidden rounded-[20px] shadow-md ring-1 ring-stone-200">
           <PanoramaViewer
             src={current.imageUrl}
             markers={markers}
@@ -73,7 +73,7 @@ export default function TourExplorer({
             className={viewerClass}
           />
           <div className="pointer-events-none absolute left-3 top-3 z-20 flex max-w-[80%] items-center gap-2 rounded-full bg-forest-950/70 px-3.5 py-1.5 text-sm font-semibold text-white backdrop-blur">
-            <MapPin className="size-4 shrink-0 text-gold-300" />
+            <MapPin className="size-4 shrink-0 text-forest-300" />
             <span className="truncate">{current.title}</span>
           </div>
           <div className="pointer-events-none absolute bottom-3 left-3 z-20 hidden items-center gap-2 rounded-full bg-forest-950/60 px-3 py-1.5 text-xs text-white/90 backdrop-blur sm:flex">
@@ -82,13 +82,13 @@ export default function TourExplorer({
         </div>
 
         {/* Daftar scene */}
-        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:px-0">
           {scenes.map((s) => (
             <button
               key={s.id}
               onClick={() => setCurrentId(s.id)}
               className={`group relative h-20 w-36 shrink-0 overflow-hidden rounded-xl text-left ring-2 transition sm:h-24 sm:w-44 ${
-                s.id === current.id ? "ring-gold-400" : "ring-transparent opacity-80 hover:opacity-100"
+                s.id === current.id ? "ring-forest-500" : "ring-transparent opacity-80 hover:opacity-100"
               }`}
               aria-label={`Lihat ${s.title}`}
             >
@@ -103,7 +103,7 @@ export default function TourExplorer({
 
       <aside className="space-y-4">
         <div className="card p-5">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gold-600">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-forest-700">
             <Move3d className="size-4" /> {current.category}
           </div>
           <h3 className="mt-1 font-display text-xl font-semibold text-forest-900">{current.title}</h3>
@@ -128,7 +128,7 @@ export default function TourExplorer({
                       {rupiah(u.price)} / {unitTypeInfo(u.type).unitLabel}
                     </p>
                   </div>
-                  <Link href={`/dashboard/reservasi/baru?unit=${u.id}`} className="btn btn-primary btn-sm">
+                  <Link href={`/reservasi?unit=${u.id}`} className="btn btn-primary btn-sm">
                     Pesan
                   </Link>
                 </li>
@@ -136,7 +136,7 @@ export default function TourExplorer({
             </ul>
           )}
         </div>
-        <Link href="/dashboard/reservasi/baru" className="btn btn-gold w-full">
+        <Link href="/reservasi" className="btn btn-primary w-full">
           Buat Reservasi <ArrowRight className="size-4" />
         </Link>
       </aside>

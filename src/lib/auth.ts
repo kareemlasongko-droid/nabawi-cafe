@@ -93,6 +93,6 @@ export async function requireUser(next = "/dashboard") {
 
 export async function requireAdminPage() {
   const user = await requireUser();
-  if (user.role !== "admin") redirect("/dashboard");
+  if (user.role !== "admin") redirect("/akun");
   return user;
 }

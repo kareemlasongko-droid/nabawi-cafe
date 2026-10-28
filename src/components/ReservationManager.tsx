@@ -29,6 +29,7 @@ import {
   useToast,
 } from "@/components/ui";
 import {
+  ACTIVE_STATUSES,
   BANKS,
   formatDate,
   formatDateTime,
@@ -54,21 +55,33 @@ const FILTERS = [
   { value: "dibatalkan", label: "Dibatalkan" },
 ];
 
+/** Filter ringkas untuk halaman pelanggan (/akun/reservasi). */
+const FILTERS_CUSTOMER = [
+  { value: "semua", label: "Semua" },
+  { value: "aktif", label: "Aktif" },
+  { value: "menunggu_pembayaran", label: "Belum bayar" },
+  { value: "selesai", label: "Selesai" },
+];
+
 export default function ReservationManager({
   initial,
   role,
   userName,
   initialStatus = "semua",
+  variant = "full",
 }: {
   initial: ReservationView[];
   role: Role;
   userName: string;
   initialStatus?: string;
+  variant?: "full" | "customer";
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const isCustomerVariant = variant === "customer";
+  const filterOptions = isCustomerVariant ? FILTERS_CUSTOMER : FILTERS;
   const [items, setItems] = useState(initial);
-  const [filter, setFilter] = useState(FILTERS.some((f) => f.value === initialStatus) ? initialStatus : "semua");
+  const [filter, setFilter] = useState(filterOptions.some((f) => f.value === initialStatus) ? initialStatus : "semua");
   const [q, setQ] = useState("");
   const [detailId, setDetailId] = useState<number | null>(null);
   const [payFor, setPayFor] = useState<ReservationView | null>(null);
@@ -83,11 +96,14 @@ export default function ReservationManager({
   const counts = useMemo(() => {
     const c: Record<string, number> = { semua: items.length };
     for (const i of items) c[i.status] = (c[i.status] ?? 0) + 1;
+    c.aktif = items.filter((i) => (ACTIVE_STATUSES as string[]).includes(i.status)).length;
     return c;
   }, [items]);
 
   const shown = items.filter((i) => {
-    if (filter !== "semua" && i.status !== filter) return false;
+    if (filter === "aktif") {
+      if (!(ACTIVE_STATUSES as string[]).includes(i.status)) return false;
+    } else if (filter !== "semua" && i.status !== filter) return false;
     const s = q.trim().toLowerCase();
     if (!s) return true;
     return [i.code, i.unit.name, i.customer.name, i.customer.email].some((x) => x.toLowerCase().includes(s));
@@ -166,7 +182,7 @@ export default function ReservationManager({
     const btns: React.ReactNode[] = [];
     if (!isAdmin && r.status === "menunggu_pembayaran") {
       btns.push(
-        <button key="pay" className={`btn btn-gold ${sz}`} onClick={() => setPayFor(r)}>
+        <button key="pay" className={`btn btn-primary ${sz}`} onClick={() => setPayFor(r)}>
           <Upload className="size-4" /> Bayar & unggah bukti
         </button>,
       );
@@ -224,7 +240,7 @@ export default function ReservationManager({
     <div>
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:px-0">
-          {FILTERS.map((f) => (
+          {filterOptions.map((f) => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
@@ -237,10 +253,12 @@ export default function ReservationManager({
             </button>
           ))}
         </div>
-        <div className="relative lg:w-72">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
-          <input className="input !pl-9" placeholder="Cari kode, unit, atau nama…" value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
+        {!isCustomerVariant && (
+          <div className="relative lg:w-72">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
+            <input className="input !pl-9" placeholder="Cari kode, unit, atau nama…" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+        )}
       </div>
 
       {items.length === 0 ? (
@@ -248,7 +266,7 @@ export default function ReservationManager({
           icon={<CalendarCheck className="size-7" />}
           title="Belum ada reservasi"
           description={isAdmin ? "Reservasi dari pelanggan akan muncul di sini." : "Anda belum membuat reservasi. Pilih kamar, villa, atau meja favorit Anda."}
-          action={!isAdmin && <Link href="/dashboard/reservasi/baru" className="btn btn-primary">Buat reservasi</Link>}
+          action={!isAdmin && <Link href="/reservasi" className="btn btn-primary">Buat reservasi</Link>}
         />
       ) : shown.length === 0 ? (
         <EmptyState icon={<Search className="size-7" />} title="Tidak ada hasil" description="Coba ubah filter status atau kata kunci pencarian." action={<button className="btn btn-outline" onClick={() => { setFilter("semua"); setQ(""); }}>Reset filter</button>} />

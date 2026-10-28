@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import "@fontsource-variable/plus-jakarta-sans";
 import { ToastProvider } from "@/components/ui";
 import "./globals.css";
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1a352c",
+  themeColor: "#f5f6f4",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

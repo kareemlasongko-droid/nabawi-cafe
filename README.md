@@ -256,14 +256,17 @@ nabawi-cafe/
 │   └── setup.sql                # Buat bucket Storage + kunci RLS (jalankan sekali)
 └── src/
     ├── app/
-    │   ├── layout.tsx           # Root layout + metadata SEO
-    │   ├── page.tsx             # Landing page
-    │   ├── globals.css          # Tema Tailwind (warna forest & gold)
-    │   ├── masuk/               # Halaman login
-    │   ├── daftar/              # Halaman registrasi
-    │   ├── tur/                 # Tur virtual 360° publik
-    │   ├── dashboard/           # Area terproteksi (pelanggan & admin)
-    │   │   ├── reservasi/       # Daftar + form reservasi baru
+    │   ├── layout.tsx           # Root layout + metadata SEO + font
+    │   ├── globals.css          # Tema Tailwind (palet forest terang, kelas .btn/.input/.card)
+    │   ├── (site)/              # Situs publik & pelanggan (top bar + bottom nav mobile)
+    │   │   ├── page.tsx         # Beranda: hero, pencarian, kategori, kartu + sheet unit
+    │   │   ├── tur/             # Tur virtual 360° publik
+    │   │   ├── reservasi/       # Wizard reservasi publik (boleh tanpa login dulu)
+    │   │   ├── akun/            # Hub akun pelanggan + daftar reservasi saya
+    │   │   ├── masuk/           # Halaman login
+    │   │   └── daftar/          # Halaman registrasi
+    │   ├── dashboard/           # Area admin
+    │   │   ├── reservasi/       # Semua reservasi + verifikasi (baru/ → redirect /reservasi)
     │   │   ├── unit/            # (admin) kelola unit
     │   │   ├── tur/             # (admin) kelola scene 360°
     │   │   ├── pelanggan/       # (admin) kelola pengguna
@@ -275,6 +278,10 @@ nabawi-cafe/
     ├── components/              # Komponen UI & fitur
     │   ├── PanoramaViewer.tsx   # Wrapper Photo Sphere Viewer + marker hotspot
     │   ├── TourExplorer.tsx     # Navigasi antar scene tur
+    │   ├── PublicChrome.tsx     # Top bar + bottom navigation situs publik
+    │   ├── HomeExplorer.tsx     # Beranda: hero, cari, kategori, kartu + sheet detail unit
+    │   ├── BookingFlow.tsx      # Wizard reservasi + bayar/unggah bukti
+    │   ├── AccountViews.tsx     # Layar akun pelanggan & tamu
     │   ├── DashboardShell.tsx   # Layout dashboard + sidebar (menu beda per peran)
     │   ├── ReservationManager.tsx / UnitManager.tsx / SceneManager.tsx / UserManager.tsx
     │   └── ui.tsx               # Primitif UI + ImageUpload (client-direct ke Storage)
@@ -303,15 +310,18 @@ Alias impor `@/*` memetakan ke `./src/*`.
 | `/tur` | Publik | Tur virtual 360° (mendukung `?scene=<id>`) |
 | `/masuk` | Publik | Login (mendukung `?next=<path>` untuk redirect setelah masuk) |
 | `/daftar` | Publik | Registrasi akun pelanggan |
-| `/dashboard` | Login | Ringkasan |
-| `/dashboard/reservasi` | Login | Reservasi saya (pelanggan) / semua reservasi (admin) |
-| `/dashboard/reservasi/baru` | Login | Form reservasi baru (mendukung `?unit=<id>`) |
-| `/dashboard/profil` | Login | Edit profil & password |
+| `/reservasi` | Publik | Wizard reservasi: tempat → jadwal → akun (bila belum masuk) → bayar (mendukung `?unit=<id>`) |
+| `/akun` | Publik/Login | Hub akun pelanggan: profil, kata sandi, menu |
+| `/akun/reservasi` | Login | Reservasi saya: status, unggah bukti transfer, batalkan |
+| `/dashboard` | **Admin** | Ringkasan admin (pelanggan diarahkan ke `/akun`) |
+| `/dashboard/reservasi` | **Admin** | Semua reservasi + verifikasi pembayaran |
+| `/dashboard/reservasi/baru` | — | Redirect ke `/reservasi` |
+| `/dashboard/profil` | **Admin** | Edit profil & password admin |
 | `/dashboard/unit` | **Admin** | Kelola unit |
 | `/dashboard/tur` | **Admin** | Kelola scene tur 360° |
 | `/dashboard/pelanggan` | **Admin** | Kelola pengguna |
 
-Halaman yang memerlukan login memakai `requireUser()`; halaman khusus admin memakai `requireAdminPage()` yang me-*redirect* non-admin ke `/dashboard`.
+Halaman yang memerlukan login memakai `requireUser()`; halaman khusus admin memakai `requireAdminPage()` yang me-*redirect* non-admin ke `/akun`.
 
 ---
 
@@ -591,7 +601,7 @@ disiapkan. `attachDatabasePool()` otomatis menjadi *no-op* di luar Vercel.
 
 Beberapa hal yang perlu diketahui sebelum pengembangan lanjutan:
 
-- **Aset gambar bawaan belum disertakan.** Seeder dan landing page merujuk ke `/img/*.jpg` dan `/tour/*.jpg`, tetapi folder `public/` tidak ada di repositori — gambar itu `404` sampai Anda menambahkan asetnya sendiri atau mengunggah foto lewat dashboard admin (yang kini tersimpan di Supabase Storage).
+- **Aset gambar bawaan belum disertakan.** Data demo seeder merujuk ke `/img/*.jpg` dan `/tour/*.jpg`, tetapi folder `public/` tidak ada di repositori — gambar itu `404` sampai Anda menambahkan asetnya sendiri atau mengunggah foto lewat dashboard admin (yang kini tersimpan di Supabase Storage). Sementara foto belum ada, kartu unit di situs publik menampilkan gradien hijau sebagai pengganti.
 - **Pembayaran bersifat manual** (unggah bukti transfer + verifikasi admin). Belum ada integrasi payment gateway.
 - **Belum ada test suite.** Pemeriksaan yang tersedia hanya `lint` dan `typecheck`. Diketahui ada 4 error lint warisan `react-hooks/set-state-in-effect` di `ReservationManager`, `SceneManager`, `UnitManager`, dan `UserManager` (pola `useEffect(() => setItems(initial), [initial])`) yang belum dibereskan.
 - **Semua route bersifat dinamis** (`force-dynamic` di mana-mana), jadi setiap pageview adalah satu invokasi function. Perlu dipantau terhadap kuota Vercel Hobby.

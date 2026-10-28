@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PlusCircle } from "lucide-react";
 import ReservationManager from "@/components/ReservationManager";
 import { PageHeader } from "@/components/ui";
@@ -11,6 +12,7 @@ export const metadata: Metadata = { title: "Reservasi" };
 
 export default async function ReservationsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const user = await requireUser();
+  if (user.role !== "admin") redirect("/akun/reservasi");
   const { status } = await searchParams;
   const isAdmin = user.role === "admin";
   const items = await getReservations(isAdmin ? {} : { userId: user.id });

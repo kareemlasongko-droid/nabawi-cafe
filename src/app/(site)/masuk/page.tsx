@@ -11,10 +11,12 @@ export const metadata: Metadata = { title: "Masuk" };
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   await ensureSeed();
   const { next } = await searchParams;
-  if (await getCurrentUser()) redirect("/dashboard");
+  const user = await getCurrentUser();
+  if (user) redirect(user.role === "admin" ? "/dashboard" : "/akun");
+  const dest = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
   return (
-    <AuthShell title="Selamat datang kembali" subtitle="Masuk untuk mengelola reservasi dan pembayaran Anda.">
-      <AuthForm mode="masuk" next={next ?? "/dashboard"} />
+    <AuthShell title="Selamat datang kembali" subtitle="Masuk untuk memantau reservasi dan pembayaranmu.">
+      <AuthForm mode="masuk" next={dest} />
     </AuthShell>
   );
 }

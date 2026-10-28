@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { count } from "drizzle-orm";
 import {
@@ -69,92 +70,9 @@ function ReservationRowItem({ r, showCustomer }: { r: ReservationView; showCusto
 export default async function DashboardPage() {
   const user = await requireUser();
   const isAdmin = user.role === "admin";
-  const all = await getReservations(isAdmin ? {} : { userId: user.id });
-
-  if (!isAdmin) {
-    const today = todayISO();
-    const upcoming = all
-      .filter((r) => r.status === "dikonfirmasi" && r.checkOut >= today)
-      .sort((a, b) => a.checkIn.localeCompare(b.checkIn))[0];
-    const needPay = all.filter((r) => r.status === "menunggu_pembayaran");
-    return (
-      <div>
-        <PageHeader
-          title={`Halo, ${user.name.split(" ")[0]} 👋`}
-          description="Pantau reservasi dan pembayaran Anda di sini."
-          action={
-            <Link href="/dashboard/reservasi/baru" className="btn btn-primary">
-              <PlusCircle className="size-4" /> Reservasi Baru
-            </Link>
-          }
-        />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Stat icon={CalendarCheck} label="Total reservasi" value={all.length} />
-          <Stat icon={Wallet} label="Perlu dibayar" value={needPay.length} tone="gold" hint="Menunggu bukti transfer" />
-          <Stat icon={Clock} label="Menunggu konfirmasi" value={all.filter((r) => r.status === "menunggu_konfirmasi").length} tone="sky" />
-          <Stat icon={TrendingUp} label="Terkonfirmasi" value={all.filter((r) => r.status === "dikonfirmasi").length} />
-        </div>
-
-        {needPay.length > 0 && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold-200 bg-gold-50 p-4">
-            <p className="text-sm text-gold-700">
-              <strong>{needPay.length} reservasi</strong> menunggu pembayaran. Selesaikan transfer dan unggah bukti agar segera dikonfirmasi.
-            </p>
-            <Link href="/dashboard/reservasi" className="btn btn-gold btn-sm">Bayar sekarang</Link>
-          </div>
-        )}
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          <section className="card overflow-hidden lg:col-span-2">
-            <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
-              <h2 className="font-semibold text-forest-900">Reservasi terbaru</h2>
-              <Link href="/dashboard/reservasi" className="text-sm font-semibold text-forest-700 hover:underline">Lihat semua</Link>
-            </div>
-            {all.length === 0 ? (
-              <div className="p-5">
-                <EmptyState
-                  icon={<CalendarCheck className="size-7" />}
-                  title="Belum ada reservasi"
-                  description="Mulai dengan menjelajahi tur 360° lalu pilih kamar atau meja favorit Anda."
-                  action={<Link href="/dashboard/reservasi/baru" className="btn btn-primary">Buat reservasi pertama</Link>}
-                />
-              </div>
-            ) : (
-              <ul className="divide-y divide-stone-100">{all.slice(0, 5).map((r) => <ReservationRowItem key={r.id} r={r} />)}</ul>
-            )}
-          </section>
-          <section className="space-y-4">
-            <div className="card overflow-hidden">
-              <div className="border-b border-stone-100 px-5 py-4">
-                <h2 className="font-semibold text-forest-900">Kunjungan berikutnya</h2>
-              </div>
-              {upcoming ? (
-                <div className="p-5">
-                  <p className="font-display text-lg font-semibold text-forest-900">{upcoming.unit.name}</p>
-                  <p className="mt-1 flex items-center gap-2 text-sm text-stone-600">
-                    <CalendarClock className="size-4 text-gold-600" />
-                    {formatDate(upcoming.checkIn)}
-                    {upcoming.checkOut !== upcoming.checkIn && ` – ${formatDate(upcoming.checkOut)}`}
-                  </p>
-                  <p className="mt-2 text-xs text-stone-500">Kode: <span className="font-mono font-semibold">{upcoming.code}</span></p>
-                </div>
-              ) : (
-                <p className="p-5 text-sm text-stone-500">Belum ada kunjungan terkonfirmasi.</p>
-              )}
-            </div>
-            <Link href="/tur" className="card group relative flex items-center gap-4 overflow-hidden bg-forest-900 p-5 text-white">
-              <span className="grid size-12 place-items-center rounded-xl bg-white/10 text-gold-300"><View className="size-6" /></span>
-              <div className="flex-1">
-                <p className="font-semibold">Jelajahi tur 360°</p>
-                <p className="text-xs text-white/60">Lihat area resort sebelum datang</p>
-              </div>
-              <ArrowRight className="size-5 transition group-hover:translate-x-1" />
-            </Link>
-          </section>
-        </div>
-      </div>
-    );
-  }
+  // Pelanggan memakai area /akun yang mobile-friendly.
+  if (!isAdmin) redirect("/akun");
+  const all = await getReservations();
 
   // ---- Admin ----
   const [[{ c: customerCount }], [{ c: unitCount }], [{ c: sceneCount }]] = await Promise.all([

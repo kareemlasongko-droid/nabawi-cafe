@@ -17,7 +17,7 @@ import {
   View,
   X,
 } from "lucide-react";
-import { Logo } from "@/components/SiteHeader";
+import Logo from "@/components/Logo";
 import { apiFetch, Spinner } from "@/components/ui";
 
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; badge?: number; external?: boolean };
@@ -66,9 +66,9 @@ export default function DashboardShell({
         {
           title: "Menu Utama",
           items: [
-            { href: "/dashboard", label: "Ringkasan", icon: LayoutDashboard, exact: true },
-            { href: "/dashboard/reservasi", label: "Reservasi Saya", icon: CalendarCheck, badge: pending },
-            { href: "/dashboard/reservasi/baru", label: "Reservasi Baru", icon: PlusCircle },
+            { href: "/akun", label: "Akun Saya", icon: LayoutDashboard, exact: true },
+            { href: "/akun/reservasi", label: "Reservasi Saya", icon: CalendarCheck, badge: pending },
+            { href: "/reservasi", label: "Reservasi Baru", icon: PlusCircle },
           ],
         },
         {
@@ -78,7 +78,7 @@ export default function DashboardShell({
             { href: "/", label: "Halaman Utama", icon: Globe, external: true },
           ],
         },
-        { title: "Akun", items: [{ href: "/dashboard/profil", label: "Profil Saya", icon: UserCircle }] },
+        { title: "Akun", items: [{ href: "/akun", label: "Profil Saya", icon: UserCircle }] },
       ];
 
   const isActive = (i: NavItem) => {
@@ -90,7 +90,7 @@ export default function DashboardShell({
   async function logout() {
     setLoggingOut(true);
     await apiFetch("/api/auth/logout", "POST").catch(() => undefined);
-    router.push("/masuk");
+    router.push("/");
     router.refresh();
   }
 

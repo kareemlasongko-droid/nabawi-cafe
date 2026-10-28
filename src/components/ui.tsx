@@ -41,7 +41,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={{ toast }}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex flex-col items-center gap-2 px-4 sm:items-end sm:px-6">
+      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[100] lg:bottom-4 flex flex-col items-center gap-2 px-4 sm:items-end sm:px-6">
         {items.map((t) => (
           <div
             key={t.id}
@@ -93,10 +93,11 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true">
       <div className="fade-in absolute inset-0 bg-forest-950/50 backdrop-blur-[2px]" onClick={onClose} />
       <div
-        className={`pop-in relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl ${
+        className={`modal-panel relative flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl ${
           wide ? "sm:max-w-3xl" : "sm:max-w-lg"
         }`}
       >
+        <span className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-stone-300 sm:hidden" />
         <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
           <h2 className="font-display text-lg font-semibold text-forest-900">{title}</h2>
           <button onClick={onClose} className="btn btn-ghost btn-sm !p-1.5" aria-label="Tutup">

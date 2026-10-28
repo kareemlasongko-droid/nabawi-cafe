@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import ProfileForm from "@/components/ProfileForm";
 import { PageHeader } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
@@ -8,6 +9,7 @@ export const metadata: Metadata = { title: "Profil" };
 
 export default async function ProfilePage() {
   const user = await requireUser();
+  if (user.role !== "admin") redirect("/akun");
   return (
     <div>
       <PageHeader title="Profil Saya" description="Perbarui data diri dan kata sandi akun Anda." />
