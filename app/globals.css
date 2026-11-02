@@ -85,12 +85,14 @@
 }
 
 /* Kartu putih dengan bayangan lembut + "ekor" mengarah ke ilustrasi.
-   Ekor dibuat sebagai ::before di belakang konten kartu (z-index negatif),
-   jadi tidak pernah menimpa tombol. Ganti posisi lewat --tail-x. */
+   Ekor dibuat sebagai segitiga (clip-path) yang SELURUHNYA berada di bawah
+   kartu, jadi secara geometri tidak mungkin menimpa tombol berapa pun DPR-nya.
+   Geser posisi horizontal lewat --tail-x. */
 @utility speech-card {
   --tail-x: 38%;
+  --tail-w: 2.7rem;
+  --tail-h: 1.05rem;
   position: relative;
-  isolation: isolate; /* stacking context sendiri, supaya ekor bisa di belakang tombol */
   background-color: var(--color-cream-50);
   border-radius: 1.75rem;
   box-shadow:
@@ -102,15 +104,14 @@
     content: "";
     position: absolute;
     left: var(--tail-x);
-    bottom: -0.75rem;
-    width: 2.35rem;
-    height: 2.35rem;
+    /* hanya 1px masuk ke dalam kartu supaya tidak ada celah sambungan */
+    bottom: calc(var(--tail-h) * -1 + 1px);
+    width: var(--tail-w);
+    height: calc(var(--tail-h) + 1px);
     translate: -50% 0;
-    rotate: 45deg;
-    border-radius: 0.35rem;
     background-color: var(--color-cream-50);
-    box-shadow: 8px 8px 22px -12px rgb(20 35 26 / 0.45);
-    z-index: -1;
+    clip-path: polygon(50% 100%, 0 0, 100% 0);
+    filter: drop-shadow(0 5px 4px rgb(20 35 26 / 0.18));
   }
 }
 
