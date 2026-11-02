@@ -14,7 +14,7 @@ export function HeroCard({ onStart }: HeroCardProps) {
       <div className="flex items-start gap-[0.7rem]">
         <Image
           src="/images/logo-nabawi.png"
-          alt="Logo Nabawi Cafe and Resto"
+          alt="Logo Nabawi Cafe &amp; Resto"
           width={100}
           height={100}
           priority
@@ -22,7 +22,7 @@ export function HeroCard({ onStart }: HeroCardProps) {
         />
         <div className="min-w-0">
           <h1 className="text-[0.95rem] leading-[1.15] font-extrabold tracking-[-0.015em] text-ink-900">
-            Nabawi Cafe and Resto
+            Nabawi Cafe &amp; Resto
           </h1>
           <p className="mt-[0.3rem] text-[0.66rem] leading-[1.35] text-ink-700">
             Cafe and Resto berkonsep Maroko
@@ -53,7 +53,7 @@ export function HeroCard({ onStart }: HeroCardProps) {
         className="group mt-[0.9rem] flex w-full items-center justify-center gap-[0.5rem] rounded-[0.7rem] bg-clay-600 py-[0.9rem] pr-[0.9rem] pl-[1.05rem] text-cream-50 shadow-[0_10px_20px_-10px_rgba(122,51,22,0.9),inset_0_1px_0_rgba(255,255,255,0.18)] transition-transform duration-150 ease-out active:scale-[0.975] active:bg-clay-700"
       >
         <span className="text-[1.12rem] leading-none font-extrabold tracking-[-0.01em]">
-          Start Journey
+          Mulai menjelajah
         </span>
         <CoffeeCup className="size-[1.45rem] shrink-0 text-cream-50" />
       </button>

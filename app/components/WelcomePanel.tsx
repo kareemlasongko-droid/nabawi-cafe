@@ -44,7 +44,7 @@ export function WelcomePanel({ onClose }: WelcomePanelProps) {
           <div className="flex items-center gap-3">
             <Image
               src="/images/logo-nabawi.png"
-              alt="Logo Nabawi Cafe and Resto"
+              alt="Logo Nabawi Cafe &amp; Resto"
               width={100}
               height={100}
               className="size-[2.9rem] shrink-0 rounded-full"
