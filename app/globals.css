@@ -1,0 +1,126 @@
+/* ─────────────────────────────────────────────
+   Nabawi Cafe and Resto — mobile-only landing
+   Palet warna diambil dari referensi desain
+   ───────────────────────────────────────────── */
+@import "tailwindcss";
+
+@theme {
+  /* Hijau hutan */
+  --color-forest-950: #14231a;
+  --color-forest-900: #1b3325;
+  --color-forest-700: #2f5a3c;
+  --color-forest-500: #4c7d52;
+
+  /* Krem & gading */
+  --color-cream-50: #fffdf8;
+  --color-cream-100: #fbf3e2;
+  --color-cream-200: #f3e4c8;
+  --color-cream-300: #e8d3ae;
+
+  /* Terracotta / rust (tombol utama) */
+  --color-clay-600: #b4502c;
+  --color-clay-700: #96401f;
+  --color-clay-800: #7a3316;
+
+  /* Mint (badge jam buka) */
+  --color-mint-100: #e2f4dc;
+  --color-mint-400: #8fcf7e;
+  --color-mint-600: #4f9b45;
+  --color-mint-700: #3e7c37;
+
+  /* Tinta teks */
+  --color-ink-900: #2b2118;
+  --color-ink-700: #4f4337;
+  --color-ink-500: #7b6d5e;
+
+  --font-display: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
+
+  /* Animasi */
+  --animate-rise: rise-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade: fade-in 420ms ease both;
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-forest-950);
+    color: var(--color-ink-900);
+    font-family: var(--font-display);
+  }
+
+  ::selection {
+    background-color: var(--color-clay-600);
+    color: var(--color-cream-50);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-cream-100);
+    outline-offset: 3px;
+  }
+}
+
+/* Kartu putih dengan bayangan lembut + "ekor" mengarah ke ilustrasi.
+   Ekor dibuat sebagai segitiga (clip-path) yang SELURUHNYA berada di bawah
+   kartu, jadi secara geometri tidak mungkin menimpa tombol berapa pun DPR-nya.
+   Geser posisi horizontal lewat --tail-x. */
+@utility speech-card {
+  --tail-x: 38%;
+  --tail-w: 2.7rem;
+  --tail-h: 1.05rem;
+  position: relative;
+  background-color: var(--color-cream-50);
+  border-radius: 1.75rem;
+  box-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.9) inset,
+    0 22px 48px -20px rgb(20 35 26 / 0.55),
+    0 6px 18px -8px rgb(20 35 26 / 0.35);
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: var(--tail-x);
+    /* hanya 1px masuk ke dalam kartu supaya tidak ada celah sambungan */
+    bottom: calc(var(--tail-h) * -1 + 1px);
+    width: var(--tail-w);
+    height: calc(var(--tail-h) + 1px);
+    translate: -50% 0;
+    background-color: var(--color-cream-50);
+    clip-path: polygon(50% 100%, 0 0, 100% 0);
+    filter: drop-shadow(0 5px 4px rgb(20 35 26 / 0.18));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
