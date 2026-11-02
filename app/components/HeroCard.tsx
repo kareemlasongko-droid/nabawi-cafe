@@ -1,6 +1,7 @@
 "use client";
 
-import { CalendarCheck, LogoNabawi, SalatMark } from "./icons";
+import Image from "next/image";
+import { CalendarCheck, CoffeeCup } from "./icons";
 
 type HeroCardProps = {
   onStart: () => void;
@@ -11,7 +12,14 @@ export function HeroCard({ onStart }: HeroCardProps) {
     <div className="animate-rise speech-card mr-auto ml-[9%] w-[73%] max-w-[19.5rem] px-[1.1rem] pt-[1.05rem] pb-[1.25rem]">
       {/* identitas cafe */}
       <div className="flex items-start gap-[0.7rem]">
-        <LogoNabawi className="mt-[0.1rem] size-[2.9rem] shrink-0" />
+        <Image
+          src="/images/logo-nabawi.png"
+          alt="Logo Nabawi Cafe and Resto"
+          width={100}
+          height={100}
+          priority
+          className="mt-[0.1rem] size-[2.9rem] shrink-0 rounded-full"
+        />
         <div className="min-w-0">
           <h1 className="text-[0.95rem] leading-[1.15] font-extrabold tracking-[-0.015em] text-ink-900">
             Nabawi Cafe and Resto
@@ -47,7 +55,7 @@ export function HeroCard({ onStart }: HeroCardProps) {
         <span className="text-[1.12rem] leading-none font-extrabold tracking-[-0.01em]">
           Start Journey
         </span>
-        <SalatMark className="size-[1.3rem] shrink-0 text-cream-100 transition-transform duration-300 ease-out group-hover:rotate-[-6deg]" />
+        <CoffeeCup className="size-[1.45rem] shrink-0 text-cream-50" />
       </button>
     </div>
   );

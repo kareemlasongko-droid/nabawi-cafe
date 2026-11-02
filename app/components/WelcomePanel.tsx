@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ArrowLeft, LogoNabawi } from "./icons";
+import Image from "next/image";
+import { ArrowLeft } from "./icons";
 
 type WelcomePanelProps = {
   onClose: () => void;
@@ -41,7 +42,13 @@ export function WelcomePanel({ onClose }: WelcomePanelProps) {
           className="animate-rise w-full rounded-[1.75rem] bg-cream-50 p-[1.4rem] shadow-[0_-10px_60px_-20px_rgba(20,35,26,0.65)]"
         >
           <div className="flex items-center gap-3">
-            <LogoNabawi className="size-[2.9rem] shrink-0" />
+            <Image
+              src="/images/logo-nabawi.png"
+              alt="Logo Nabawi Cafe and Resto"
+              width={100}
+              height={100}
+              className="size-[2.9rem] shrink-0 rounded-full"
+            />
             <div>
               <p className="font-mono text-[0.6rem] tracking-[0.18em] text-ink-500 uppercase">
                 Selamat datang di
