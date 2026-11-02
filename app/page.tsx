@@ -21,7 +21,7 @@ export default function HomePage() {
           fill
           priority
           sizes="(max-width: 430px) 100vw, 430px"
-          className="object-cover object-[50%_42%]"
+          className="object-cover object-center"
         />
 
         {/* Lapisan kontras lembut supaya kartu & teks selalu terbaca */}
