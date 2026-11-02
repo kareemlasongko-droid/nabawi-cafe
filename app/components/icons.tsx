@@ -42,25 +42,25 @@ export function LogoNabawi({ className, ...props }: IconProps) {
   );
 }
 
-/** Ikon kalender + centang di badge jam buka */
+/** Ikon kalender (gaya "Setiap Hari" di badge jam buka) */
 export function CalendarCheck({ className, ...props }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className} {...props}>
-      <rect x="3" y="4.5" width="18" height="16.5" rx="4" fill="currentColor" />
-      <path d="M3 9.6h18" stroke="var(--color-mint-100)" strokeWidth="1.6" />
+      <rect x="3" y="4.6" width="18" height="16.4" rx="3.6" fill="currentColor" />
+      <path d="M3 9.7h18" stroke="var(--color-mint-100)" strokeWidth="1.7" />
       <path
-        d="M7.8 2.9v3.2M16.2 2.9v3.2"
+        d="M7.9 2.8v3.4M16.1 2.8v3.4"
         stroke="currentColor"
-        strokeWidth="1.9"
+        strokeWidth="2"
         strokeLinecap="round"
       />
-      <path
-        d="m8.7 15 2.3 2.3 4.4-4.5"
-        stroke="var(--color-mint-100)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      {/* titik-titik tanggal */}
+      <circle cx="7.7" cy="13.5" r="1.15" fill="var(--color-mint-100)" />
+      <circle cx="12" cy="13.5" r="1.15" fill="var(--color-mint-100)" />
+      <circle cx="16.3" cy="13.5" r="1.15" fill="var(--color-mint-100)" />
+      <circle cx="7.7" cy="17.3" r="1.15" fill="var(--color-mint-100)" />
+      <circle cx="12" cy="17.3" r="1.15" fill="var(--color-mint-100)" />
+      <circle cx="16.3" cy="17.3" r="1.15" fill="var(--color-mint-100)" />
     </svg>
   );
 }
