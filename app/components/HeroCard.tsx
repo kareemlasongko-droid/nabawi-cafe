@@ -48,7 +48,7 @@ export function HeroCard({ onStart }: HeroCardProps) {
       </button>
 
       {/* ekor kartu mengarah ke ilustrasi */}
-      <span aria-hidden="true" className="speech-tail bottom-[-0.75rem] left-[38%]" />
+      <span aria-hidden="true" className="speech-tail bottom-[-0.75rem] left-[38%] -z-10" />
     </div>
   );
 }

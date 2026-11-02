@@ -87,6 +87,7 @@
 /* Kartu putih dengan bayangan lembut + "ekor" mengarah ke ilustrasi */
 @utility speech-card {
   position: relative;
+  isolation: isolate; /* stacking context sendiri, supaya ekor bisa di belakang tombol */
   background-color: var(--color-cream-50);
   border-radius: 1.75rem;
   box-shadow:
