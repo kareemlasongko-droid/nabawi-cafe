@@ -84,8 +84,11 @@
   }
 }
 
-/* Kartu putih dengan bayangan lembut + "ekor" mengarah ke ilustrasi */
+/* Kartu putih dengan bayangan lembut + "ekor" mengarah ke ilustrasi.
+   Ekor dibuat sebagai ::before di belakang konten kartu (z-index negatif),
+   jadi tidak pernah menimpa tombol. Ganti posisi lewat --tail-x. */
 @utility speech-card {
+  --tail-x: 38%;
   position: relative;
   isolation: isolate; /* stacking context sendiri, supaya ekor bisa di belakang tombol */
   background-color: var(--color-cream-50);
@@ -94,17 +97,21 @@
     0 1px 0 0 rgb(255 255 255 / 0.9) inset,
     0 22px 48px -20px rgb(20 35 26 / 0.55),
     0 6px 18px -8px rgb(20 35 26 / 0.35);
-}
 
-/* "Ekor" kartu: diposisikan lewat utility Tailwind di komponennya */
-@utility speech-tail {
-  position: absolute;
-  width: 2.35rem;
-  height: 2.35rem;
-  rotate: 45deg;
-  border-radius: 0.35rem;
-  background-color: var(--color-cream-50);
-  box-shadow: 8px 8px 22px -12px rgb(20 35 26 / 0.45);
+  &::before {
+    content: "";
+    position: absolute;
+    left: var(--tail-x);
+    bottom: -0.75rem;
+    width: 2.35rem;
+    height: 2.35rem;
+    translate: -50% 0;
+    rotate: 45deg;
+    border-radius: 0.35rem;
+    background-color: var(--color-cream-50);
+    box-shadow: 8px 8px 22px -12px rgb(20 35 26 / 0.45);
+    z-index: -1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

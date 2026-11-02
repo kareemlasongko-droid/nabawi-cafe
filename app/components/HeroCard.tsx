@@ -46,9 +46,6 @@ export function HeroCard({ onStart }: HeroCardProps) {
         </span>
         <SalatMark className="size-[1.15rem] text-cream-100 transition-transform duration-300 ease-out group-hover:rotate-[-6deg]" />
       </button>
-
-      {/* ekor kartu mengarah ke ilustrasi */}
-      <span aria-hidden="true" className="speech-tail bottom-[-0.75rem] left-[38%] -z-10" />
     </div>
   );
 }
