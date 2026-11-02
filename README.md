@@ -1,6 +1,6 @@
-# Nabawi Cafe and Resto
+# Nabawi Cafe & Resto
 
-Landing page **mobile-only** untuk Nabawi Cafe and Resto — cafe & resto berkonsep Maroko
+Landing page **mobile-only** untuk Nabawi Cafe & Resto — cafe & resto berkonsep Maroko
 dengan pemandangan sungai (*nature escape riverside view & play*).
 
 Dibangun dengan **Next.js 16 (App Router) + Tailwind CSS v4 + TypeScript**.
@@ -30,8 +30,8 @@ tetap **430px** yang diletakkan di tengah layar. Di desktop pun tampilannya teta
 layar HP (dengan latar hijau tua di sisi kiri–kanan). Tidak ada breakpoint sama sekali.
 
 - Ilustrasi penuh layar sebagai latar
-- Kartu putih *floating* berisi identitas cafe, jam buka, dan tombol **Start Journey**
-- Tombol **Start Journey** memunculkan panel sambutan: *“Selamat datang di Nabawi Cafe & Resto”*
+- Kartu putih *floating* berisi identitas cafe, jam buka, dan tombol **Mulai menjelajah**
+- Tombol **Mulai menjelajah** memunculkan panel sambutan: *“Selamat datang di Nabawi Cafe & Resto”*
 
 ## Struktur
 

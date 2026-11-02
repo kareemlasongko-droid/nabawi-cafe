@@ -5,12 +5,12 @@ import "@fontsource/space-mono/700.css";
 import "./globals.css";
 
 export const metadata = {
-  title: "Nabawi Cafe and Resto — Nature escape riverside view & play",
+  title: "Nabawi Cafe & Resto — Nature escape riverside view & play",
   description:
     "Cafe and Resto berkonsep Maroko. Nature escape riverside view & play. Buka setiap hari 09.00 – 21.00.",
-  applicationName: "Nabawi Cafe and Resto",
+  applicationName: "Nabawi Cafe & Resto",
   openGraph: {
-    title: "Nabawi Cafe and Resto",
+    title: "Nabawi Cafe & Resto",
     description:
       "Cafe and Resto berkonsep Maroko — Nature escape riverside view & play.",
     type: "website",
