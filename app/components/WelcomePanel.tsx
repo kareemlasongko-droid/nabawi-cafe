@@ -1,48 +1,36 @@
-"use client";
-
-import { useEffect, useRef } from "react";
-import Image from "next/image";
-import { ArrowLeft } from "./icons";
-
-type WelcomePanelProps = {
-  onClose: () => void;
-};
-
-export function WelcomePanel({ onClose }: WelcomePanelProps) {
-  const closeRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    closeRef.current?.focus();
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [onClose]);
-
+/**
+ * Panel sambutan berbasis CSS murni.
+ *
+ * Mekanismenya: anchor #selamat-datang pada tombol "Mulai menjelajah" membuat
+ * elemen ini cocok dengan selector :target, lalu panel tampil. Tombol tutup
+ * mengarah ke #hero sehingga :target tidak lagi cocok.
+ *
+ * Tidak ada state React, tidak ada event handler — jadi tetap berfungsi
+ * di browser yang gagal menjalankan JavaScript.
+ */
+export function WelcomePanel() {
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-center bg-forest-950/55 backdrop-blur-[3px] animate-fade"
-      onClick={onClose}
+      id="selamat-datang"
+      className="fixed inset-0 z-50 flex justify-center bg-forest-950/55"
     >
-      <div className="flex w-full max-w-[26.875rem] items-end px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <a
+        href="#hero"
+        aria-label="Tutup panel sambutan"
+        className="absolute inset-0 cursor-default"
+      />
+
+      {/* pointer-events-none membuat area gelap di luar kartu meneruskan tap ke
+          tautan overlay di atas; kartu sendiri diaktifkan kembali. */}
+      <div className="pointer-events-none relative flex w-full max-w-[26.875rem] items-end px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <div
           role="dialog"
-          aria-modal="true"
           aria-labelledby="welcome-title"
-          onClick={(event) => event.stopPropagation()}
-          className="animate-rise w-full rounded-[1.75rem] bg-cream-50 p-[1.4rem] shadow-[0_-10px_60px_-20px_rgba(20,35,26,0.65)]"
+          className="pointer-events-auto animate-rise relative w-full rounded-[1.75rem] bg-cream-50 p-[1.4rem] shadow-[0_-10px_60px_-20px_rgba(20,35,26,0.65)]"
         >
           <div className="flex items-center gap-3">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src="/images/logo-nabawi.png"
               alt="Logo Nabawi Cafe &amp; Resto"
               width={100}
@@ -73,15 +61,26 @@ export function WelcomePanel({ onClose }: WelcomePanelProps) {
             sungai, dan ruang bermain untuk keluarga.
           </p>
 
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={onClose}
+          <a
+            href="#hero"
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-[0.7rem] border border-cream-300 bg-cream-100 py-[0.7rem] text-[0.85rem] font-bold text-ink-900 transition-colors duration-150 active:bg-cream-200"
           >
-            <ArrowLeft className="size-[1.05rem]" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+              className="size-[1.05rem]"
+            >
+              <path
+                d="M14.5 6.5 9 12l5.5 5.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             Kembali
-          </button>
+          </a>
         </div>
       </div>
     </div>

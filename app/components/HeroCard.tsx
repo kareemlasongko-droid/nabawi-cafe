@@ -1,13 +1,12 @@
-"use client";
-
 import Image from "next/image";
 import { CalendarCheck, CoffeeCup } from "./icons";
 
-type HeroCardProps = {
-  onStart: () => void;
-};
-
-export function HeroCard({ onStart }: HeroCardProps) {
+/**
+ * Kartu hero. Sengaja TANPA JavaScript: tombol utama adalah <a href="#selamat-datang">
+ * sehingga tetap berfungsi di browser yang gagal menjalankan React
+ * (mis. Safari iOS 15 pada iPhone 7).
+ */
+export function HeroCard() {
   return (
     <div className="animate-rise speech-card mr-auto ml-[9%] w-[73%] max-w-[19.5rem] px-[1.1rem] pt-[1.05rem] pb-[1.25rem]">
       {/* identitas cafe */}
@@ -46,17 +45,16 @@ export function HeroCard({ onStart }: HeroCardProps) {
         </span>
       </p>
 
-      {/* tombol utama */}
-      <button
-        type="button"
-        onClick={onStart}
-        className="group mt-[0.9rem] flex w-full items-center justify-center gap-[0.5rem] rounded-[0.7rem] bg-clay-600 py-[0.9rem] pr-[0.9rem] pl-[1.05rem] text-cream-50 shadow-[0_10px_20px_-10px_rgba(122,51,22,0.9),inset_0_1px_0_rgba(255,255,255,0.18)] transition-transform duration-150 ease-out active:scale-[0.975] active:bg-clay-700"
+      {/* tombol utama: tautan biasa, tidak butuh JS */}
+      <a
+        href="#selamat-datang"
+        className="mt-[0.8rem] flex w-full items-center justify-center gap-[0.4rem] rounded-[0.7rem] bg-clay-600 px-[0.8rem] py-[0.72rem] text-cream-50 shadow-[0_8px_16px_-8px_rgba(122,51,22,0.85),inset_0_1px_0_rgba(255,255,255,0.18)] transition-transform duration-150 ease-out active:scale-[0.975] active:bg-clay-700"
       >
-        <span className="text-[1.12rem] leading-none font-extrabold tracking-[-0.01em]">
+        <span className="text-[0.88rem] leading-none font-bold tracking-[-0.005em]">
           Mulai menjelajah
         </span>
-        <CoffeeCup className="size-[1.45rem] shrink-0 text-cream-50" />
-      </button>
+        <CoffeeCup className="size-[1.05rem] shrink-0 text-cream-50" />
+      </a>
     </div>
   );
 }
