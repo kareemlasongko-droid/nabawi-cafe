@@ -35,12 +35,24 @@ export default function FiturPage() {
           className="object-cover object-center"
         />
 
-        {/* Gradasi bawah → atas, senada dengan beranda. Bagian atas dibiarkan
-            bening supaya langit dan bangunan tetap terlihat utuh; bagian bawah
-            dibuat lebih pekat agar teks putih selalu terbaca. */}
+        {/* Overlay rata 30% di seluruh ilustrasi (diminta). Sebelumnya
+            berupa gradasi yang menebal ke bawah; sekarang opacity-nya
+            seragam sehingga seluruh latar sedikit diredupkan tanpa
+            menggelapkan bagian bawah.
+
+            Warna memakai forest-950 (token yang sama dengan beranda) dan
+            ditulis rgba langsung supaya angkanya terbaca jelas di kode.
+
+            Keterbacaan teks bawah dibantu lapisan gradasi tipis terpisah,
+            maksimal 45%, agar teks putih tidak hilang di atas paving
+            yang terang. */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(to_top,rgba(20,35,26,0.72)_0%,rgba(20,35,26,0.52)_18%,rgba(20,35,26,0.22)_38%,rgba(20,35,26,0)_62%)]"
+          className="absolute inset-0 bg-[rgba(20,35,26,0.30)]"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-[42%] bg-[linear-gradient(to_top,rgba(20,35,26,0.45)_0%,rgba(20,35,26,0.22)_45%,rgba(20,35,26,0)_100%)]"
         />
 
         <div className="relative flex min-h-dvh flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
