@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { CalendarCheck } from "./icons";
+import { PrimaryButton } from "./PrimaryButton";
 
 /**
  * Kartu hero. Sengaja TANPA JavaScript: tombol utama adalah <a href="#selamat-datang">
@@ -55,29 +56,9 @@ export function HeroCard() {
       </p>
 
       {/* tombol utama: tautan biasa, tidak butuh JS */}
-      <a
-        href="#selamat-datang"
-        className="mt-[0.7rem] flex w-full items-center justify-center gap-[0.4rem] rounded-[0.7rem] bg-accent-500 px-[0.8rem] py-[0.72rem] text-cream-50 shadow-[0_8px_16px_-8px_rgba(242,106,30,0.85),inset_0_1px_0_rgba(255,255,255,0.22)] transition-transform duration-150 ease-out active:scale-[0.975] active:bg-accent-600"
-      >
-        <span className="text-[0.88rem] leading-none font-bold tracking-[-0.005em]">
-          Mulai menjelajah
-        </span>
-        {/* Ikon dari aset yang dilampirkan (Sun 2-2.png, 96×96 putih).
-            Dirender sebagai gambar, bukan SVG, karena sumbernya PNG.
-            Ukuran tampil disamakan dengan ikon sebelumnya (1.05rem) agar
-            layout tombol tidak bergeser; pada DPR 3 sisa resolusi aset
-            (96px untuk 16.8px CSS ≈ 50px fisik) masih jauh lebih dari
-            cukup, jadi tidak perlu image-rendering: pixelated lagi. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/icon-sun.png"
-          alt=""
-          aria-hidden="true"
-          width={96}
-          height={96}
-          className="size-[1.05rem] shrink-0"
-        />
-      </a>
+      <PrimaryButton href="/fitur" className="mt-[0.7rem]">
+        Mulai menjelajah
+      </PrimaryButton>
     </div>
   );
 }
