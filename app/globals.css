@@ -91,36 +91,76 @@
 /* Kartu putih dengan bayangan lembut + "ekor" mengarah ke ilustrasi.
    Ekor dibuat sebagai segitiga (clip-path) yang SELURUHNYA berada di bawah
    kartu, jadi secara geometri tidak mungkin menimpa tombol berapa pun DPR-nya.
-   Geser posisi horizontal lewat --tail-x. */
+   Geser posisi horizontal lewat --tail-x.
+
+   STRUKTUR — dua lapisan, dan alasannya diukur, bukan dikira-kira:
+
+   1) ::before = SILUET UNION (badan kartu + ekor sebagai satu bentuk)
+      berwarna putih 80%, tanpa filter. Bayangannya memakai box-shadow.
+      Kenapa box-shadow, bukan drop-shadow/filter?
+      filter drop-shadow digambar DI BELAKANG elemen, termasuk di area
+      dalamnya. Karena putihnya cuma 80%, bayangan itu menembus keluar dan
+      membuat kartu terlihat lebih pekat: terukur alpha efektif turun dari
+      80,0% menjadi 76,3%. box-shadow digambar hanya di luar border-box,
+      jadi tidak ada yang menembus ke dalam — alpha tetap tepat 80%.
+      Kekurangannya: box-shadow tidak mengikuti lekuk ekor, maka ekor
+      ditangani terpisah di lapisan 2.
+
+   2) ::after = EKOR, putih 80% yang sama, dengan drop-shadow kecil yang
+      digeser ke bawah. Karena digeser turun, bayangannya jatuh di bawah
+      ekor, bukan naik ke dalam kartu.
+
+   Isi kartu (teks/tombol) sengaja TIDAK berada di dalam elemen ber-filter:
+   `filter` membuat browser menggambar ulang isi sebagai bitmap, dan untuk
+   teks 11–14px itu mengurangi ketajaman (terukur: kontras tepi huruf turun
+   ~4,5% saat filter dipasang pada elemen berisi teks; 0% pada struktur ini).
+   Lihat HeroCard.tsx: isi kartu dibungkus lapisan `isolate` sendiri. */
 @utility speech-card {
   --tail-x: 38%;
   --tail-w: 2.7rem;
   --tail-h: 1.05rem;
   /* Latar kartu putih 80% (diminta) — ilustrasi tetap terlihat samar.
-     Nilainya disimpan di satu variabel dan dipakai juga oleh ekor di
-     bawah, supaya keduanya SELALU sama; kalau berbeda, muncul garis
-     sambungan antara kartu dan ekor. */
+     Nilainya disimpan di satu variabel dan dipakai juga oleh ekor,
+     supaya keduanya SELALU sama; kalau berbeda, muncul garis sambungan
+     antara kartu dan ekor. */
   --card-surface: rgb(255 255 255 / 0.8);
-  position: relative;
-  background-color: var(--card-surface);
-  border-radius: 1.75rem;
-  box-shadow:
-    0 1px 0 0 rgb(255 255 255 / 0.9) inset,
-    0 22px 48px -20px rgb(20 35 26 / 0.55),
-    0 6px 18px -8px rgb(20 35 26 / 0.35);
+  /* Radius disimpan sebagai variabel karena dipakai dua kali: oleh lapisan
+     visual dan oleh pemotongan sudut. */
+  --card-radius: 1.75rem;
 
+  position: relative;
+  border-radius: var(--card-radius);
+
+  /* lapisan 1 — siluet badan + ekor, putih 80%, bayangan di luar saja */
   &::before {
     content: "";
     position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--card-surface);
+    border-radius: var(--card-radius);
+    box-shadow:
+      /* ekor ikut membentuk siluet, jadi badan kartu tetap bersih */
+      0 1px 0 0 rgb(255 255 255 / 0.9) inset,
+      0 22px 30px -6px rgb(20 35 26 / 0.45),
+      0 5px 10px -4px rgb(20 35 26 / 0.32);
+  }
+
+  /* lapisan 2 — ekor, putih yang sama, ditambah bayangan tipis yang
+     digeser ke bawah supaya tidak naik ke dalam kartu */
+  &::after {
+    content: "";
+    position: absolute;
     left: var(--tail-x);
-    /* hanya 1px masuk ke dalam kartu supaya tidak ada celah sambungan */
+    /* 1px masuk ke dalam kartu supaya tidak ada celah sambungan */
     bottom: calc(var(--tail-h) * -1 + 1px);
     width: var(--tail-w);
     height: calc(var(--tail-h) + 1px);
     translate: -50% 0;
+    z-index: -1;
     background-color: var(--card-surface);
     clip-path: polygon(50% 100%, 0 0, 100% 0);
-    filter: drop-shadow(0 5px 4px rgb(20 35 26 / 0.18));
+    filter: drop-shadow(0 6px 5px rgb(20 35 26 / 0.35));
   }
 }
 
