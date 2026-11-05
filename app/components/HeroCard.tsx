@@ -62,19 +62,20 @@ export function HeroCard() {
         <span className="text-[0.88rem] leading-none font-bold tracking-[-0.005em]">
           Mulai menjelajah
         </span>
-        {/* Ikon dari aset yang dilampirkan (Sun 2.png, 18×18 putih).
-            Ukuran tampil disamakan dengan ikon sebelumnya (1.05rem) dan
-            dirender sebagai gambar, bukan SVG, karena sumbernya PNG.
-            `pixelated` menjaga bentuk aslinya tetap tajam saat diperbesar
-            di layar DPR tinggi (asetnya kecil, 18px). */}
+        {/* Ikon dari aset yang dilampirkan (Sun 2-2.png, 96×96 putih).
+            Dirender sebagai gambar, bukan SVG, karena sumbernya PNG.
+            Ukuran tampil disamakan dengan ikon sebelumnya (1.05rem) agar
+            layout tombol tidak bergeser; pada DPR 3 sisa resolusi aset
+            (96px untuk 16.8px CSS ≈ 50px fisik) masih jauh lebih dari
+            cukup, jadi tidak perlu image-rendering: pixelated lagi. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/icon-sun.png"
           alt=""
           aria-hidden="true"
-          width={18}
-          height={18}
-          className="size-[1.05rem] shrink-0 [image-rendering:pixelated]"
+          width={96}
+          height={96}
+          className="size-[1.05rem] shrink-0"
         />
       </a>
     </div>
