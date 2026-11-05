@@ -92,8 +92,13 @@
   --tail-x: 38%;
   --tail-w: 2.7rem;
   --tail-h: 1.05rem;
+  /* Latar kartu putih 80% (diminta) — ilustrasi tetap terlihat samar.
+     Nilainya disimpan di satu variabel dan dipakai juga oleh ekor di
+     bawah, supaya keduanya SELALU sama; kalau berbeda, muncul garis
+     sambungan antara kartu dan ekor. */
+  --card-surface: rgb(255 255 255 / 0.8);
   position: relative;
-  background-color: var(--color-cream-50);
+  background-color: var(--card-surface);
   border-radius: 1.75rem;
   box-shadow:
     0 1px 0 0 rgb(255 255 255 / 0.9) inset,
@@ -109,7 +114,7 @@
     width: var(--tail-w);
     height: calc(var(--tail-h) + 1px);
     translate: -50% 0;
-    background-color: var(--color-cream-50);
+    background-color: var(--card-surface);
     clip-path: polygon(50% 100%, 0 0, 100% 0);
     filter: drop-shadow(0 5px 4px rgb(20 35 26 / 0.18));
   }
