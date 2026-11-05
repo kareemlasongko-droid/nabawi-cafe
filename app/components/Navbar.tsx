@@ -15,6 +15,11 @@ import Image from "next/image";
  *   ikon      grid 2×2, empat kotak 6×6 berjarak 4px = 16×16,
  *             di x350–365 (≈35px dari tepi kanan), warna sama dengan judul
  *
+ * SKALA RESPONSIF (permintaan: di HP diperkecil, di tablet penuh):
+ *   < 768px  bilah 64px, logo 44px, judul 16px, ikon 14px
+ *   >= 768px  bilah 74px, logo 53px, judul 18px, ikon 16px — yaitu ukuran
+ *             asli hasil pengukuran mockup 400x74, dipakai lagi di tablet.
+ *
  * Keempat sudut bilah membulat (baris paling atas pun sudah masuk 22px dari
  * tepi), jadi ini bilah melayang, bukan header yang menempel penuh. Mockup
  * 400px di kanvas 440px = sisa 40px, maka jarak kiri/kanan 20px. Ukuran di
@@ -39,30 +44,33 @@ function GridIcon({ className }: { className?: string }) {
 
 export function Navbar() {
   return (
-    <header className="relative z-20 px-5 pt-[max(0.75rem,env(safe-area-inset-top))]">
+    <header className="relative z-20 px-4 pt-[max(0.5rem,env(safe-area-inset-top))] tablet:px-5 tablet:pt-[max(0.75rem,env(safe-area-inset-top))]">
       <nav
         aria-label="Navigasi utama"
-        className="flex h-[4.625rem] items-center rounded-[1.75rem] bg-white/80 pl-[0.875rem] pr-[2.1875rem]"
+        className="flex h-[4rem] items-center rounded-[1.5rem] bg-white/80 pl-[0.75rem] pr-[1.5rem] tablet:h-[4.625rem] tablet:rounded-[1.75rem] tablet:pl-[0.875rem] tablet:pr-[2.1875rem]"
       >
         {/* logo + nama resto — satu tautan pulang ke beranda */}
-        <a href="/" className="flex min-w-0 items-center gap-[1.6875rem] max-[359px]:gap-[0.75rem]">
+        <a href="/" className="flex min-w-0 items-center gap-[1rem] tablet:gap-[1.6875rem]">
           <Image
             src="/images/logo-nabawi.png"
             alt="Logo Nabawi Cafe & Resto"
             width={100}
             height={100}
             priority
-            className="size-[3.3125rem] shrink-0 rounded-full max-[359px]:size-[2.5rem]"
+            className="size-[2.75rem] shrink-0 rounded-full tablet:size-[3.3125rem]"
           />
-          <span className="truncate text-[1.125rem] leading-none font-extrabold text-ink-900 max-[359px]:text-[0.9375rem]">
+          <span className="truncate text-[1rem] leading-none font-extrabold text-ink-900 tablet:text-[1.125rem]">
             Nabawi Cafe &amp; Resto
           </span>
         </a>
 
         {/* ikon grid di mockup belum punya tujuan, jadi untuk sementara
             ditampilkan sebagai penanda visual, bukan tombol mati */}
-        <span aria-hidden="true" className="ml-auto grid size-4 place-items-center text-ink-900">
-          <GridIcon className="size-4" />
+        <span
+          aria-hidden="true"
+          className="ml-auto grid size-[0.875rem] place-items-center text-ink-900 tablet:size-4"
+        >
+          <GridIcon className="size-[0.875rem] tablet:size-4" />
         </span>
       </nav>
     </header>

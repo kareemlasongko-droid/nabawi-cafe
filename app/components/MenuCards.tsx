@@ -35,6 +35,12 @@ import Image from "next/image";
  *     terlihat (halaman ini memang berlatarkan ilustrasi penuh).
  *   - kartu memakai `justify-between`: ikon menempel atas, judul dan
  *     deskripsi menempel bawah, meniru kartu desain.
+ * SKALA RESPONSIF (permintaan: di HP diperkecil, di tablet penuh):
+ *   < 768px   ikon 34px, judul 16px, deskripsi 11px, radius 20,
+ *             padding 12/16/14, tinggi kartu 120-144px
+ *   >= 768px  ikon 40px, judul 17px, deskripsi 11.5px, radius 24,
+ *             padding 14/20/16, tinggi kartu 134-160px
+ *
  *   - `min-h-[8.375rem]` (134px) = tinggi isi terukur saat teks paling
  *     panjang. Tanpa ini, menambah kartu ke-4 dan seterusnya membuat
  *     kartu menyusut sampai 71px dan teksnya terpotong tanpa terlihat
@@ -97,18 +103,18 @@ const CARDS: MenuCard[] = [
 export function MenuCards() {
   return (
     <ul
-      className="flex h-full flex-col gap-[0.75rem]"
+      className="flex h-full flex-col gap-[0.625rem] tablet:gap-[0.75rem]"
     >
       {CARDS.map((card, i) => (
         <li
           key={card.title}
           /* `card-enter` menjalankan animasi muncul; --card-delay membuat
              kartu berikutnya menyusul, jadi muncul satu per satu tanpa JS. */
-          className="card-enter flex max-h-[10rem] min-h-[8.375rem] flex-1 basis-0 flex-col"
+          className="card-enter flex max-h-[9rem] min-h-[7.5rem] flex-1 basis-0 flex-col tablet:max-h-[10rem] tablet:min-h-[8.375rem]"
           style={{ "--card-delay": `${i * 140}ms` } as React.CSSProperties}
         >
           <article
-            className={`flex h-full min-h-0 flex-col justify-between gap-[0.5rem] rounded-[1.5rem] p-[0.875rem_1.25rem_1rem] shadow-[0_14px_28px_-14px_rgba(20,35,26,0.55),0_3px_10px_-5px_rgba(20,35,26,0.35)] ${card.surface}`}
+            className={`flex h-full min-h-0 flex-col justify-between gap-[0.375rem] rounded-[1.25rem] p-[0.75rem_1rem_0.875rem] shadow-[0_14px_28px_-14px_rgba(20,35,26,0.55),0_3px_10px_-5px_rgba(20,35,26,0.35)] tablet:gap-[0.5rem] tablet:rounded-[1.5rem] tablet:p-[0.875rem_1.25rem_1rem] ${card.surface}`}
           >
             {/* baris atas: ikon kiri, penanda kanan */}
             <div className="flex items-start justify-between">
@@ -118,10 +124,10 @@ export function MenuCards() {
                 width={40}
                 height={40}
                 priority
-                className="size-[2.5rem] shrink-0"
+                className="size-[2.125rem] shrink-0 tablet:size-[2.5rem]"
               />
               <span
-                className={`rounded-full px-[0.7rem] py-[0.28rem] text-[0.6875rem] leading-none font-bold whitespace-nowrap ${card.badgeClass}`}
+                className={`rounded-full px-[0.6rem] py-[0.24rem] text-[0.625rem] leading-none font-bold whitespace-nowrap tablet:px-[0.7rem] tablet:py-[0.28rem] tablet:text-[0.6875rem] ${card.badgeClass}`}
               >
                 {card.badge}
               </span>
@@ -129,12 +135,12 @@ export function MenuCards() {
 
             <div>
               <h2
-                className={`text-[1.0625rem] leading-[1.15] font-extrabold tracking-[-0.01em] ${card.text}`}
+                className={`text-[1rem] leading-[1.15] font-extrabold tracking-[-0.01em] tablet:text-[1.0625rem] ${card.text}`}
               >
                 {card.title}
               </h2>
               <p
-                className={`mt-[0.2rem] max-w-[17.5rem] text-[0.71875rem] leading-[1.45] opacity-90 ${card.text}`}
+                className={`mt-[0.15rem] text-[0.6875rem] leading-[1.45] opacity-90 tablet:mt-[0.2rem] tablet:max-w-[17.5rem] tablet:text-[0.71875rem] ${card.text}`}
               >
                 {card.description}
               </p>
