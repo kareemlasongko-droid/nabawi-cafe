@@ -23,7 +23,16 @@ export function HeroCard() {
           <h1 className="text-[0.88rem] leading-[1.15] font-extrabold tracking-[-0.015em] text-ink-900">
             Nabawi Cafe &amp; Resto
           </h1>
-          <p className="mt-[0.3rem] text-[0.88rem] leading-[1.35] text-ink-900">
+          {/* Ukuran 11.5px dipilih dari pengukuran, bukan dikira-kira:
+              ruang teks tersedia 197.8px, sedangkan baris terpanjang
+              ("Nature escape riverside view & play") butuh:
+                14.08px -> 233.3px  (tidak muat, pecah jadi 2 baris)
+                12px    -> 198.9px  (masih kelebihan)
+                11.5px  -> 190.6px  (muat, sisa 7.2px)
+              Batas maksimumnya ≈ 11.93px; 11.5px dipilih agar aman dari
+              pembulatan metrik font dan tetap kecil dibanding judul
+              (14.08px) sehingga hierarkinya jelas. */}
+          <p className="mt-[0.3rem] text-[0.71875rem] leading-[1.35] text-ink-900">
             Cafe and Resto berkonsep Maroko
             <br />
             Nature escape riverside view &amp; play
@@ -33,7 +42,7 @@ export function HeroCard() {
 
       {/* jam buka: Setiap Hari | ikon | 09.00 – 21.00 */}
       <p
-        className="mt-[0.8rem] flex w-full items-center justify-center gap-[0.45rem] rounded-full bg-mint-100 px-[0.6rem] py-[0.42rem] text-mint-700"
+        className="mt-[0.6rem] flex w-full items-center justify-center gap-[0.45rem] rounded-full bg-mint-100 px-[0.6rem] py-[0.42rem] text-mint-700"
         aria-label="Buka setiap hari, pukul 09.00 sampai 21.00"
       >
         <span className="text-[0.85rem] leading-none font-extrabold tracking-[-0.01em]">
@@ -48,7 +57,7 @@ export function HeroCard() {
       {/* tombol utama: tautan biasa, tidak butuh JS */}
       <a
         href="#selamat-datang"
-        className="mt-[0.8rem] flex w-full items-center justify-center gap-[0.4rem] rounded-[0.7rem] bg-clay-600 px-[0.8rem] py-[0.72rem] text-cream-50 shadow-[0_8px_16px_-8px_rgba(122,51,22,0.85),inset_0_1px_0_rgba(255,255,255,0.18)] transition-transform duration-150 ease-out active:scale-[0.975] active:bg-clay-700"
+        className="mt-[0.7rem] flex w-full items-center justify-center gap-[0.4rem] rounded-[0.7rem] bg-clay-600 px-[0.8rem] py-[0.72rem] text-cream-50 shadow-[0_8px_16px_-8px_rgba(122,51,22,0.85),inset_0_1px_0_rgba(255,255,255,0.18)] transition-transform duration-150 ease-out active:scale-[0.975] active:bg-clay-700"
       >
         <span className="text-[0.88rem] leading-none font-bold tracking-[-0.005em]">
           Mulai menjelajah
