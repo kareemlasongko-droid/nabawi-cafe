@@ -63,6 +63,19 @@
       opacity: 1;
     }
   }
+
+  /* Kartu menu masuk dari bawah sambil sedikit membesar. Dipakai oleh
+     utilitas .card-enter di bawah. */
+  @keyframes card-in {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 @layer base {
@@ -162,6 +175,15 @@
     clip-path: polygon(50% 100%, 0 0, 100% 0);
     filter: drop-shadow(0 6px 5px rgb(20 35 26 / 0.35));
   }
+}
+
+/* Kartu menu muncul satu per satu saat halaman dibuka.
+   --card-delay diisi dari komponen (0ms, 140ms, 280ms), sehingga kartu
+   kedua dan ketiga menyusul tanpa JavaScript sama sekali.
+   `both` menahan keadaan awal (tembus pandang) sebelum animasi mulai dan
+   menahan keadaan akhir setelah selesai. */
+@utility card-enter {
+  animation: card-in 620ms cubic-bezier(0.22, 1, 0.36, 1) var(--card-delay, 0ms) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

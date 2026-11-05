@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { MenuCards } from "../components/MenuCards";
 import { Navbar } from "../components/Navbar";
 
 export const metadata: Metadata = {
@@ -11,9 +12,9 @@ export const metadata: Metadata = {
 /**
  * Halaman yang terbuka setelah menekan "Mulai menjelajah" di beranda.
  *
- * TAHAP SEMENTARA: yang tampil baru latar ilustrasi + navbar. Konten bawah
- * (judul, paragraf, badge) dihapus atas permintaan; daftar fiturnya belum
- * diisi karena menunggu materi dari pemilik.
+ * Isi halaman: navbar + tiga kartu menu (Virtual Tour 360, Menu Kami,
+ * Galeri & Aktivitas) sesuai lampiran pemilik. Kartu muncul satu per satu
+ * lewat animasi CSS, jadi tetap tampil walau JavaScript gagal dimuat.
  *
  * Sama seperti beranda: Server Component tanpa JavaScript. Navigasi pulang
  * memakai <a href="/"> biasa di navbar, jadi tetap berfungsi di Safari
@@ -52,16 +53,18 @@ export default function FiturPage() {
           className="absolute inset-0 bg-[rgba(20,35,26,0.30)]"
         />
 
-        {/* navbar menempel di atas ilustrasi; logo + judul berfungsi sebagai
+        {/* navbar melayang di atas ilustrasi; logo + judul berfungsi sebagai
             jalan kembali ke beranda, jadi tombol "Kembali" terpisah tidak
             diperlukan lagi */}
         <div className="relative flex min-h-dvh flex-col">
           <Navbar />
 
-          {/* Konten bawah (judul, paragraf, badge "Segera hadir") dihapus
-              atas permintaan: halaman menu kini hanya navbar di atas
-              ilustrasi. Kalau nanti mau diisi lagi, letakkan di sini
-              sebelum penutup kolom. */}
+          {/* Tiga kartu menu. Ditaruh setelah Navbar (bukan lewat mt-auto)
+              supaya mulai dari atas dan halaman bisa digulir seperti biasa;
+              sebelumnya kolom ini memaksa isi menempel di bawah layar. */}
+          <div className="px-5 pt-[1.125rem] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <MenuCards />
+          </div>
         </div>
       </div>
     </main>
