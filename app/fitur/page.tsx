@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { ArrowLeft } from "../components/icons";
+import { Navbar } from "../components/Navbar";
 
 export const metadata: Metadata = {
   title: "Fitur — Nabawi Cafe & Resto",
@@ -55,18 +55,16 @@ export default function FiturPage() {
           className="absolute inset-x-0 bottom-0 h-[42%] bg-[linear-gradient(to_top,rgba(20,35,26,0.45)_0%,rgba(20,35,26,0.22)_45%,rgba(20,35,26,0)_100%)]"
         />
 
-        <div className="relative flex min-h-dvh flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-          {/* kembali ke beranda — tautan biasa, tanpa JS */}
-          <a
-            href="/"
-            className="inline-flex w-fit items-center gap-1.5 rounded-full bg-forest-950/45 px-[0.7rem] py-[0.45rem] text-[0.7rem] font-bold text-cream-50 backdrop-blur-[2px] active:bg-forest-950/65"
-          >
-            <ArrowLeft className="size-3" />
-            Kembali
-          </a>
+        {/* navbar menempel di atas ilustrasi; logo + judul berfungsi sebagai
+            jalan kembali ke beranda, jadi tombol "Kembali" terpisah tidak
+            diperlukan lagi */}
+        <div className="relative flex min-h-dvh flex-col">
+          <Navbar />
 
-          {/* isi sementara, menempel di bawah agar tidak menutupi bangunan */}
-          <div className="mt-auto">
+          {/* isi sementara, menempel di bawah agar tidak menutupi bangunan.
+              Padding kiri/kanan dipindah ke sini supaya navbar bisa selebar
+              kanvas penuh. */}
+          <div className="mt-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <p className="font-mono text-[0.6rem] tracking-[0.18em] text-cream-100/90 uppercase">
               Selamat datang di
             </p>
