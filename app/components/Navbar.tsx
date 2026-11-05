@@ -45,16 +45,16 @@ export function Navbar() {
         className="flex h-[4.625rem] items-center rounded-[1.75rem] bg-white/80 pl-[0.875rem] pr-[2.1875rem]"
       >
         {/* logo + nama resto — satu tautan pulang ke beranda */}
-        <a href="/" className="flex min-w-0 items-center gap-[1.6875rem]">
+        <a href="/" className="flex min-w-0 items-center gap-[1.6875rem] max-[359px]:gap-[0.75rem]">
           <Image
             src="/images/logo-nabawi.png"
             alt="Logo Nabawi Cafe & Resto"
             width={100}
             height={100}
             priority
-            className="size-[3.3125rem] shrink-0 rounded-full"
+            className="size-[3.3125rem] shrink-0 rounded-full max-[359px]:size-[2.5rem]"
           />
-          <span className="truncate text-[1.125rem] leading-none font-extrabold text-ink-900">
+          <span className="truncate text-[1.125rem] leading-none font-extrabold text-ink-900 max-[359px]:text-[0.9375rem]">
             Nabawi Cafe &amp; Resto
           </span>
         </a>
