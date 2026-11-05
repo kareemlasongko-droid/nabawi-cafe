@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { Footer } from "../components/Footer";
 import { MenuCards } from "../components/MenuCards";
 import { Navbar } from "../components/Navbar";
 
@@ -62,8 +63,16 @@ export default function FiturPage() {
           {/* Tiga kartu menu. Ditaruh setelah Navbar (bukan lewat mt-auto)
               supaya mulai dari atas dan halaman bisa digulir seperti biasa;
               sebelumnya kolom ini memaksa isi menempel di bawah layar. */}
-          <div className="px-5 pt-[1.125rem] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="px-5 pt-[1.125rem] pb-[1.25rem]">
             <MenuCards />
+          </div>
+
+          {/* Footer ditaruh di luar blok kartu. `mt-auto` mendorongnya ke
+              dasar layar saat isi masih pendek; jarak 20px di atasnya (pb
+              blok kartu) menjaga agar tidak menempel kartu terakhir ketika
+              kartunya bertambah banyak dan halaman memanjang. */}
+          <div className="mt-auto">
+            <Footer />
           </div>
         </div>
       </div>
