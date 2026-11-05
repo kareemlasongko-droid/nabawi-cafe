@@ -31,10 +31,13 @@ export const metadata: Metadata = {
 export default function FiturPage() {
   return (
     <main className="flex min-h-dvh justify-center bg-forest-950">
-      {/* Kanvas mobile-only, lebar maks 440px — sama dengan beranda */}
+      {/* Kanvas. Di HP dibatasi 440px (lebar mockup); mulai tablet (768px)
+          batasnya dilepas sehingga ilustrasi memenuhi layar sampai tepi
+          kiri-kanan (diminta: "fit kanan kiri"). Isinya sendiri tetap
+          dibatasi 640px agar tidak melebar berlebihan. */}
       <div
         id="fitur"
-        className="relative isolate w-full max-w-[27.5rem] overflow-hidden bg-forest-900 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)]"
+        className="relative isolate w-full max-w-[27.5rem] overflow-hidden bg-forest-900 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)] tablet:max-w-none"
       >
         <Image
           src="/images/fitur-bg.jpg"
@@ -69,8 +72,17 @@ export default function FiturPage() {
             layar dinamis (aman dari address bar Safari iOS), `overflow-hidden`
             memastikan tidak ada sisa piksel yang bisa digulir, dan `flex-1`
             pada blok kartu membuatnya mengambil sisa ruang setelah navbar dan
-            footer — jadi tidak ada ruang menganggur di layar tinggi. */}
-        <div className="relative flex h-dvh flex-col overflow-hidden">
+            footer — jadi tidak ada ruang menganggur di layar tinggi.
+
+            PENGECUALIAN layar pendek (< 600px, umumnya HP lanskap): `pendek:`
+            mengubahnya jadi `h-auto` + `min-h-dvh` sehingga halaman BOLEH
+            digulir. Di 844x390 ruang untuk kartu hanya ~240px sedangkan
+            kebutuhannya 279px — memaksa fixed di situ berarti isi terpotong. */}
+        {/* Lapisan isi: latar TETAP penuh (berada di #fitur), sedangkan
+            isinya dibatasi 40rem (640px) dan diletakkan di tengah. Tanpa
+            batas ini, di tablet kartu melebar sampai 984px sehingga teks
+            hanya menempati sudut kiri dan sisa kartu kosong. */}
+        <div className="relative flex h-dvh flex-col overflow-hidden *:mx-auto *:w-full *:max-w-[40rem] pendek:h-auto pendek:min-h-dvh pendek:overflow-y-auto">
           <Navbar />
 
           {/* Tiga kartu menu mengisi semua sisa ruang di antara navbar dan
@@ -82,7 +94,8 @@ export default function FiturPage() {
 
           {/* Footer selalu di dasar layar. Karena induknya sudah setinggi
               satu layar dan blok kartu `flex-1`, footer otomatis terdorong
-              ke bawah tanpa perlu `mt-auto`. */}
+              ke bawah tanpa perlu `mt-auto`. Lebarnya mengikuti batas isi
+              induk (640px di tablet), sama dengan kartu di atasnya. */}
           <Footer />
         </div>
       </div>
