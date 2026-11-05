@@ -4,6 +4,30 @@
    ───────────────────────────────────────────── */
 @import "tailwindcss";
 
+/* Varian "tablet" — dipakai sebagai pengganti `md:` untuk halaman yang
+   dipaksa setinggi satu layar.
+   Syaratnya lebar >= 768px DAN tinggi >= 600px. Syarat tinggi itu penting:
+   HP dalam mode lanskap (mis. 844x390) lebarnya melewati 768px tetapi
+   tingginya hanya ~390px. Kalau hanya memakai `md:`, ukuran tablet
+   (navbar 74px, footer 68px, kartu 160px) terpakai di layar setinggi itu
+   dan kartu menabrak footer sampai 208px serta keluar layar — terukur.
+   Dengan syarat tinggi, HP lanskap tetap memakai ukuran kecil, sedangkan
+   tablet potret/lanskap (tinggi >= 600px) memakai ukuran penuh.
+
+   CATATAN: pelebaran kanvas di tablet sudah DIBATALKAN (diminta). Kanvas
+   tetap 440px di tengah seperti beranda; yang tersisa dari varian ini
+   hanya ukuran navbar/footer/kartu di layar lebar. */
+@custom-variant tablet (@media (min-width: 768px) and (min-height: 600px));
+
+/* Varian untuk layar PENDEK (< 600px tinggi), umumnya HP dalam mode lanskap.
+   Di tinggi segitu, tiga kartu mustahil muat dalam satu layar: di 844x390
+   sisa ruang untuk kartu hanya ~240px, sedangkan tiap kartu butuh minimal
+   93px (ikon 34 + judul 18 + deskripsi 15 + padding 26) x 3 = 279px.
+   Kalau dipaksa fixed, isi terpotong atau kartu menabrak footer (terukur
+   208px sebelum perbaikan). Jadi di rentang ini halaman boleh digulir —
+   lebih baik pengguna menggulir sedikit daripada isi hilang. */
+@custom-variant pendek (@media (max-height: 599px));
+
 @theme {
   /* Hijau hutan */
   --color-forest-950: #14231a;
