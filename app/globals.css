@@ -17,7 +17,11 @@
   --color-cream-200: #f3e4c8;
   --color-cream-300: #e8d3ae;
 
-  /* Terracotta / rust (tombol utama) */
+  /* Oranye aksen — TOMBOL UTAMA (nilai diminta: #FF7C32) */
+  --color-accent-500: #ff7c32;
+  --color-accent-600: #f26a1e; /* saat tombol ditekan, versi lebih pekat */
+
+  /* Terracotta / rust (aksen sekunder, mis. ::selection) */
   --color-clay-600: #b4502c;
   --color-clay-700: #96401f;
   --color-clay-800: #7a3316;

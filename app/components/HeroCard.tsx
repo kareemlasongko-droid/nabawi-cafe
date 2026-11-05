@@ -57,7 +57,7 @@ export function HeroCard() {
       {/* tombol utama: tautan biasa, tidak butuh JS */}
       <a
         href="#selamat-datang"
-        className="mt-[0.7rem] flex w-full items-center justify-center gap-[0.4rem] rounded-[0.7rem] bg-clay-600 px-[0.8rem] py-[0.72rem] text-cream-50 shadow-[0_8px_16px_-8px_rgba(122,51,22,0.85),inset_0_1px_0_rgba(255,255,255,0.18)] transition-transform duration-150 ease-out active:scale-[0.975] active:bg-clay-700"
+        className="mt-[0.7rem] flex w-full items-center justify-center gap-[0.4rem] rounded-[0.7rem] bg-accent-500 px-[0.8rem] py-[0.72rem] text-cream-50 shadow-[0_8px_16px_-8px_rgba(242,106,30,0.85),inset_0_1px_0_rgba(255,255,255,0.22)] transition-transform duration-150 ease-out active:scale-[0.975] active:bg-accent-600"
       >
         <span className="text-[0.88rem] leading-none font-bold tracking-[-0.005em]">
           Mulai menjelajah
