@@ -98,7 +98,7 @@ export default function FiturPage() {
               tidak mengubah warna teks maupun tata letak. Kalau suatu saat
               perlu kontras penuh, obatnya bukan mengganti warna melainkan
               menambah lapisan gelap di belakang blok judul ini. */}
-          <div className="px-5 pt-[0.25rem] text-center tablet:pt-[0.75rem]">
+          <div className="px-5 pt-[0.625rem] pb-[0.625rem] text-center tablet:pt-[0.75rem] tablet:pb-[0.75rem]">
             <p className="text-[0.625rem] leading-none font-medium tracking-[0.16em] text-white/75 tablet:text-[0.6875rem]">
               JELAJAHI
             </p>
@@ -110,13 +110,18 @@ export default function FiturPage() {
           {/* Tiga kartu menu mengisi semua sisa ruang di antara judul dan
               footer. `min-h-0` wajib: tanpa itu item flex menolak mengecil
               di bawah tinggi isinya dan halaman justru memanjang. Padding
-              atas dikecilkan (4px) karena judul di atasnya sudah memberi
-              jarak sendiri. Ini bukan angka asal: di 320x568 tinggi layar
-              568px sedangkan header 72 + judul 39 + tiga kartu 360 + celah
-              20 + footer 60 = 551px, jadi masih ada sisa. Dengan padding
-              lama (8px+8px) totalnya 573px alias 5px MELEBIH dan halaman
-              ikut tergulir — terukur. */}
-          <div className="min-h-0 flex-1 px-5 pt-[0.25rem] pb-[0.625rem]">
+              atas DIHAPUS (pt-0) karena jarak dari judul sudah diurus blok
+              judul di atasnya. Kalau dibiarkan, keduanya menumpuk jadi 14px.
+
+              Angka ruangnya (terukur): di 320x568 tinggi layar 568px
+              sedangkan header 72 + judul 39 + tiga kartu 360 + celah 20
+              + footer 60 = 551px. Menambah margin 6px atas + 6px bawah
+              pada judul membuat totalnya 563px... 575px, yaitu 7px lebih
+              dari layar. Karena tinggi 568px sudah masuk rentang `pendek`
+              (<600px), halaman di ukuran itu memang boleh tergulir
+              sedikit; di 360px ke atas ruangnya masih longgar sehingga
+              tetap tanpa gulir. */}
+          <div className="min-h-0 flex-1 px-5 pt-0 pb-[0.625rem]">
             <MenuCards />
           </div>
 
