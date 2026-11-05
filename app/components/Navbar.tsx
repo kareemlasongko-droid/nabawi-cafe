@@ -5,7 +5,10 @@ import Image from "next/image";
  *
  * Angka di bawah adalah hasil pengukuran piksel gambar itu, bukan perkiraan:
  *   bentuk    bilah penuh selebar kanvas, tinggi 74, sudut membulat ~28
- *   latar     putih dengan alpha 204/255 = 80%, tanpa bayangan
+ *   latar     putih dengan alpha 204/255 = 80%, rata, tanpa bayangan
+ *             (sempat saya beri backdrop-blur; itu menambah kabut di atas
+ *             80% sehingga bilah terlihat lebih pekat dari mockup, dan
+ *             mockup sendiri tidak ber-blur — jadi blur dihapus)
  *   logo      lingkaran 53×53, mulai x=14, terpusat vertikal (y 11–63)
  *   judul     "Nabawi Cafe & Resto" 18px / 800, warna #30294d
  *             (Plus Jakarta Sans 18px/800 = 185.2px, mockup 186px)
@@ -39,7 +42,7 @@ export function Navbar() {
     <header className="relative z-20 px-5 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <nav
         aria-label="Navigasi utama"
-        className="flex h-[4.625rem] items-center rounded-[1.75rem] bg-white/80 pl-[0.875rem] pr-[2.1875rem] backdrop-blur-md"
+        className="flex h-[4.625rem] items-center rounded-[1.75rem] bg-white/80 pl-[0.875rem] pr-[2.1875rem]"
       >
         {/* logo + nama resto — satu tautan pulang ke beranda */}
         <a href="/" className="flex min-w-0 items-center gap-[1.6875rem]">
