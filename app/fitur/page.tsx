@@ -17,6 +17,13 @@ export const metadata: Metadata = {
  * Galeri & Aktivitas) sesuai lampiran pemilik. Kartu muncul satu per satu
  * lewat animasi CSS, jadi tetap tampil walau JavaScript gagal dimuat.
  *
+ * Halaman ini FIXED setinggi satu layar — tidak ada scroll. Konsekuensinya
+ * tidak boleh ada isi yang melebihi layar: navbar 86px + footer 68px +
+ * jarak 28px menyisakan 495px untuk tiga kartu di layar terpendek
+ * (iPhone SE 667px), dan tiap kartu mengisi 165px. Kalau nanti kartu
+ * ditambah, jangan tambah keempat-empatnya di halaman ini tanpa mengukur
+ * ulang — lihat catatan di MenuCards.tsx.
+ *
  * Sama seperti beranda: Server Component tanpa JavaScript. Navigasi pulang
  * memakai <a href="/"> biasa di navbar, jadi tetap berfungsi di Safari
  * iOS 15 (iPhone 7) yang gagal menjalankan bundle modern.
@@ -57,23 +64,26 @@ export default function FiturPage() {
         {/* navbar melayang di atas ilustrasi; logo + judul berfungsi sebagai
             jalan kembali ke beranda, jadi tombol "Kembali" terpisah tidak
             diperlukan lagi */}
-        <div className="relative flex min-h-dvh flex-col">
+
+        {/* Satu layar penuh, tanpa gulir (diminta). `h-dvh` mengikuti tinggi
+            layar dinamis (aman dari address bar Safari iOS), `overflow-hidden`
+            memastikan tidak ada sisa piksel yang bisa digulir, dan `flex-1`
+            pada blok kartu membuatnya mengambil sisa ruang setelah navbar dan
+            footer — jadi tidak ada ruang menganggur di layar tinggi. */}
+        <div className="relative flex h-dvh flex-col overflow-hidden">
           <Navbar />
 
-          {/* Tiga kartu menu. Ditaruh setelah Navbar (bukan lewat mt-auto)
-              supaya mulai dari atas dan halaman bisa digulir seperti biasa;
-              sebelumnya kolom ini memaksa isi menempel di bawah layar. */}
-          <div className="px-5 pt-[1.125rem] pb-[1.25rem]">
+          {/* Tiga kartu menu mengisi semua sisa ruang di antara navbar dan
+              footer. `min-h-0` wajib: tanpa itu item flex menolak mengecil
+              di bawah tinggi isinya dan halaman justru memanjang. */}
+          <div className="min-h-0 flex-1 px-5 pt-[1.125rem] pb-[0.625rem]">
             <MenuCards />
           </div>
 
-          {/* Footer ditaruh di luar blok kartu. `mt-auto` mendorongnya ke
-              dasar layar saat isi masih pendek; jarak 20px di atasnya (pb
-              blok kartu) menjaga agar tidak menempel kartu terakhir ketika
-              kartunya bertambah banyak dan halaman memanjang. */}
-          <div className="mt-auto">
-            <Footer />
-          </div>
+          {/* Footer selalu di dasar layar. Karena induknya sudah setinggi
+              satu layar dan blok kartu `flex-1`, footer otomatis terdorong
+              ke bawah tanpa perlu `mt-auto`. */}
+          <Footer />
         </div>
       </div>
     </main>
