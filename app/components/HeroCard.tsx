@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { CalendarCheck, CoffeeCup } from "./icons";
+import { CalendarCheck } from "./icons";
 
 /**
  * Kartu hero. Sengaja TANPA JavaScript: tombol utama adalah <a href="#selamat-datang">
@@ -62,7 +62,20 @@ export function HeroCard() {
         <span className="text-[0.88rem] leading-none font-bold tracking-[-0.005em]">
           Mulai menjelajah
         </span>
-        <CoffeeCup className="size-[1.05rem] shrink-0 text-cream-50" />
+        {/* Ikon dari aset yang dilampirkan (Sun 2.png, 18×18 putih).
+            Ukuran tampil disamakan dengan ikon sebelumnya (1.05rem) dan
+            dirender sebagai gambar, bukan SVG, karena sumbernya PNG.
+            `pixelated` menjaga bentuk aslinya tetap tajam saat diperbesar
+            di layar DPR tinggi (asetnya kecil, 18px). */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/icon-sun.png"
+          alt=""
+          aria-hidden="true"
+          width={18}
+          height={18}
+          className="size-[1.05rem] shrink-0 [image-rendering:pixelated]"
+        />
       </a>
     </div>
   );
