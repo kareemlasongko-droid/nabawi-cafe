@@ -12,7 +12,11 @@
    (navbar 74px, footer 68px, kartu 160px) terpakai di layar setinggi itu
    dan kartu menabrak footer sampai 208px serta keluar layar — terukur.
    Dengan syarat tinggi, HP lanskap tetap memakai ukuran kecil, sedangkan
-   tablet potret/lanskap (tinggi >= 600px) memakai ukuran penuh. */
+   tablet potret/lanskap (tinggi >= 600px) memakai ukuran penuh.
+
+   CATATAN: pelebaran kanvas di tablet sudah DIBATALKAN (diminta). Kanvas
+   tetap 440px di tengah seperti beranda; yang tersisa dari varian ini
+   hanya ukuran navbar/footer/kartu di layar lebar. */
 @custom-variant tablet (@media (min-width: 768px) and (min-height: 600px));
 
 /* Varian untuk layar PENDEK (< 600px tinggi), umumnya HP dalam mode lanskap.

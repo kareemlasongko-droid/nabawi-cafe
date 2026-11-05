@@ -31,13 +31,11 @@ export const metadata: Metadata = {
 export default function FiturPage() {
   return (
     <main className="flex min-h-dvh justify-center bg-forest-950">
-      {/* Kanvas. Di HP dibatasi 440px (lebar mockup); mulai tablet (768px)
-          batasnya dilepas sehingga ilustrasi memenuhi layar sampai tepi
-          kiri-kanan (diminta: "fit kanan kiri"). Isinya sendiri tetap
-          dibatasi 640px agar tidak melebar berlebihan. */}
+      {/* Kanvas mobile-only, lebar maks 440px — sama dengan beranda.
+          Di layar lebih lebar (tablet) kanvas tetap 440px di tengah. */}
       <div
         id="fitur"
-        className="relative isolate w-full max-w-[27.5rem] overflow-hidden bg-forest-900 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)] tablet:max-w-none"
+        className="relative isolate w-full max-w-[27.5rem] overflow-hidden bg-forest-900 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)]"
       >
         <Image
           src="/images/fitur-bg.jpg"
@@ -78,11 +76,9 @@ export default function FiturPage() {
             mengubahnya jadi `h-auto` + `min-h-dvh` sehingga halaman BOLEH
             digulir. Di 844x390 ruang untuk kartu hanya ~240px sedangkan
             kebutuhannya 279px — memaksa fixed di situ berarti isi terpotong. */}
-        {/* Lapisan isi: latar TETAP penuh (berada di #fitur), sedangkan
-            isinya dibatasi 40rem (640px) dan diletakkan di tengah. Tanpa
-            batas ini, di tablet kartu melebar sampai 984px sehingga teks
-            hanya menempati sudut kiri dan sisa kartu kosong. */}
-        <div className="relative flex h-dvh flex-col overflow-hidden *:mx-auto *:w-full *:max-w-[40rem] pendek:h-auto pendek:min-h-dvh pendek:overflow-y-auto">
+        {/* Lapisan isi dibatasi selebar kanvas (440px) dan diletakkan di
+            tengah, jadi di tablet pun isinya tetap selebar ponsel. */}
+        <div className="relative flex h-dvh flex-col overflow-hidden *:mx-auto *:w-full *:max-w-[27.5rem] pendek:h-auto pendek:min-h-dvh pendek:overflow-y-auto">
           <Navbar />
 
           {/* Tiga kartu menu mengisi semua sisa ruang di antara navbar dan
