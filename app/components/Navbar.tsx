@@ -49,8 +49,10 @@ export function Navbar() {
         aria-label="Navigasi utama"
         className="flex h-[4rem] items-center rounded-[1.5rem] bg-white/80 pl-[0.75rem] pr-[1.5rem] tablet:h-[4.625rem] tablet:rounded-[1.75rem] tablet:pl-[0.875rem] tablet:pr-[2.1875rem]"
       >
-        {/* logo + nama resto — satu tautan pulang ke beranda */}
-        <a href="/" className="flex min-w-0 items-center gap-[1rem] tablet:gap-[1.6875rem]">
+        {/* logo + nama resto — satu tautan pulang ke beranda. Jarak sengaja
+            rapat (8px di HP, 14px di tablet) supaya logo dan nama terbaca
+            sebagai satu kesatuan; sebelumnya 16px/27px terasa terpisah. */}
+        <a href="/" className="flex min-w-0 items-center gap-[0.5rem] tablet:gap-[0.875rem]">
           <Image
             src="/images/logo-nabawi.png"
             alt="Logo Nabawi Cafe & Resto"
