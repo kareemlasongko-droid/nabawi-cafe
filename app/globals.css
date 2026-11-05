@@ -124,26 +124,6 @@
   }
 }
 
-/* ── Panel sambutan tanpa JavaScript ─────────────────────────────
-   Tombol "Mulai menjelajah" mengarah ke #selamat-datang sehingga panel
-   cocok dengan :target dan ditampilkan. Tombol tutup mengarah ke #hero
-   sehingga :target tidak lagi cocok.
-
-   Catatan penting:
-   - `hidden` (display:none) BUKAN utility di sini melainkan milik
-     Tailwind sebagai base class; karena itu harus ditimpa dengan
-     !important agar `flex` pada elemen tidak menang.
-   - Sengaja TANPA backdrop-filter. Tailwind memakai @property untuk
-     variabel backdrop-*, dan @property baru ada di Safari 16.4 —
-     tanpa dukungan itu nilainya tidak pernah ter-reset. */
-#selamat-datang {
-  display: none !important;
-}
-
-#selamat-datang:target {
-  display: flex !important;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

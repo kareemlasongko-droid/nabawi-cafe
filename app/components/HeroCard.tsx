@@ -3,9 +3,9 @@ import { CalendarCheck } from "./icons";
 import { PrimaryButton } from "./PrimaryButton";
 
 /**
- * Kartu hero. Sengaja TANPA JavaScript: tombol utama adalah <a href="#selamat-datang">
- * sehingga tetap berfungsi di browser yang gagal menjalankan React
- * (mis. Safari iOS 15 pada iPhone 7).
+ * Kartu hero. Sengaja TANPA JavaScript: tombol utama adalah tautan biasa
+ * ke halaman fitur, sehingga tetap berfungsi di browser yang gagal
+ * menjalankan React (mis. Safari iOS 15 pada iPhone 7).
  */
 export function HeroCard() {
   return (
