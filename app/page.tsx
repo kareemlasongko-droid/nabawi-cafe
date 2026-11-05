@@ -25,10 +25,13 @@ export default function HomePage() {
           className="object-cover object-center"
         />
 
-        {/* Lapisan kontras lembut supaya kartu & teks selalu terbaca */}
+        {/* Overlay gradasi bawah → atas: paling pekat di bawah, memudar
+            sampai benar-benar 0% di tepi atas. Stopenya dibuat bertingkat
+            (bukan dua titik) supaya peralihannya terasa halus dan tidak
+            terlihat seperti garis. */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,35,26,0.34)_0%,rgba(20,35,26,0.06)_30%,rgba(20,35,26,0)_52%,rgba(20,35,26,0.18)_100%)]"
+          className="absolute inset-0 bg-[linear-gradient(to_top,rgba(20,35,26,0.62)_0%,rgba(20,35,26,0.46)_26%,rgba(20,35,26,0.29)_50%,rgba(20,35,26,0.14)_72%,rgba(20,35,26,0.05)_88%,rgba(20,35,26,0)_100%)]"
         />
 
         <div className="relative flex min-h-dvh flex-col px-4 pt-[19dvh] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
