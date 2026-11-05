@@ -84,7 +84,9 @@ export default function FiturPage() {
           {/* Judul bagian (diminta). Dua baris dengan peran berbeda:
               "JELAJAHI" kecil, tidak tebal, huruf jarang — berfungsi sebagai
               penanda; "Fitur Unggulan" besar dan tebal berwarna putih murni
-              (#FFFFFF) sebagai judul. Jarak ke kartu di bawahnya dibuat
+              (#FFFFFF) sebagai judul. Keduanya rata tengah (diminta).
+
+              Jarak ke kartu di bawahnya dibuat
               rapat supaya tinggi yang dimakan tetap kecil — halaman ini
               dipaksa muat satu layar.
 
@@ -96,7 +98,7 @@ export default function FiturPage() {
               tidak mengubah warna teks maupun tata letak. Kalau suatu saat
               perlu kontras penuh, obatnya bukan mengganti warna melainkan
               menambah lapisan gelap di belakang blok judul ini. */}
-          <div className="px-5 pt-[0.25rem] tablet:pt-[0.75rem]">
+          <div className="px-5 pt-[0.25rem] text-center tablet:pt-[0.75rem]">
             <p className="text-[0.625rem] leading-none font-medium tracking-[0.16em] text-white/75 tablet:text-[0.6875rem]">
               JELAJAHI
             </p>
