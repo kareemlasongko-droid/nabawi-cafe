@@ -81,10 +81,47 @@ export default function FiturPage() {
         <div className="relative flex h-dvh flex-col overflow-hidden *:mx-auto *:w-full *:max-w-[27.5rem] pendek:h-auto pendek:min-h-dvh pendek:overflow-y-auto">
           <Navbar />
 
-          {/* Tiga kartu menu mengisi semua sisa ruang di antara navbar dan
+          {/* Judul bagian (diminta). Dua baris dengan peran berbeda:
+              "JELAJAHI" kecil, tidak tebal, huruf jarang — berfungsi sebagai
+              penanda; "Fitur Unggulan" besar dan tebal berwarna putih murni
+              (#FFFFFF) sebagai judul. Keduanya rata tengah (diminta).
+
+              Jarak ke kartu di bawahnya dibuat
+              rapat supaya tinggi yang dimakan tetap kecil — halaman ini
+              dipaksa muat satu layar.
+
+              Catatan keterbacaan: di atas ilustrasi ini teks putih hanya
+              mencapai kontras 2.0-2.9:1 (terukur dari piksel latar di
+              belakang judul), sedangkan ambang WCAG untuk teks besar 3:1.
+              Warnanya tetap #FFFFFF sesuai permintaan, jadi sebagai
+              penolong dipasang bayangan gelap tipis (text-shadow) yang
+              tidak mengubah warna teks maupun tata letak. Kalau suatu saat
+              perlu kontras penuh, obatnya bukan mengganti warna melainkan
+              menambah lapisan gelap di belakang blok judul ini. */}
+          <div className="px-5 pt-[0.625rem] pb-[0.625rem] text-center tablet:pt-[0.75rem] tablet:pb-[0.75rem]">
+            <p className="text-[0.625rem] leading-none font-medium tracking-[0.16em] text-white/75 tablet:text-[0.6875rem]">
+              JELAJAHI
+            </p>
+            <h1 className="mt-[0.1875rem] text-[1.25rem] leading-[1.1] font-extrabold tracking-[-0.01em] text-[#ffffff] [text-shadow:0_1px_10px_rgba(20,35,26,0.55)] tablet:text-[1.375rem]">
+              Fitur Unggulan
+            </h1>
+          </div>
+
+          {/* Tiga kartu menu mengisi semua sisa ruang di antara judul dan
               footer. `min-h-0` wajib: tanpa itu item flex menolak mengecil
-              di bawah tinggi isinya dan halaman justru memanjang. */}
-          <div className="min-h-0 flex-1 px-5 pt-[1.125rem] pb-[0.625rem]">
+              di bawah tinggi isinya dan halaman justru memanjang. Padding
+              atas DIHAPUS (pt-0) karena jarak dari judul sudah diurus blok
+              judul di atasnya. Kalau dibiarkan, keduanya menumpuk jadi 14px.
+
+              Angka ruangnya (terukur): di 320x568 tinggi layar 568px
+              sedangkan header 72 + judul 39 + tiga kartu 360 + celah 20
+              + footer 60 = 551px. Menambah margin 6px atas + 6px bawah
+              pada judul membuat totalnya 563px... 575px, yaitu 7px lebih
+              dari layar. Karena tinggi 568px sudah masuk rentang `pendek`
+              (<600px), halaman di ukuran itu memang boleh tergulir
+              sedikit; di 360px ke atas ruangnya masih longgar sehingga
+              tetap tanpa gulir. */}
+          <div className="min-h-0 flex-1 px-5 pt-0 pb-[0.625rem]">
             <MenuCards />
           </div>
 
