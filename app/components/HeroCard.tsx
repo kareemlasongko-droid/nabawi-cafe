@@ -20,10 +20,10 @@ export function HeroCard() {
           className="mt-[0.1rem] size-[2.9rem] shrink-0 rounded-full"
         />
         <div className="min-w-0">
-          <h1 className="text-[0.95rem] leading-[1.15] font-extrabold tracking-[-0.015em] text-ink-900">
+          <h1 className="text-[0.88rem] leading-[1.15] font-extrabold tracking-[-0.015em] text-ink-900">
             Nabawi Cafe &amp; Resto
           </h1>
-          <p className="mt-[0.3rem] text-[0.66rem] leading-[1.35] text-ink-700">
+          <p className="mt-[0.3rem] text-[0.88rem] leading-[1.35] text-ink-900">
             Cafe and Resto berkonsep Maroko
             <br />
             Nature escape riverside view &amp; play
