@@ -1,12 +1,11 @@
 import Image from "next/image";
 import { HeroCard } from "./components/HeroCard";
-import { WelcomePanel } from "./components/WelcomePanel";
 
 /**
  * Halaman ini sengaja dirender sebagai Server Component tanpa state React.
- * Interaksi tombol ditangani CSS (:target), bukan JavaScript, supaya tetap
- * berfungsi di browser lama yang gagal menjalankan bundle modern
- * (mis. Safari iOS 15.x pada iPhone 7).
+ * Tombol "Mulai menjelajah" adalah tautan biasa ke /fitur, bukan handler
+ * JavaScript, supaya tetap berfungsi di browser lama yang gagal
+ * menjalankan bundle modern (mis. Safari iOS 15.x pada iPhone 7).
  */
 export default function HomePage() {
   return (
@@ -38,8 +37,6 @@ export default function HomePage() {
           <HeroCard />
         </div>
       </div>
-
-      <WelcomePanel />
     </main>
   );
 }

@@ -29,3 +29,6 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# screenshot verifikasi lokal (tidak perlu masuk repo)
+/.arena
