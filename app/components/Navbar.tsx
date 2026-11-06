@@ -42,12 +42,56 @@ function GridIcon({ className }: { className?: string }) {
   );
 }
 
-export function Navbar() {
+type NavbarProps = {
+  /* CATATAN: tombol kembali SENGAJA tidak lagi ada di navbar (diminta).
+     Back sekarang berupa tombol tersendiri di area konten, lihat
+     components/back-link.tsx. Slot kanan navbar kembali diisi ikon grid
+     dekoratif seperti mockup aslinya. */
+  /**
+   * Menempel di atas saat halaman digulir. Hanya dipakai di halaman yang
+   * memang bisa digulir (/tour dan /tour/[slug]); /fitur sengaja dibiarkan
+   * statis karena isinya dipaksa muat satu layar tanpa gulir.
+   */
+  sticky?: boolean;
+  /** Gradasi gelap di belakang navbar supaya konten yang lewat di
+   *  belakangnya tidak bertabrakan dengan bilah putih. */
+  gradient?: boolean;
+};
+
+/**
+ * Gradasi di belakang navbar dibuat sebagai ::before pada <header>, BUKAN
+ * elemen <div> terpisah. Dua percobaan dengan <div> gagal, penyebabnya
+ * terukur:
+ *
+ *   1. `-z-10` + header yang tidak membentuk stacking context -> gradasi
+ *      naik ke ATAS bilah putih 80%, bilah jadi hijau gelap
+ *      rgb(27,51,37) padahal seharusnya ~rgb(222,230,231).
+ *   2. `z-index:-1` pada elemen absolute -> justru melukis di atas bilah
+ *      DAN bergeser ke luar layar, sehingga saat digulir navbar terlihat
+ *      HILANG sama sekali.
+ *
+ * Dengan ::before hasilnya benar, TAPI ada satu syarat yang mudah
+ * terlewat dan sempat bikin bug ketiga: <nav> WAJIB `relative`.
+ * Tanpa position, nav adalah elemen in-flow biasa yang dilukis SEBELUM
+ * ::before (yang berposisi absolute), sehingga gradasi menutupi bilah.
+ * Terukur: warna dalam bilah rgb(31,43,37) — seharusnya ~rgb(222,230,231).
+ * Dengan `relative` pada nav, keduanya berada di lapisan yang sama dan
+ * nav menang karena datang belakangan di urutan DOM.
+ */
+export function Navbar({ sticky, gradient }: NavbarProps = {}) {
   return (
-    <header className="relative z-20 px-4 pt-[max(0.5rem,env(safe-area-inset-top))] tablet:px-5 tablet:pt-[max(0.75rem,env(safe-area-inset-top))]">
+    <header
+      className={[
+        sticky ? "sticky top-0 z-30" : "relative z-20",
+        "px-4 pt-[max(0.5rem,env(safe-area-inset-top))] tablet:px-5 tablet:pt-[max(0.75rem,env(safe-area-inset-top))]",
+        gradient
+          ? "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-[calc(100%+1.125rem)] before:bg-[linear-gradient(to_bottom,#14231a_0%,rgba(20,35,26,0.85)_55%,rgba(20,35,26,0)_100%)] before:content-['']"
+          : "",
+      ].join(" ")}
+    >
       <nav
         aria-label="Navigasi utama"
-        className="flex h-[4rem] items-center rounded-[1.5rem] bg-white/80 pl-[0.75rem] pr-[1.5rem] tablet:h-[4.625rem] tablet:rounded-[1.75rem] tablet:pl-[0.875rem] tablet:pr-[2.1875rem]"
+        className="relative flex h-[4rem] items-center rounded-[1.5rem] bg-white/80 pl-[0.75rem] pr-[1.5rem] tablet:h-[4.625rem] tablet:rounded-[1.75rem] tablet:pl-[0.875rem] tablet:pr-[2.1875rem]"
       >
         {/* logo + nama resto — satu tautan pulang ke beranda. Jarak sengaja
             rapat (8px di HP, 14px di tablet) supaya logo dan nama terbaca

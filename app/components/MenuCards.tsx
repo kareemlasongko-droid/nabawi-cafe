@@ -64,6 +64,12 @@ type MenuCard = {
   text: string;
   /** Kelas latar + warna teks badge. */
   badgeClass: string;
+  /**
+   * Tujuan klik. `null` = kartu belum punya tujuan, jadi dirender sebagai
+   * <article> biasa (bukan tautan mati). Virtual Tour sudah punya halaman
+   * sendiri di /tour, jadi hanya kartu itu yang terisi.
+   */
+  href: string | null;
 };
 
 const CARDS: MenuCard[] = [
@@ -76,6 +82,7 @@ const CARDS: MenuCard[] = [
     surface: "bg-forest-900",
     text: "text-cream-50",
     badgeClass: "bg-cream-50/20 text-cream-50",
+    href: "/tour",
   },
   {
     icon: "/images/menu/icon-menu-kami-light.png",
@@ -84,6 +91,7 @@ const CARDS: MenuCard[] = [
     description:
       "Temukan hidangan autentik khas Maroko dan pilihan kopi terbaik",
     badge: "Terbaru",
+    href: null,
     surface: "bg-clay-600",
     text: "text-cream-50",
     badgeClass: "bg-cream-50/20 text-cream-50",
@@ -94,6 +102,7 @@ const CARDS: MenuCard[] = [
     title: "Galeri & Aktivitas",
     description: "Lihat momen seru dan aktivitas seru di Nabawi Cafe",
     badge: "Galeri",
+    href: null,
     surface: "bg-cream-300",
     text: "text-ink-900",
     badgeClass: "bg-ink-900/12 text-ink-900",
@@ -105,7 +114,15 @@ export function MenuCards() {
     <ul
       className="flex h-full flex-col gap-[0.625rem] tablet:gap-[0.75rem]"
     >
-      {CARDS.map((card, i) => (
+      {CARDS.map((card, i) => {
+        /* Kartu tanpa tujuan tetap <article>; kartu bertujuan menjadi
+           <a>. Sengaja memakai <a href> biasa (bukan next/link) supaya
+           navigasi tetap hidup walau bundle JS gagal dimuat di perangkat
+           lama — sama seperti tautan di navbar. */
+        const Kulit = card.href ? "a" : "article";
+        const tujuan = card.href ? { href: card.href } : {};
+
+        return (
         <li
           key={card.title}
           /* `card-enter` menjalankan animasi muncul; --card-delay membuat
@@ -113,8 +130,9 @@ export function MenuCards() {
           className="card-enter flex max-h-[9rem] min-h-[7.5rem] flex-1 basis-0 flex-col tablet:max-h-[10rem] tablet:min-h-[8.375rem]"
           style={{ "--card-delay": `${i * 140}ms` } as React.CSSProperties}
         >
-          <article
-            className={`flex h-full min-h-0 flex-col justify-between gap-[0.375rem] rounded-[1.25rem] p-[0.75rem_1rem_0.875rem] shadow-[0_14px_28px_-14px_rgba(20,35,26,0.55),0_3px_10px_-5px_rgba(20,35,26,0.35)] tablet:gap-[0.5rem] tablet:rounded-[1.5rem] tablet:p-[0.875rem_1.25rem_1rem] ${card.surface}`}
+          <Kulit
+            {...tujuan}
+            className={`flex h-full min-h-0 flex-col justify-between gap-[0.375rem] rounded-[1.25rem] p-[0.75rem_1rem_0.875rem] shadow-[0_14px_28px_-14px_rgba(20,35,26,0.55),0_3px_10px_-5px_rgba(20,35,26,0.35)] tablet:gap-[0.5rem] tablet:rounded-[1.5rem] tablet:p-[0.875rem_1.25rem_1rem] ${card.surface} ${card.href ? "transition active:scale-[0.99]" : ""}`}
           >
             {/* baris atas: ikon kiri, penanda kanan */}
             <div className="flex items-start justify-between">
@@ -145,9 +163,10 @@ export function MenuCards() {
                 {card.description}
               </p>
             </div>
-          </article>
+          </Kulit>
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 }
