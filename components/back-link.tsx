@@ -32,9 +32,14 @@ export function BackLink({ href, label, aria, varian = "pill" }: Props) {
         aria-label={aria}
         /* sticky (bukan fixed) supaya tetap terkurung di kanvas 440px dan
            tidak ikut melayang ke area gelap di kiri-kanan layar tablet.
-           z-20 ada di bawah header (z-30) agar tidak pernah menutupi
-           navbar saat keduanya bertumpuk. */
-        className="sticky top-[0.5rem] z-20 mx-5 mb-[0.5rem] inline-flex w-fit items-center gap-[0.375rem] rounded-full border border-white/20 bg-forest-950/70 py-[0.3125rem] pr-[0.625rem] pl-[0.4375rem] text-[0.625rem] font-bold text-cream-100 backdrop-blur-[6px] transition active:scale-95"
+
+           Jarak tempelnya HARUS sepadan tinggi navbar, bukan 8px: navbar
+           sticky setinggi 64px + padding 8px = 72px (4.625rem + 12px = 86px
+           di tablet). Dengan top-[0.5rem] tombolnya berhenti di 8px dan
+           TERTUTUP di belakang navbar — terukur lewat elementFromPoint:
+           yang kena IMG panorama, bukan tombolnya. z-20 tetap di bawah
+           header (z-30) supaya tidak pernah menutupi navbar. */
+        className="sticky top-[calc(max(0.5rem,env(safe-area-inset-top))+4rem+0.5rem)] tablet:top-[calc(max(0.75rem,env(safe-area-inset-top))+4.625rem+0.5rem)] z-20 mx-5 mb-[0.5rem] inline-flex w-fit items-center gap-[0.375rem] rounded-full border border-white/20 bg-forest-950/80 py-[0.3125rem] pr-[0.625rem] pl-[0.4375rem] text-[0.625rem] font-bold text-cream-100 backdrop-blur-[6px] transition active:scale-95"
       >
         <svg viewBox="0 0 16 16" className="size-3" aria-hidden="true">
           <path

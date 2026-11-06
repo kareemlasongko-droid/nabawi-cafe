@@ -72,12 +72,13 @@ export default async function TourPage() {
 
           {/* Kepala halaman */}
           <header className="px-5 pt-[0.75rem] pb-[0.875rem] text-center">
-            {/* Tombol kembali ke menu, di luar navbar (diminta). Rata kiri
-                sendirian, jadi judul di bawahnya tetap simetris. */}
+            {/* Satu-satunya tombol kembali (diminta: "single back saja,
+                teksnya kembali"). Di luar navbar, rata kiri sendirian,
+                jadi judul di bawahnya tetap simetris. */}
             <div className="mb-[0.625rem] flex justify-start">
               <BackLink
                 href="/fitur"
-                label="Kembali ke menu"
+                label="Kembali"
                 aria="Kembali ke halaman menu Fitur"
               />
             </div>

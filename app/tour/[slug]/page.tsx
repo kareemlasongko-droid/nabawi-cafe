@@ -56,10 +56,13 @@ export default async function VenuePage({ params }: Params) {
         <div className="relative z-10 flex min-h-dvh flex-col">
           <Navbar sticky gradient />
 
-          {/* Kepala: nomor + kategori, lalu nama tempat */}
-          {/* Dua jalan kembali, keduanya DI LUAR navbar (diminta):
-              "Kembali" menempel di atas saat digulir (ke daftar 10 tempat),
-              dan "Kembali ke menu" menuju halaman Fitur. */}
+          {/* Satu-satunya tombol kembali (diminta: "single back saja,
+              teksnya kembali"). Tujuannya daftar 10 tempat, dan dari daftar
+              itu masih ada tombol kembali lagi ke halaman menu — jadi jalur
+              pulang tetap lengkap tanpa dua tombol menumpuk di sini.
+
+              Varian sticky: tetap terlihat di kiri-atas saat digulir, jadi
+              pengunjung bisa keluar kapan pun tanpa menggulir ke atas. */}
           <BackLink
             varian="sticky"
             href="/tour"
@@ -67,15 +70,8 @@ export default async function VenuePage({ params }: Params) {
             aria="Kembali ke daftar Virtual Tour"
           />
 
+          {/* Kepala: nomor + kategori, lalu nama tempat */}
           <header className="px-5 pt-0 text-center">
-            <div className="mb-[0.625rem] flex justify-start">
-              <BackLink
-                href="/fitur"
-                label="Kembali ke menu"
-                aria="Kembali ke halaman menu Fitur"
-              />
-            </div>
-
             <div className="flex items-center justify-center gap-[0.375rem]">
               <span className={`rounded-full px-[0.625rem] py-[0.1875rem] text-[0.5625rem] font-bold tracking-[0.1em] ${warna.pil}`}>
                 {String(v.urutan).padStart(2, "0")} / {String(venues.length).padStart(2, "0")}
