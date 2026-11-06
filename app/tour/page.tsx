@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Footer } from "../components/Footer";
 import { BackLink } from "../../components/back-link";
 import { Navbar } from "../components/Navbar";
-import { ambilVenues, type Aksen } from "../lib/venues";
+import { ambilVenues } from "../lib/venues";
 
 export const metadata: Metadata = {
   title: "Virtual Tour 360 — Nabawi Cafe & Resto",
@@ -12,30 +12,43 @@ export const metadata: Metadata = {
     "Jelajahi 10 tempat di Nabawi Cafe & Resto lewat tur virtual: gerbang Maroko, taman riverside, teras lentera, dek sungai, dan lainnya.",
 };
 
-/** Warna kartu per aksen — dipakai bergantian supaya daftar tidak monoton. */
-const GAYA_AKSEN: Record<
-  Aksen,
-  { kartu: string; teks: string; pil: string; nomor: string }
-> = {
-  forest: {
-    kartu: "bg-forest-900",
-    teks: "text-cream-100",
-    pil: "bg-cream-100/15 text-cream-100",
-    nomor: "text-cream-100/25",
-  },
-  clay: {
-    kartu: "bg-clay-600",
-    teks: "text-cream-50",
-    pil: "bg-cream-50/20 text-cream-50",
-    nomor: "text-cream-50/25",
-  },
-  cream: {
-    kartu: "bg-cream-300",
-    teks: "text-ink-900",
-    pil: "bg-ink-900/12 text-ink-900",
-    nomor: "text-ink-900/20",
-  },
-};
+/**
+ * SATU warna untuk semua kartu daftar: tinta merek `ink-900` (#2d264b).
+ *
+ * Diminta: "card-card di halaman daftar virtual tour 1 warna saja yang
+ * berbeda dari warna menu tapi sangat cocok dan sesuai dengan fiturnya".
+ *
+ * Kenapa tinta, bukan sekadar warna lain:
+ *   - KARTU MENU (/fitur) memakai hijau #1b3325, terra #b4502c, krem
+ *     #e8d3ae. Tinta #2d264b tidak satu pun dari itu, tapi tetap dari
+ *     palet situs: ini warna yang sudah dipakai untuk judul navbar dan
+ *     judul kartu, jadi terasa satu keluarga, bukan warna tempelan.
+ *   - Sesuai fiturnya: daftar ini pintu masuk ke panorama malam —
+ *     teras lentera, bar kopi, dek sungai. Tinta gelap membuat foto
+ *     panorama (mayoritas bernuansa hangat/gelap) menyala, sedangkan
+ *     hijau hutan menenggelamkannya.
+ *
+ * Kontras terukur (bukan dikira-kira), latar #2d264b:
+ *   teks cream-50 #fffdf8  = 13.86 : 1
+ *   teks cream-100 #fbf3e2 = 12.76 : 1
+ *   nomor (cream-50/40)    =  3.50 : 1  (teks besar-ish, dekoratif)
+ *   pil (cream-50/20)      =  7.36 : 1
+ * Semua lolos ambang WCAG 4.5:1 untuk teks kecil. Sebagai pembanding,
+ * kartu hijau di /fitur 13.35 : 1 — jadi kartu baru ini setara, tidak
+ * lebih berat dibaca.
+ *
+ * Konsekuensi yang disengaja: karena latarnya sekarang selalu gelap,
+ * skema teks/pil TIDAK lagi mengikuti `aksen` per tempat. Kalau dibiarkan
+ * mengikuti, kartu "cream" akan menulis teks ink-900 di atas tinta dan
+ * hilang sama sekali. `aksen` tetap dipakai di halaman detail (pil
+ * kategori) supaya identitas tiap tempat masih terasa.
+ */
+const GAYA_KARTU = {
+  kartu: "bg-ink-900",
+  teks: "text-cream-50",
+  pil: "bg-cream-50/20 text-cream-50",
+  nomor: "text-cream-50/40",
+} as const;
 
 export default async function TourPage() {
   const { venues, sumber } = await ambilVenues();
@@ -147,7 +160,7 @@ export default async function TourPage() {
           {/* Daftar tempat */}
           <ol className="flex flex-col gap-[0.625rem] px-5 pb-[0.875rem]">
             {venues.map((v) => {
-              const g = GAYA_AKSEN[v.aksen];
+              const g = GAYA_KARTU;
               return (
                 <li key={v.slug}>
                   <Link
