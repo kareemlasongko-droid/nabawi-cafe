@@ -43,12 +43,10 @@ function GridIcon({ className }: { className?: string }) {
 }
 
 type NavbarProps = {
-  /**
-   * Kalau diisi, navbar menampilkan tombol kembali di kanan (menggantikan
-   * ikon grid dekoratif). `label` dipakai untuk aria-label dan sebagai
-   * teks pendek di samping panah pada layar >= 380px.
-   */
-  back?: { href: string; label: string };
+  /* CATATAN: tombol kembali SENGAJA tidak lagi ada di navbar (diminta).
+     Back sekarang berupa tombol tersendiri di area konten, lihat
+     components/back-link.tsx. Slot kanan navbar kembali diisi ikon grid
+     dekoratif seperti mockup aslinya. */
   /**
    * Menempel di atas saat halaman digulir. Hanya dipakai di halaman yang
    * memang bisa digulir (/tour dan /tour/[slug]); /fitur sengaja dibiarkan
@@ -80,7 +78,7 @@ type NavbarProps = {
  * Dengan `relative` pada nav, keduanya berada di lapisan yang sama dan
  * nav menang karena datang belakangan di urutan DOM.
  */
-export function Navbar({ back, sticky, gradient }: NavbarProps = {}) {
+export function Navbar({ sticky, gradient }: NavbarProps = {}) {
   return (
     <header
       className={[
@@ -112,43 +110,14 @@ export function Navbar({ back, sticky, gradient }: NavbarProps = {}) {
           </span>
         </a>
 
-        {back ? (
-          /* Tombol kembali. Menggantikan ikon grid dekoratif supaya slot
-             kanan navbar tidak lagi jadi elemen mati. Ukuran sentuh 32px
-             dan teks labelnya disembunyikan di bawah 380px karena di
-             320px ruangnya tidak cukup (lebar tersedia 280px, sedangkan
-             logo+judul sudah 217px). */
-          <a
-            href={back.href}
-            aria-label={`Kembali ke ${back.label}`}
-            className="ml-auto flex shrink-0 items-center gap-[0.25rem] rounded-full bg-ink-900/[0.07] py-[0.3125rem] pr-[0.3125rem] pl-[0.3125rem] text-ink-900 transition active:scale-95 min-[380px]:pr-[0.5rem]"
-          >
-            <span className="grid size-[1.375rem] place-items-center">
-              <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden="true">
-                <path
-                  d="M10 3.5 5.5 8 10 12.5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-            <span className="hidden text-[0.625rem] leading-none font-bold min-[380px]:inline">
-              {back.label}
-            </span>
-          </a>
-        ) : (
-          /* ikon grid di mockup belum punya tujuan, jadi untuk sementara
-             ditampilkan sebagai penanda visual, bukan tombol mati */
-          <span
-            aria-hidden="true"
-            className="ml-auto grid size-[0.875rem] place-items-center text-ink-900 tablet:size-4"
-          >
-            <GridIcon className="size-[0.875rem] tablet:size-4" />
-          </span>
-        )}
+        {/* ikon grid di mockup belum punya tujuan, jadi untuk sementara
+            ditampilkan sebagai penanda visual, bukan tombol mati */}
+        <span
+          aria-hidden="true"
+          className="ml-auto grid size-[0.875rem] place-items-center text-ink-900 tablet:size-4"
+        >
+          <GridIcon className="size-[0.875rem] tablet:size-4" />
+        </span>
       </nav>
     </header>
   );

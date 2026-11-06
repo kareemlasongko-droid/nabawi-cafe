@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "../components/Footer";
+import { BackLink } from "../../components/back-link";
 import { Navbar } from "../components/Navbar";
 import { ambilVenues, type Aksen } from "../lib/venues";
 
@@ -67,10 +68,19 @@ export default async function TourPage() {
         </div>
 
         <div className="relative z-10 flex min-h-dvh flex-col">
-          <Navbar back={{ href: "/fitur", label: "Menu" }} sticky gradient />
+          <Navbar sticky gradient />
 
           {/* Kepala halaman */}
           <header className="px-5 pt-[0.75rem] pb-[0.875rem] text-center">
+            {/* Tombol kembali ke menu, di luar navbar (diminta). Rata kiri
+                sendirian, jadi judul di bawahnya tetap simetris. */}
+            <div className="mb-[0.625rem] flex justify-start">
+              <BackLink
+                href="/fitur"
+                label="Kembali ke menu"
+                aria="Kembali ke halaman menu Fitur"
+              />
+            </div>
             <p className="text-[0.625rem] leading-none font-medium tracking-[0.16em] text-white/75">
               MULAI PENJELAJAHAN
             </p>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Footer } from "../../components/Footer";
+import { BackLink } from "../../../components/back-link";
 import { Navbar } from "../../components/Navbar";
 import { Panorama } from "../../../components/panorama";
 import { ambilVenues, type Aksen } from "../../lib/venues";
@@ -53,29 +54,27 @@ export default async function VenuePage({ params }: Params) {
           overflow sendiri). */}
       <div className="relative isolate w-full max-w-[27.5rem] bg-forest-950 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)]">
         <div className="relative z-10 flex min-h-dvh flex-col">
-          <Navbar back={{ href: "/tour", label: "Daftar" }} sticky gradient />
+          <Navbar sticky gradient />
 
           {/* Kepala: nomor + kategori, lalu nama tempat */}
-          <header className="px-5 pt-[0.5rem] text-center">
-            {/* Jalan kembali ke halaman menu. Navbar di halaman ini
-                menampilkan back ke DAFTAR tour, jadi tautan ini yang
-                mengarah ke /fitur — dua tujuan berbeda, dua tombol. */}
-            <a
-              href="/fitur"
-              className="mb-[0.5rem] inline-flex items-center gap-[0.25rem] rounded-full border border-white/20 px-[0.625rem] py-[0.25rem] text-[0.5625rem] font-bold tracking-[0.06em] text-cream-100/80 transition active:scale-95"
-            >
-              <svg viewBox="0 0 16 16" className="size-2.5" aria-hidden="true">
-                <path
-                  d="M10 3.5 5.5 8 10 12.5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              KEMBALI KE MENU
-            </a>
+          {/* Dua jalan kembali, keduanya DI LUAR navbar (diminta):
+              "Kembali" menempel di atas saat digulir (ke daftar 10 tempat),
+              dan "Kembali ke menu" menuju halaman Fitur. */}
+          <BackLink
+            varian="sticky"
+            href="/tour"
+            label="Kembali"
+            aria="Kembali ke daftar Virtual Tour"
+          />
+
+          <header className="px-5 pt-0 text-center">
+            <div className="mb-[0.625rem] flex justify-start">
+              <BackLink
+                href="/fitur"
+                label="Kembali ke menu"
+                aria="Kembali ke halaman menu Fitur"
+              />
+            </div>
 
             <div className="flex items-center justify-center gap-[0.375rem]">
               <span className={`rounded-full px-[0.625rem] py-[0.1875rem] text-[0.5625rem] font-bold tracking-[0.1em] ${warna.pil}`}>
