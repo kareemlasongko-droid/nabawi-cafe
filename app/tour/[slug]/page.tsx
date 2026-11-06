@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Footer } from "../../components/Footer";
 import { BackLink } from "../../../components/back-link";
 import { Navbar } from "../../components/Navbar";
 import { Panorama } from "../../../components/panorama";
@@ -217,9 +216,13 @@ export default async function VenuePage({ params }: Params) {
             </Link>
           </nav>
 
-          <div className="mt-auto">
-            <Footer />
-          </div>
+          {/* TIDAK ada footer di sini (diminta: footer hanya di halaman
+              menu). Jarak bawah menggantikan ruang yang sebelumnya diisi
+              footer, termasuk safe-area di iPhone berponi. */}
+          <div
+            aria-hidden="true"
+            className="h-[1.25rem] shrink-0 pb-[env(safe-area-inset-bottom)]"
+          />
         </div>
       </div>
     </main>

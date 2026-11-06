@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Footer } from "../components/Footer";
 import { BackLink } from "../../components/back-link";
 import { Navbar } from "../components/Navbar";
 import { ambilVenues } from "../lib/venues";
@@ -222,9 +221,11 @@ export default async function TourPage() {
             })}
           </ol>
 
-          <div className="mt-auto">
-            <Footer />
-          </div>
+          {/* TIDAK ada footer di sini (diminta: footer hanya di halaman
+              menu). Daftar ditutup dengan jarak bawah supaya kartu terakhir
+              tidak menempel ke tepi layar; sebelumnya jarak ini datang dari
+              pembungkus footer. */}
+          <div aria-hidden="true" className="h-[1.25rem] shrink-0" />
         </div>
       </div>
     </main>
