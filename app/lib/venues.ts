@@ -262,7 +262,24 @@ export async function ambilVenues(): Promise<{
 
     return { venues: baris.map(dariBaris), sumber: "supabase" };
   } catch (e) {
-    console.warn("[venues] Supabase tidak bisa dihubungi, memakai salinan lokal:", e);
+    /* Pesan dibedakan supaya saat membaca log tidak tertukar:
+       - 401/403  -> kunci ditolak (salah kunci / belum diisi)
+       - 42501    -> kunci benar tapi role `anon` belum diberi GRANT SELECT
+       - ECONN*   -> memang gangguan jaringan
+       Ketiganya sama-sama jatuh ke salinan lokal, tapi penyebabnya
+       berbeda dan perlu ditangani dengan cara berbeda. */
+    const pesan = String(e);
+    const sebab = /\b401\b|\b403\b/.test(pesan)
+      ? "kunci ditolak"
+      : /42501|permission denied/.test(pesan)
+        ? "role anon belum diberi GRANT SELECT"
+        : /ECONN|ENOTFOUND|fetch failed|timeout/i.test(pesan)
+          ? "jaringan tidak terjangkau"
+          : "kesalahan lain";
+    console.warn(
+      `[venues] Supabase gagal (${sebab}), memakai salinan lokal:`,
+      e,
+    );
     return { venues: VENUES_LOKAL, sumber: "lokal" };
   }
 }
