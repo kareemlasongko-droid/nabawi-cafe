@@ -46,12 +46,37 @@ export default async function VenuePage({ params }: Params) {
 
   return (
     <main className="flex min-h-dvh justify-center bg-forest-950">
-      <div className="relative isolate w-full max-w-[27.5rem] overflow-hidden bg-forest-950 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)]">
+      {/* CATATAN: TIDAK boleh ada `overflow-hidden` di sini. Elemen dengan
+          overflow selain `visible` mematikan `position: sticky` untuk semua
+          anaknya — navbar jadi ikut tergulir (terukur navTop -55 s/d -341).
+          Pembulatan/overflow ditangani per elemen (dialog layar penuh punya
+          overflow sendiri). */}
+      <div className="relative isolate w-full max-w-[27.5rem] bg-forest-950 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)]">
         <div className="relative z-10 flex min-h-dvh flex-col">
-          <Navbar />
+          <Navbar back={{ href: "/tour", label: "Daftar" }} sticky gradient />
 
           {/* Kepala: nomor + kategori, lalu nama tempat */}
           <header className="px-5 pt-[0.5rem] text-center">
+            {/* Jalan kembali ke halaman menu. Navbar di halaman ini
+                menampilkan back ke DAFTAR tour, jadi tautan ini yang
+                mengarah ke /fitur — dua tujuan berbeda, dua tombol. */}
+            <a
+              href="/fitur"
+              className="mb-[0.5rem] inline-flex items-center gap-[0.25rem] rounded-full border border-white/20 px-[0.625rem] py-[0.25rem] text-[0.5625rem] font-bold tracking-[0.06em] text-cream-100/80 transition active:scale-95"
+            >
+              <svg viewBox="0 0 16 16" className="size-2.5" aria-hidden="true">
+                <path
+                  d="M10 3.5 5.5 8 10 12.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              KEMBALI KE MENU
+            </a>
+
             <div className="flex items-center justify-center gap-[0.375rem]">
               <span className={`rounded-full px-[0.625rem] py-[0.1875rem] text-[0.5625rem] font-bold tracking-[0.1em] ${warna.pil}`}>
                 {String(v.urutan).padStart(2, "0")} / {String(venues.length).padStart(2, "0")}
@@ -72,7 +97,6 @@ export default async function VenuePage({ params }: Params) {
             <Panorama
               src={v.panoramaUrl}
               alt={`Pandangan ${v.nama} di Nabawi Cafe`}
-              petunjuk="Geser untuk melihat sekeliling"
             />
           </div>
 
@@ -132,24 +156,60 @@ export default async function VenuePage({ params }: Params) {
             <div className="flex items-stretch gap-[0.5rem]">
               <Link
                 href={`/tour/${sebelumnya.slug}`}
-                className="flex min-w-0 flex-1 flex-col justify-center rounded-[1rem] bg-white/[0.08] px-[0.625rem] py-[0.5rem] transition active:scale-[0.98]"
+                aria-label={`Sebelumnya: ${sebelumnya.nama}`}
+                className="flex min-w-0 flex-1 items-center gap-[0.375rem] rounded-[1rem] bg-white/[0.08] px-[0.5rem] py-[0.5rem] transition active:scale-[0.98]"
               >
-                <span className="text-[0.5rem] font-bold tracking-[0.1em] text-cream-100/50">
-                  ← SEBELUMNYA
+                <span
+                  aria-hidden="true"
+                  className="grid size-7 shrink-0 place-items-center rounded-full bg-white/10 text-cream-100"
+                >
+                  <svg viewBox="0 0 16 16" className="size-3" aria-hidden="true">
+                    <path
+                      d="M10 3.5 5.5 8 10 12.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </span>
-                <span className="mt-[0.125rem] truncate text-[0.6875rem] font-extrabold text-cream-50">
-                  {sebelumnya.nama}
+                <span className="flex min-w-0 flex-col">
+                  <span className="text-[0.5rem] font-bold tracking-[0.1em] text-cream-100/50">
+                    SEBELUMNYA
+                  </span>
+                  <span className="mt-[0.125rem] truncate text-[0.6875rem] font-extrabold text-cream-50">
+                    {sebelumnya.nama}
+                  </span>
                 </span>
               </Link>
               <Link
                 href={`/tour/${berikutnya.slug}`}
-                className="flex min-w-0 flex-1 flex-col items-end justify-center rounded-[1rem] bg-cream-100 px-[0.625rem] py-[0.5rem] text-right transition active:scale-[0.98]"
+                aria-label={`Selanjutnya: ${berikutnya.nama}`}
+                className="flex min-w-0 flex-1 items-center justify-end gap-[0.375rem] rounded-[1rem] bg-cream-100 px-[0.5rem] py-[0.5rem] transition active:scale-[0.98]"
               >
-                <span className="text-[0.5rem] font-bold tracking-[0.1em] text-forest-900/50">
-                  BERIKUTNYA →
+                <span className="flex min-w-0 flex-col items-end">
+                  <span className="text-[0.5rem] font-bold tracking-[0.1em] text-forest-900/50">
+                    SELANJUTNYA
+                  </span>
+                  <span className="mt-[0.125rem] w-full truncate text-right text-[0.6875rem] font-extrabold text-forest-900">
+                    {berikutnya.nama}
+                  </span>
                 </span>
-                <span className="mt-[0.125rem] w-full truncate text-[0.6875rem] font-extrabold text-forest-900">
-                  {berikutnya.nama}
+                <span
+                  aria-hidden="true"
+                  className="grid size-7 shrink-0 place-items-center rounded-full bg-forest-900/10 text-forest-900"
+                >
+                  <svg viewBox="0 0 16 16" className="size-3" aria-hidden="true">
+                    <path
+                      d="M6 3.5 10.5 8 6 12.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </span>
               </Link>
             </div>

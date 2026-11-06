@@ -67,7 +67,7 @@ export default async function TourPage() {
         </div>
 
         <div className="relative z-10 flex min-h-dvh flex-col">
-          <Navbar />
+          <Navbar back={{ href: "/fitur", label: "Menu" }} sticky gradient />
 
           {/* Kepala halaman */}
           <header className="px-5 pt-[0.75rem] pb-[0.875rem] text-center">
