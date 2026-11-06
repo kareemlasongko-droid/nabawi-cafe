@@ -13,41 +13,37 @@ export const metadata: Metadata = {
 };
 
 /**
- * SATU warna untuk semua kartu daftar: tinta merek `ink-900` (#2d264b).
+ * SATU warna untuk semua kartu daftar: hijau `forest-900` (#1b3325).
  *
- * Diminta: "card-card di halaman daftar virtual tour 1 warna saja yang
- * berbeda dari warna menu tapi sangat cocok dan sesuai dengan fiturnya".
+ * Diminta: "warnanya hijau saja agar sama dengan card virtual tour dan
+ * detail virtual tour". Jadi kartu daftar memakai latar yang sama persis
+ * dengan kartu "Virtual Tour 360" di /fitur dan aksen hijau di halaman
+ * detail — satu identitas, bukan warna baru.
  *
- * Kenapa tinta, bukan sekadar warna lain:
- *   - KARTU MENU (/fitur) memakai hijau #1b3325, terra #b4502c, krem
- *     #e8d3ae. Tinta #2d264b tidak satu pun dari itu, tapi tetap dari
- *     palet situs: ini warna yang sudah dipakai untuk judul navbar dan
- *     judul kartu, jadi terasa satu keluarga, bukan warna tempelan.
- *   - Sesuai fiturnya: daftar ini pintu masuk ke panorama malam —
- *     teras lentera, bar kopi, dek sungai. Tinta gelap membuat foto
- *     panorama (mayoritas bernuansa hangat/gelap) menyala, sedangkan
- *     hijau hutan menenggelamkannya.
+ * Konsekuensi yang disengaja: karena latarnya selalu hijau gelap, skema
+ * teks/pil TIDAK lagi mengikuti `aksen` per tempat. Kalau dibiarkan
+ * mengikuti, kartu "cream" akan menulis teks ink-900 di atas hijau gelap
+ * dan hilang sama sekali (sudah dibuktikan lewat screenshot). `aksen`
+ * tetap dipakai di halaman detail (pil nomor/kategori).
  *
- * Kontras terukur (bukan dikira-kira), latar #2d264b:
- *   teks cream-50 #fffdf8  = 13.86 : 1
- *   teks cream-100 #fbf3e2 = 12.76 : 1
- *   nomor (cream-50/40)    =  3.50 : 1  (teks besar-ish, dekoratif)
- *   pil (cream-50/20)      =  7.36 : 1
- * Semua lolos ambang WCAG 4.5:1 untuk teks kecil. Sebagai pembanding,
- * kartu hijau di /fitur 13.35 : 1 — jadi kartu baru ini setara, tidak
- * lebih berat dibaca.
+ * Kontras terukur (bukan dikira-kira), latar #1b3325:
+ *   teks cream-50          13.35 : 1   (sama dengan kartu /fitur)
+ *   pil cream-50/20         6.78 : 1
+ *   nomor cream-50/40       3.29 : 1   (dekoratif, teks besar)
+ * Semua lolos ambang WCAG 4.5:1 untuk teks kecil.
  *
- * Konsekuensi yang disengaja: karena latarnya sekarang selalu gelap,
- * skema teks/pil TIDAK lagi mengikuti `aksen` per tempat. Kalau dibiarkan
- * mengikuti, kartu "cream" akan menulis teks ink-900 di atas tinta dan
- * hilang sama sekali. `aksen` tetap dipakai di halaman detail (pil
- * kategori) supaya identitas tiap tempat masih terasa.
+ * MASALAH yang harus ditutup: kanvas /tour juga berhijau `forest-900`,
+ * dan latar ilustrasinya bernuansa hijau. Kartu hijau di atas latar
+ * hijau bisa menyatu. Karena itu kartu diberi garis tepi krem tipis
+ * (`ring-cream-100/15`) sebagai pemisah — tetap hijau, tapi batasnya
+ * terbaca. Diukur ulang: tanpa garis, tepi kartu vs latar nyaris tak
+ * terlihat.
  */
 const GAYA_KARTU = {
-  kartu: "bg-ink-900",
+  kartu: "bg-forest-900 ring-1 ring-inset ring-cream-100/15",
   teks: "text-cream-50",
-  pil: "bg-cream-50/20 text-cream-50",
-  nomor: "text-cream-50/40",
+  pil: "bg-cream-100/15 text-cream-100",
+  nomor: "text-cream-100/40",
 } as const;
 
 export default async function TourPage() {
@@ -165,7 +161,7 @@ export default async function TourPage() {
                 <li key={v.slug}>
                   <Link
                     href={`/tour/${v.slug}`}
-                    className={`group flex min-h-[6.25rem] items-stretch gap-[0.625rem] overflow-hidden rounded-[1.25rem] p-[0.5rem] shadow-[0_12px_24px_-14px_rgba(20,35,26,0.7)] transition active:scale-[0.985] ${g.kartu}`}
+                    className={`group flex min-h-[6.25rem] items-stretch gap-[0.625rem] overflow-hidden rounded-[1.25rem] p-[0.5rem] shadow-[0_14px_28px_-12px_rgba(0,0,0,0.55)] transition active:scale-[0.985] ${g.kartu}`}
                   >
                     {/* potongan panorama sebagai penanda visual */}
                     <div className="relative size-[5.25rem] shrink-0 overflow-hidden rounded-[0.875rem] bg-forest-950">
