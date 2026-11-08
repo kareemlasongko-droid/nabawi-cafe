@@ -23,6 +23,33 @@ npm run build
 npm start
 ```
 
+## Alur deploy
+
+Deploy sepenuhnya ditangani **integrasi Git Vercel**. Tidak ada perintah deploy di
+repo ini (`npm run deploy` tidak ada), tidak ada `vercel.json`, dan tidak ada
+kredensial Vercel di lingkungan pengembangan — jadi tidak ada jalur lain yang
+bisa menerbitkan production selain Vercel.
+
+| Tahap | Sumber | Hasil | Domain |
+| --- | --- | --- | --- |
+| Development | `npm run dev` di mesin lokal / sandbox | HMR, bukan versi publik | `localhost:3000` |
+| Preview | setiap push ke branch PR | Deployment Preview | URL preview per-commit, berubah tiap deploy |
+| Production | merge (atau push langsung) ke `main` | Deployment Production | `https://nabawi-cafe.vercel.app` |
+
+Catatan:
+
+- **Production hanya dari `main`.** Branch `main` adalah *Production Branch* di
+  setelan Vercel. Selama setelan itu tidak diubah di dashboard, push ke branch
+  lain tidak akan pernah menimpa production.
+- **Preview tetap dipakai** untuk memeriksa perubahan sebelum merge; itulah yang
+  dilaporkan sebagai cek "Vercel" pada setiap pull request.
+- **Database dipakai bersama.** Preview dan production memakai Supabase yang sama
+  (`SUPABASE_URL` / `SUPABASE_ANON_KEY`), jadi perubahan skema atau isi data
+  langsung terasa di kedua lingkungan. Tidak ada database staging terpisah.
+- Kalau suatu saat ingin mematikan preview per-branch, itu bisa diatur lewat
+  `vercel.json` → `git.deploymentEnabled`, tetapi konsekuensinya cek Vercel pada
+  PR ikut hilang. Setelan yang dipakai sekarang sengaja membiarkan preview hidup.
+
 ## Konsep tampilan
 
 Halaman ini **tidak responsive** — memang dirancang sebagai kanvas mobile dengan lebar
