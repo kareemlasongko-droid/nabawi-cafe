@@ -18,28 +18,141 @@ kasir setelah makan.
 Portal internal **tidak ditautkan** dari website publik dan diberi
 `robots: noindex`.
 
-## Keadaan sekarang: MODE DEMO
+## Mengaktifkan mode sungguhan
 
-Kunci server database (`SUPABASE_SERVICE_KEY`) belum dipasang, jadi:
+Sistem berjalan **mode demo** selama `SUPABASE_SERVICE_KEY` belum ada: data
+pesanan hidup di memori proses, hilang saat server restart, dan setiap portal
+menampilkan pita "Mode demo".
 
-- Semua data order hidup di memori proses (`globalThis.__demoOrder`).
-- Pesanan, tagihan, dan panggilan **hilang saat server restart** dan **tidak
-  dibagi antar-instance** — dua orang yang membuka portal berbeda bisa melihat
-  data berbeda di lingkungan serverless.
-- Semua portal menampilkan pita **"Mode demo"** yang jelas. Ini disengaja:
-  lebih baik terlihat seperti alat peraga daripada terlihat seperti sistem
-  sungguhan yang diam-diam kehilangan pesanan.
-- Hak tulis anon **tidak** dibuka untuk mengakalinya. Kalau dibuka, siapa pun
-  yang menemukan anon key bisa mengubah harga dan status pesanan.
+### Langkah
 
-Untuk mengaktifkan mode sungguhan, pasang di Vercel:
+1. Supabase → **Settings → API** → salin kunci **`service_role`**
+   (project `mvuqdakfzffhrnzxnmke`).
+2. Vercel → project `nabawi-cafe` → **Settings → Environment Variables**.
+3. Tambah `SUPABASE_SERVICE_KEY` = kunci tadi, centang **Production, Preview,
+   Development**.
+4. **Redeploy.** Variabel baru tidak berlaku pada deployment yang sudah jadi.
+
+Tidak ada perubahan kode. `PUNYA_KUNCI_SERVER` otomatis menjadi `true`, pita
+mode demo hilang, dan semua penulisan memakai kunci server.
+
+### Menu tidak lagi jatuh ke data contoh
+
+Selama ini, kalau database tidak terbaca, portal pelanggan menampilkan
+`MENU_CONTOH` — 14 hidangan contoh (Harira, Tajine, Couscous) dengan harga
+karangan. Itu wajar saat aplikasi belum punya menu sungguhan, tapi berbahaya
+sekarang menu asli sudah terisi 126 item: tamu bisa memesan makanan yang tidak
+dijual Nabawi dengan harga yang tidak berlaku, lalu kecewa saat kasir menolak.
+
+Aturan sekarang:
+
+| Keadaan | Yang ditampilkan |
+|---|---|
+| Kunci server ada, database terbaca | Menu asli dari database |
+| Kunci server ada, database gagal | Layar "Menu belum bisa dimuat" + saran panggil pelayan |
+| Belum ada kunci server (mode demo) | Database bila terbaca; `MENU_CONTOH` hanya bila database tak terjangkau |
+
+Menu contoh tetap disediakan untuk mode demo supaya halaman bisa dicoba tanpa
+database — pita "Mode demo" sudah memberi tahu bahwa itu bukan menu sungguhan.
+Yang dijaga: **pelanggan dan kasir selalu melihat sumber menu yang sama**, jadi
+harga yang dilihat tamu = harga yang dihitung tagihan.
+
+Cara memastikannya di produksi: buka portal pelanggan, lalu periksa ada
+`Nasi Goreng Kebuli` dan `Cappuccino Dingin`. Kalau yang muncul `Harira`, berarti
+kuncinya belum terpasang dan halaman sedang mode demo.
+
+### Izin tabel `service_role` (migrasi `izin_service_role`)
+
+Jebakan yang baru ketahuan **setelah** kunci dipasang di production: peran
+`service_role` ternyata hanya memegang `REFERENCES`, `TRIGGER`, dan `TRUNCATE`
+pada seluruh tabel `public` — **tidak ada `SELECT`, `INSERT`, `UPDATE`, maupun
+`DELETE`**. Akibatnya production menampilkan:
 
 ```
-SUPABASE_SERVICE_KEY = <service role key project mvuqdakfzffhrnzxnmke>
+Meja 1 tidak dikenali — permission denied for table meja
 ```
 
-Tanpa variabel itu, endpoint tulis tetap menolak dengan status 503 dan pesan
-yang menjelaskan sebabnya.
+Yang menyesatkan: di sandbox ini **tidak pernah terlihat**, karena sandbox tidak
+punya jaringan keluar sehingga selalu jatuh ke mode demo yang tidak menyentuh
+database sama sekali.
+
+Perlu dicatat: **RLS tidak menggantikan izin tabel.** RLS menentukan baris mana
+yang boleh disentuh; izin tabel menentukan apakah peran itu boleh menyentuh tabel
+tersebut sama sekali. Keduanya harus benar.
+
+Migrasi `20261102000100_izin_service_role.sql` memberi `SELECT, INSERT, UPDATE,
+DELETE` pada semua tabel, `USAGE, SELECT` pada semua sekuens, plus
+`ALTER DEFAULT PRIVILEGES` supaya tabel baru otomatis ikut.
+
+### Periksa sendiri setelah live: satu permintaan HTTP
+
+Cara tercepat memastikan mode sungguhan benar-benar jalan — bukan hanya pitanya
+hilang — adalah membuka alamat ini di browser:
+
+```
+https://nabawi-cafe.vercel.app/api/order/kasir
+```
+
+Perhatikan **`"demo": false`** di akhir jawabannya.
+
+| Yang terlihat | Artinya |
+| --- | --- |
+| `"demo": false` + daftar 20 meja | Mode sungguhan jalan |
+| `"demo": true` | Kunci belum terbaca — redeploy belum jalan |
+| `permission denied for table ...` | Izin `service_role` belum diperbaiki |
+
+Ini menguji **baca dan tulis** sekaligus: endpoint kasir membaca pesanan,
+tagihan, dan panggilan dari database sungguhan.
+
+### Kenapa harus kunci server, bukan anon
+
+Seluruh penulisan lewat route server. Browser tamu tidak pernah memegang kunci
+apa pun selain anon key yang memang publik. Kalau browser diberi hak tulis
+langsung ke tabel pesanan, siapa pun bisa mengubah status atau harga pesanan
+orang lain — dan semua validasi di server (jam buka, harga dari database,
+batas laju) bisa dilewati.
+
+### Policy RLS (sudah dirapikan di migrasi `kunci_mode_sungguhan_rls`)
+
+| Tabel | Anon bisa | Catatan |
+| --- | --- | --- |
+| `menu`, `kategori_menu`, `meja`, `pengaturan` | SELECT | halaman publik |
+| `pesanan` | SELECT **hanya sesi sendiri** | syarat `sesi_id = header x-sesi-order` |
+| `pesanan`, `item_pesanan`, `panggilan` | **tidak bisa tulis** | ditutup; penulisan lewat server |
+| `tagihan`, `pembayaran`, `log_perubahan`, `pengguna_internal` | tidak bisa | berisi uang & data internal |
+
+Policy tulis anon untuk `pesanan`/`item_pesanan`/`panggilan` **dihapus**.
+Sebelumnya syaratnya `true`, artinya siapa pun yang memegang anon key bisa
+menyuntik pesanan palsu langsung ke database tanpa lewat validasi server.
+Aplikasi tidak membutuhkannya karena semua penulisan memakai `service_role`
+yang melewati RLS.
+
+### Tiga hal yang akan patah tanpa perbaikan ini
+
+Ketiganya tidak terlihat di mode demo karena demo tidak menyentuh RLS:
+
+1. **Tagihan gagal dibuat.** `tagihan` tidak punya policy tulis. Tanpa kunci
+   server, alur pertama berhenti setelah pesanan tersimpan — tamu melihat
+   error dan pesanannya menggantung tanpa tagihan.
+2. **Status pesanan tamu tidak pernah muncul.** Policy baca mencocokkan header
+   `x-sesi-order`, tetapi kode tidak pernah mengirimnya. Sekarang dikirim di
+   `GET /api/order/pesanan`.
+3. **Nomor pesanan bertabrakan.** Dulu `M12-2030` (jam:menit). Dua tamu di
+   meja yang sama menambah pesanan dalam menit yang sama = unique violation,
+   pesanan kedua ditolak. Sekarang `M12-2030-47` + satu kali coba ulang, dan
+   pesan galatnya bahasa manusia, bukan pesan Postgres.
+
+### Setelah kunci terpasang, wajib dicoba
+
+- [ ] Kirim pesanan dari `/order?meja=12` → muncul di kasir.
+- [ ] Terima → muncul di dapur → Siap → pelayan → Sudah diantar.
+- [ ] Status di layar tamu berubah tanpa memuat ulang.
+- [ ] Tutup tagihan → struk berisi item → meja kembali kosong.
+- [ ] Tandai menu habis dari kasir → hilang dari portal tamu dalam ~5 detik.
+
+Kalau salah satu gagal, kembalikan ke mode demo dengan menghapus variabel
+`SUPABASE_SERVICE_KEY` lalu redeploy — sistem tidak akan kehilangan data
+yang sudah ada, hanya berhenti menyimpan yang baru.
 
 ## Skema database
 
@@ -67,6 +180,46 @@ total   = subtotal + layanan + pajak, dibulatkan sekali ke kelipatan 100
 
 Biaya layanan dikenakan **sekali per tagihan**, bukan per pesanan — tamu yang
 menambah menu dua kali tidak membayar dua kali biaya layanan.
+
+## Struk (K-10)
+
+Struk memuat: nama cafe, wilayah, nomor meja, tanggal & jam, nama kasir,
+daftar item (nama, jumlah, harga satuan, harga baris), subtotal, biaya
+layanan dengan persentasenya, pajak dengan persentasenya, pembulatan, total,
+metode bayar, nominal diterima, dan kembalian.
+
+Dua keputusan yang perlu diketahui:
+
+- **Item digabung per menu + harga.** Tamu yang memesan 2 kopi di awal lalu
+  1 kopi lagi menuliskan "3× Kopi" sebagai satu baris, bukan dua baris yang
+  mudah disangka tagihan ganda. Jumlah baris struk selalu sama dengan
+  subtotal — diuji.
+- **Harga satuan hanya dicetak bila jumlahnya lebih dari satu.** Untuk satu
+  item, harga satuan sama persis dengan harga baris dan hanya menambah baris
+  yang harus dibaca.
+- **Alamat baru berupa wilayah ("Yogyakarta").** Alamat lengkap Nabawi belum
+  ada di repo maupun PRD. Nomor rumah tidak dikarang: alamat salah di dokumen
+  yang diserahkan ke tamu lebih buruk daripada alamat singkat yang benar.
+  Ganti `ALAMAT_STRUK` di `PortalKasir.tsx` setelah alamat resmi ada.
+
+## Menandai menu habis (K-08 dan D-07)
+
+Yang menandai bisa **kasir** dan **dapur**, karena yang tahu bahan habis lebih
+dulu adalah dapur. Kalau hanya kasir yang bisa, dapur harus berteriak atau
+berjalan ke depan, dan selama jeda itu tamu tetap bisa memesan menu yang tidak
+bisa dibuat.
+
+- Kasir: panel "Ketersediaan menu" di bawah denah meja.
+- Dapur: tombol "Menu habis" di bilah atas, membuka deretan tombol besar.
+- Portal pelanggan: daftar menu diperbarui tiap **5 detik** tanpa memuat ulang
+  halaman, sehingga kata kunci pencarian dan posisi gulir tamu tidak hilang.
+  Sebelum ini terukur 14 detik — cukup lama bagi tamu untuk memesan menu yang
+  sudah habis.
+- Semua penandaan tercatat di `log_perubahan` (siapa, kapan, sebelum/sesudah).
+
+Endpoint: `GET /api/order/menu/tersedia` (publik, ramping),
+`POST /api/order/kasir` dan `POST /api/order/dapur` dengan
+`{aksi:"set_tersedia", menu_id, tersedia}`.
 
 ## Aturan status
 
@@ -114,8 +267,11 @@ database yang memeriksa, bug alur baru muncul di produksi.
   masuknya belum). Portal staf saat ini terbuka bagi siapa pun yang tahu
   alamatnya. `/order/masuk` menyatakan ini terang-terangan, bukan menampilkan
   formulir sandi palsu.
-- Pindah meja, batal pesanan oleh kasir + log, tandai menu habis dari kasir.
-- Struk belum memuat alamat kafe.
+- Pelanggan belum bisa membatalkan pesanan sendiri (P-11).
+- Kasir belum bisa: pindah pesanan ke meja lain (K-06), batalkan pesanan/item
+  dengan alasan (K-07), buat pesanan manual (K-13).
+- Login per peran (bagian 13) dan penanda offline (bagian 14).
+- Alamat lengkap kafe di struk.
 - Pengaturan pajak/layanan masih lewat database; halaman admin hanya
   menampilkannya.
 

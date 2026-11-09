@@ -21,6 +21,8 @@ export const dynamic = "force-dynamic";
  */
 export default async function HalamanAdmin() {
   const [menuRes, aturan] = await Promise.all([ambilMenu(), ambilAturan()]);
+  // Sumber menu disamakan dengan halaman pelanggan: database bila terbaca,
+  // MENU_CONTOH hanya sebagai cadangan di mode demo.
   const data = menuRes.ok ? menuRes.data : MENU_CONTOH;
 
   return (

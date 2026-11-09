@@ -38,6 +38,8 @@ type Item = {
   catatan: string | null;
 };
 
+type MenuRingkas = { id: number; nama: string; tersedia: boolean };
+
 type Tiket = {
   id: number;
   nomor: string;
@@ -60,6 +62,9 @@ export function PortalDapur() {
   const [suara, setSuara] = useState(true);
   const [sekarang, setSekarang] = useState(() => Date.now());
   const [ambang, setAmbang] = useState({ kuning: 10, merah: 15 });
+  const [menu, setMenu] = useState<MenuRingkas[]>([]);
+  const [menuBuka, setMenuBuka] = useState(false);
+  const [menuSibuk, setMenuSibuk] = useState(0);
   const jumlahLalu = useRef(0);
   const idLalu = useRef<Set<number>>(new Set());
 
@@ -74,6 +79,7 @@ export function PortalDapur() {
       setGalat("");
       setTiket(j.tiket);
       if (j.ambang) setAmbang(j.ambang);
+      if (Array.isArray(j.menu)) setMenu(j.menu);
     } catch {
       setGalat("Koneksi terputus. Tiket tidak diperbarui sampai pulih.");
     }
@@ -90,6 +96,7 @@ export function PortalDapur() {
   }, [muat]);
 
   const baru = useMemo(() => (tiket ?? []).filter((t) => t.status === "diterima"), [tiket]);
+  const habis = useMemo(() => menu.filter((m) => !m.tersedia), [menu]);
 
   // Bunyi pesanan baru. Pesanan TAMBAHAN di meja yang sudah punya tiket
   // memakai nada berbeda (D-06) supaya dapur tahu ini bukan meja baru.
@@ -110,6 +117,35 @@ export function PortalDapur() {
     jumlahLalu.current = baru.length;
     idLalu.current = ids;
   }, [baru, suara, tiket]);
+
+  /**
+   * D-07 — tandai menu/bahan habis.
+   *
+   * Optimistis di layar, dikembalikan bila server menolak. Dapur menekan
+   * tombol ini dengan tangan basah/bertepung; umpan balik yang tertunda
+   * membuat tombol terasa mati dan ditekan berulang.
+   */
+  async function setTersedia(menuId: number, tersedia: boolean) {
+    setMenuSibuk(menuId);
+    setMenu((d) => d.map((m) => (m.id === menuId ? { ...m, tersedia } : m)));
+    try {
+      const res = await fetch("/api/order/dapur", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aksi: "set_tersedia", menu_id: menuId, tersedia, oleh: "dapur" }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        setGalat(j.pesan ?? "Gagal menandai menu.");
+        await muat();
+      }
+    } catch {
+      setGalat("Koneksi terputus. Menu belum ditandai.");
+      await muat();
+    } finally {
+      setMenuSibuk(0);
+    }
+  }
 
   async function maju(id: number, ke: string) {
     await fetch("/api/order/status", {
@@ -149,6 +185,22 @@ export function PortalDapur() {
           </button>
           <button
             type="button"
+            onClick={() => setMenuBuka((b) => !b)}
+            aria-expanded={menuBuka}
+            className={[
+              "flex h-10 items-center gap-2 rounded-lg border px-3 text-[0.75rem] font-bold",
+              habis.length > 0
+                ? "border-clay-600/60 bg-clay-800/70 text-cream-50"
+                : "border-cream-100/20 text-cream-100/80",
+            ].join(" ")}
+          >
+            Menu habis
+            <span className="rounded-full bg-cream-100/15 px-1.5 text-[0.6875rem] tabular-nums">
+              {habis.length}
+            </span>
+          </button>
+          <button
+            type="button"
             onClick={muat}
             className="h-10 rounded-lg border border-cream-100/20 px-3 text-[0.75rem] font-bold text-cream-100/80"
           >
@@ -156,6 +208,51 @@ export function PortalDapur() {
           </button>
         </div>
       </header>
+
+      {/*
+        Panel ketersediaan (D-07). Diletakkan di ATAS papan tiket tapi
+        hanya terbuka bila diminta: saat jam sibuk, papan tiket harus tetap
+        jadi hal pertama yang terlihat. Yang sudah ditandai habis tetap
+        tampil di label hitungan tombol ("Menu habis 2") supaya dapur ingat
+        apa yang sedang kosong tanpa perlu membuka panel.
+      */}
+      {menuBuka && (
+        <div className="border-b border-cream-100/10 bg-forest-900/60 px-3 py-2 sm:px-4">
+          <div className="mb-1.5 flex items-baseline justify-between gap-3">
+            <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-cream-100/60">
+              Ketuk untuk menandai bahan habis
+            </p>
+            <p className="text-[0.6875rem] text-cream-100/40">
+              Langsung berlaku di portal pelanggan dan kasir
+            </p>
+          </div>
+          <ul className="flex flex-wrap gap-1.5">
+            {menu.length === 0 && (
+              <li className="text-[0.75rem] text-cream-100/50">Menu tidak terbaca.</li>
+            )}
+            {menu.map((m) => (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!m.tersedia}
+                  aria-label={`${m.nama}: ${m.tersedia ? "tandai habis" : "tandai tersedia"}`}
+                  onClick={() => setTersedia(m.id, !m.tersedia)}
+                  disabled={menuSibuk === m.id}
+                  className={[
+                    "h-11 rounded-lg border px-3 text-[0.8125rem] font-bold transition disabled:opacity-50",
+                    m.tersedia
+                      ? "border-cream-100/20 text-cream-100/85 active:bg-cream-100/10"
+                      : "border-clay-600 bg-clay-800 text-cream-50 line-through",
+                  ].join(" ")}
+                >
+                  {m.nama}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid gap-3 p-3 sm:p-4 lg:grid-cols-3">
         {KOLOM.map((kol) => {

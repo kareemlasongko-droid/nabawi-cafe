@@ -3,7 +3,7 @@ import { PortalPelanggan } from "../components/order/PortalPelanggan";
 import { cekBuka } from "../lib/order/aturan";
 import { ambilAturan, ambilMenu, ambilMeja } from "../lib/order/data";
 import { PUNYA_KUNCI_SERVER } from "../lib/order/db";
-import { MENU_CONTOH, demoMeja } from "../lib/order/demo";
+import { demoMeja, MENU_CONTOH } from "../lib/order/demo";
 import type { Meja } from "../lib/order/tipe";
 
 export const metadata: Metadata = {
@@ -65,9 +65,31 @@ export default async function HalamanOrder({
 
   const meja = hasilMeja.data as Meja;
 
-  // Menu dari database; kalau database tidak terbaca, pakai salinan lokal
-  // supaya halaman tetap bisa dipakai (PRD bagian 14: kembali ke cara manual
-  // bila sistem bermasalah — di sini minimal pelanggan tetap bisa melihat harga).
+  /*
+    Menu mana yang ditampilkan?
+
+    PRODUKSI (kunci server ada): WAJIB dari database. Kalau database tidak
+    terbaca, tampilkan layar "menu belum bisa dimuat" — jangan menu contoh.
+
+    Dulu halaman ini jatuh ke MENU_CONTOH (Harira, Tajine, Couscous dengan
+    harga karangan) saat database gagal. Sekarang menu asli sudah terisi,
+    perilaku itu berbahaya: tamu memesan makanan yang tidak dijual Nabawi
+    dengan harga yang tidak berlaku, lalu kecewa saat kasir menolak.
+
+    MODE DEMO (belum ada kunci server): MENU_CONTOH tetap dipakai sebagai
+    cadangan terakhir supaya halaman bisa dicoba tanpa database. Pita
+    "Mode demo" sudah memberi tahu bahwa menu ini bukan menu sungguhan,
+    dan kasir/dapur membaca sumber yang sama sehingga tidak ada selisih.
+  */
+  if (!menuRes.ok && PUNYA_KUNCI_SERVER) {
+    return (
+      <LayarPesan
+        judul="Menu belum bisa dimuat"
+        isi="Koneksi ke menu sedang bermasalah. Coba muat ulang halaman ini sebentar lagi, atau panggil pelayan untuk dibantu memesan."
+      />
+    );
+  }
+
   const data = menuRes.ok ? menuRes.data : MENU_CONTOH;
 
   return (
@@ -80,7 +102,7 @@ export default async function HalamanOrder({
       jamHariIni={buka.jamHariIni}
       bukaSekarang={buka.buka}
       alasanTutup={buka.alasan}
-      demo={!PUNYA_KUNCI_SERVER || !menuRes.ok}
+      demo={!PUNYA_KUNCI_SERVER}
     />
   );
 }

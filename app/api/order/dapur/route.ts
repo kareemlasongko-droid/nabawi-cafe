@@ -6,9 +6,16 @@
  * supaya pesanan iseng dari QR tidak pernah sampai ke dapur.
  */
 import { NextResponse } from "next/server";
-import { ambilPesananAktif, ambilAturan } from "@/app/lib/order/data";
+import { ambilMenu, ambilPesananAktif, ambilAturan } from "@/app/lib/order/data";
 import { db, PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
-import { demoAmbilPesanan, demoItemPesanan, demoMeja } from "@/app/lib/order/demo";
+import {
+  demoAmbilPesanan,
+  demoItemPesanan,
+  demoMeja,
+  demoMenuDenganStatus,
+  demoSetTersedia,
+  MENU_CONTOH,
+} from "@/app/lib/order/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +25,10 @@ export async function GET() {
   let merah = 15;
 
   if (!PUNYA_KUNCI_SERVER) {
+    // Menu tetap dibaca dari database (publik): dapur harus melihat menu
+    // asli, bukan daftar contoh, supaya penandaan "habis" mengenai menu
+    // yang benar-benar dijual.
+    const menuAsli = await ambilMenu();
     const tiket = demoAmbilPesanan()
       .filter((p) => ["diterima", "diproses", "siap"].includes(p.status))
       .map((p) => ({
@@ -30,10 +41,20 @@ export async function GET() {
           catatan: i.catatan,
         })),
       }));
-    return NextResponse.json({ tiket, ambang: { kuning, merah }, demo: true });
+    return NextResponse.json({
+      tiket,
+      ambang: { kuning, merah },
+      // D-07: dapur menandai bahan/menu habis langsung dari papan tiket.
+      menu: demoMenuDenganStatus(menuAsli.ok ? menuAsli.data.menu : MENU_CONTOH.menu),
+      demo: true,
+    });
   }
 
-  const [res, aturan] = await Promise.all([ambilPesananAktif(), ambilAturan()]);
+  const [res, aturan, menuRes] = await Promise.all([
+    ambilPesananAktif(),
+    ambilAturan(),
+    ambilMenu(),
+  ]);
   if (!res.ok) return NextResponse.json({ pesan: res.pesan }, { status: 500 });
 
   // Ambang dari tabel pengaturan.
@@ -69,7 +90,78 @@ export async function GET() {
   return NextResponse.json({
     tiket,
     ambang: { kuning, merah },
+    menu: menuRes.ok ? menuRes.data.menu : [],
     pajak: aturan.pajakPersen,
     demo: false,
   });
+}
+
+/**
+ * POST /api/order/dapur — D-07: dapur menandai menu/bahan habis.
+ *
+ * Kenapa dapur boleh, padahal PRD menaruh "tandai menu habis" di kasir
+ * (K-08): yang tahu bahan habis lebih dulu adalah dapur, bukan kasir.
+ * Kalau hanya kasir yang bisa menandai, dapur harus berteriak atau
+ * berjalan ke depan — dan menu tetap tampil "ada" di portal pelanggan
+ * selama jeda itu, sehingga tamu memesan sesuatu yang tidak bisa dibuat.
+ *
+ * Hasilnya langsung terlihat di portal pelanggan (lewat /api/order/menu/
+ * tersedia) dan di portal kasir.
+ */
+export async function POST(req: Request) {
+  let badan: { aksi?: string; menu_id?: number; tersedia?: boolean; oleh?: string };
+  try {
+    badan = await req.json();
+  } catch {
+    return NextResponse.json({ pesan: "Isi permintaan tidak terbaca." }, { status: 400 });
+  }
+
+  if (badan.aksi !== "set_tersedia") {
+    return NextResponse.json({ pesan: "Aksi tidak dikenal." }, { status: 400 });
+  }
+
+  const id = Number(badan.menu_id);
+  if (!Number.isFinite(id) || id <= 0) {
+    return NextResponse.json({ pesan: "Menu tidak sah." }, { status: 400 });
+  }
+  if (typeof badan.tersedia !== "boolean") {
+    return NextResponse.json({ pesan: "Status ketersediaan tidak sah." }, { status: 400 });
+  }
+
+  if (!PUNYA_KUNCI_SERVER) {
+    /*
+      Periksa dulu menunya ada. Tanpa ini, mode demo menerima id apa pun
+      dan menyimpannya di store — perilakunya berbeda dari mode sungguhan,
+      dan tombol yang salah kirim tidak akan pernah kelihatan salah saat uji.
+    */
+    const daftarMenu = (await ambilMenu());
+    if (!(daftarMenu.ok ? daftarMenu.data.menu : MENU_CONTOH.menu).some((m) => m.id === id)) {
+      return NextResponse.json({ pesan: `Menu ${id} tidak dikenal.` }, { status: 400 });
+    }
+    demoSetTersedia(id, badan.tersedia);
+    return NextResponse.json({ ok: true, demo: true });
+  }
+
+  const res = await db("menu", {
+    method: "PATCH",
+    q: `id=eq.${id}`,
+    body: { tersedia: badan.tersedia },
+  });
+  if (!res.ok) return NextResponse.json({ pesan: res.pesan }, { status: 400 });
+
+  // Log: saat tamu komplain menunya masih tampil, yang dicari adalah siapa
+  // yang menandai dan kapan.
+  await db("log_perubahan", {
+    method: "POST",
+    body: {
+      siapa: badan.oleh ?? "dapur",
+      aksi: badan.tersedia ? "menu_tersedia" : "menu_habis",
+      entitas: "menu",
+      entitas_id: String(id),
+      sebelum: { tersedia: !badan.tersedia },
+      sesudah: { tersedia: badan.tersedia },
+    },
+  });
+
+  return NextResponse.json({ ok: true });
 }

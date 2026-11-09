@@ -45,6 +45,16 @@ function authHeader(): string {
 type Opsi = {
   /** Query string PostgREST, mis. "select=*&order=urutan.asc" */
   q?: string;
+  /**
+   * Header tambahan untuk PostgREST.
+   *
+   * Dipakai untuk `x-sesi-order`: policy RLS `pesanan_baca_sesi` mencocokkan
+   * kolom sesi_id dengan header ini, sehingga satu perangkat hanya bisa
+   * membaca pesanannya sendiri. Tanpa header ini, tamu tidak akan pernah
+   * melihat status pesanannya saat mode sungguhan aktif — dan itu tidak
+   * terlihat sama sekali di mode demo, karena demo memfilter di memori.
+   */
+  headers?: Record<string, string>;
   method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   /** Prefer header, mis. "return=representation" atau "resolution=merge-duplicates" */
@@ -64,7 +74,7 @@ export async function db<T>(
   tabel: string,
   opsi: Opsi = {}
 ): Promise<HasilDb<T>> {
-  const { q = "select=*", method = "GET", body, prefer } = opsi;
+  const { q = "select=*", method = "GET", body, prefer, headers: tambahan } = opsi;
   const url = `${SUPABASE_URL}/rest/v1/${tabel}${q ? `?${q}` : ""}`;
 
   const headers: Record<string, string> = {
@@ -73,6 +83,7 @@ export async function db<T>(
     "Content-Type": "application/json",
   };
   if (prefer) headers.Prefer = prefer;
+  if (tambahan) Object.assign(headers, tambahan);
 
   try {
     const res = await fetch(url, {

@@ -107,6 +107,13 @@ export function PortalPelanggan({
   const [cari, setCari] = useState("");
   const [kategoriAktif, setKategoriAktif] = useState<number | "semua">("semua");
   const [keranjang, setKeranjang] = useState<Baris[]>([]);
+  /*
+    Menu disimpan di state, bukan dibaca langsung dari prop, supaya tanda
+    "habis" dari kasir bisa masuk tanpa memuat ulang halaman (K-08).
+    Memuat ulang akan menghapus kata kunci pencarian, kategori terpilih, dan
+    posisi gulir — tamu yang sedang memilih kehilangan tempatnya.
+  */
+  const [daftarMenu, setDaftarMenu] = useState<Menu[]>(menu);
   const [bukaKeranjang, setBukaKeranjang] = useState(false);
   const [nama, setNama] = useState("");
   const [mengirim, setMengirim] = useState(false);
@@ -170,20 +177,70 @@ export function PortalPelanggan({
     };
   }, [sesi]);
 
+  /**
+   * Status ketersediaan menu (K-08), tiap 15 detik.
+   *
+   * Lebih jarang daripada status pesanan: menu habis berubah beberapa kali
+   * per jam, bukan per detik. Kalau database tidak menjawab, daftar lama
+   * DIPERTAHANKAN — lebih baik tamu sempat menekan menu habis lalu ditolak
+   * kasir daripada menunya kosong karena gangguan sesaat.
+   */
+  useEffect(() => {
+    let hidup = true;
+
+    const muat = async () => {
+      try {
+        const res = await fetch("/api/order/menu/tersedia", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = (await res.json()) as { menu?: { id: number; tersedia: boolean }[] };
+        if (!hidup || !Array.isArray(j.menu)) return;
+
+        const peta = new Map(j.menu.map((m) => [m.id, m.tersedia]));
+        setDaftarMenu((lama) =>
+          lama.map((m) => (peta.has(m.id) && peta.get(m.id) !== m.tersedia
+            ? { ...m, tersedia: peta.get(m.id)! }
+            : m))
+        );
+      } catch {
+        /* koneksi putus: biarkan status lama */
+      }
+    };
+
+    /*
+      5 detik, bukan 15. K-08 menuntut tanda habis "langsung berlaku" di
+      portal pelanggan; dengan 15 detik, tamu bisa memesan menu yang sudah
+      habis selama seperempat menit (terukur 14 dtk saat diuji) — lalu
+      pesanannya ditolak kasir dan tamu harus memilih lagi.
+      Jawabannya hanya {id, tersedia} untuk 14 menu (±400 byte), jadi biaya
+      memeriksa tiap 5 detik jauh lebih kecil daripada satu pesanan ditolak.
+    */
+    const t = setInterval(muat, 5000);
+    return () => {
+      hidup = false;
+      clearInterval(t);
+    };
+  }, []);
+
   const totalItem = keranjang.reduce((n, b) => n + b.jumlah, 0);
   const subtotal = keranjang.reduce((n, b) => n + b.menu.harga * b.jumlah, 0);
   const rincian = useMemo(() => hitungTagihan(subtotal, aturan), [subtotal, aturan]);
 
   const daftar = useMemo(() => {
     const q = cari.trim().toLowerCase();
-    return menu.filter((m) => {
+    return daftarMenu.filter((m) => {
       if (kategoriAktif !== "semua" && m.kategori_id !== kategoriAktif) return false;
       if (!q) return true;
       return (
         m.nama.toLowerCase().includes(q) || m.deskripsi.toLowerCase().includes(q)
       );
     });
-  }, [menu, cari, kategoriAktif]);
+    /*
+      Bergantung pada daftarMenu, BUKAN pada prop menu. Prop itu hanya
+      nilai awal; status ketersediaan terbaru datang dari polling. Kalau
+      dependensinya prop, tanda "habis" dari kasir tidak pernah muncul
+      sampai halaman dimuat ulang — dan itulah yang terjadi sebelum ini.
+    */
+  }, [daftarMenu, cari, kategoriAktif]);
 
   const perKategori = useMemo(() => {
     const peta = new Map<number | null, Menu[]>();

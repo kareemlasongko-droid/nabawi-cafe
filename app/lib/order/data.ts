@@ -191,22 +191,49 @@ export async function buatPesanan(masuk: {
     tagihan = baru.data[0];
   }
 
-  // 5. Pesanan + item
-  const nomor = nomorPesanan(m.nomor);
-  const pesananRes = await db<Pesanan[]>("pesanan", {
-    method: "POST",
-    prefer: "return=representation",
-    q: "select=*",
-    body: {
-      nomor,
-      meja_id: m.id,
-      status: "menunggu_konfirmasi",
-      nama_pemesan: masuk.nama,
-      sesi_id: masuk.sesi,
-      total_item: itemFinal.reduce((n, i) => n + i.jumlah, 0),
-    },
-  });
-  if (!pesananRes.ok) return { ok: false, pesan: pesananRes.pesan };
+  /*
+    5. Pesanan + item.
+
+    Nomor pesanan WAJIB unik (ada unique index pada kolom nomor). Dulu
+    nomornya hanya M{meja}-{jam}{menit}, jadi dua tamu di meja yang sama
+    yang menambah pesanan dalam menit yang sama menghasilkan nomor identik
+    dan INSERT-nya ditolak database — pesanan kedua hilang tanpa penjelasan.
+    Sekarang ditambahkan dua digit acak, dan bila toh bentrok, dicoba ulang
+    sekali dengan angka baru sebelum menyerah.
+  */
+  let pesananRes: Hasil<Pesanan[]> = { ok: false, pesan: "belum dicoba" };
+  let nomor = nomorPesanan(m.nomor);
+  for (let percobaan = 0; percobaan < 2; percobaan++) {
+    pesananRes = await db<Pesanan[]>("pesanan", {
+      method: "POST",
+      prefer: "return=representation",
+      q: "select=*",
+      body: {
+        nomor,
+        meja_id: m.id,
+        status: "menunggu_konfirmasi",
+        nama_pemesan: masuk.nama,
+        sesi_id: masuk.sesi,
+        total_item: itemFinal.reduce((n, i) => n + i.jumlah, 0),
+      },
+    });
+    if (pesananRes.ok) break;
+    // 23505 = unique violation. Selain itu tidak ada gunanya mengulang.
+    if (!/duplicate|23505/i.test(pesananRes.pesan)) break;
+    nomor = nomorPesanan(m.nomor);
+  }
+  if (!pesananRes.ok) {
+    /*
+      Pesan mentah Postgres ("duplicate key value violates unique
+      constraint") tidak berarti apa pun bagi tamu. Yang penting: tamu tahu
+      pesanannya BELUM masuk, dan tidak menekan Kirim berkali-kali.
+    */
+    return {
+      ok: false,
+      pesan:
+        "Pesanan belum tersimpan karena ada gangguan sesaat. Coba tekan Kirim sekali lagi.",
+    };
+  }
   const pesanan = pesananRes.data[0];
 
   const itemRes = await db<ItemPesanan[]>("item_pesanan", {
@@ -477,6 +504,72 @@ export async function catatPembayaran(masuk: {
   });
 
   return { ok: true, data: { tagihan: upd.data[0] } };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Item per tagihan (untuk struk)
+// ─────────────────────────────────────────────────────────────
+
+export type BarisStruk = {
+  nama: string;
+  jumlah: number;
+  harga_satuan: number;
+  /** nama, jumlah, harga satuan, harga baris (PRD bagian 11). */
+  harga_baris: number;
+};
+
+/**
+ * Semua item yang termasuk dalam satu tagihan sebuah meja.
+ *
+ * Dipakai struk (K-10). Struk baru bisa dicetak SETELAH tagihan lunas, dan
+ * saat itu pesanan sudah tidak masuk daftar aktif — jadi item tidak bisa
+ * lagi diambil dari /api/order/kasir. Karena itu server mengirimkannya
+ * bersama tagihan.
+ *
+ * Pesanan yang ditolak/dibatalkan tidak dihitung, sama seperti
+ * hitungUlangTagihan, supaya jumlah baris struk selalu cocok dengan
+ * subtotalnya.
+ */
+export async function ambilItemTagihan(mejaId: number): Promise<Hasil<BarisStruk[]>> {
+  const pesananRes = await db<{ id: number }[]>("pesanan", {
+    q: `select=id&meja_id=eq.${mejaId}&status=not.in.(ditolak,dibatalkan)`,
+  });
+  if (!pesananRes.ok) return { ok: false, pesan: pesananRes.pesan };
+
+  const ids = pesananRes.data.map((p) => p.id);
+  if (ids.length === 0) return { ok: true, data: [] };
+
+  const itemRes = await db<ItemPesanan[]>("item_pesanan", {
+    q: `select=*&pesanan_id=in.(${ids.join(",")})&order=id.asc`,
+  });
+  if (!itemRes.ok) return { ok: false, pesan: itemRes.pesan };
+
+  /*
+    Item dengan menu yang sama digabung menjadi satu baris. Kalau tidak,
+    struk tamu yang memesan 2 kopi di awal lalu 1 kopi lagi di tengah makan
+    akan menampilkan dua baris "Kopi Mint" — lebih sulit dicocokkan dengan
+    yang diingat tamu, dan mudah disangka tagihan ganda. Harga satuan
+    dipakai dari item pertama; dalam satu tagihan harganya sama karena
+    harga dikunci saat dipesan.
+  */
+  const peta = new Map<string, BarisStruk>();
+  for (const i of itemRes.data) {
+    const kunci = `${i.nama_saat_pesan}|${i.harga_satuan}`;
+    const ada = peta.get(kunci);
+    if (ada) {
+      ada.jumlah += i.jumlah;
+      ada.harga_baris = ada.jumlah * ada.harga_satuan;
+    } else {
+      peta.set(kunci, {
+        nama: i.nama_saat_pesan,
+        jumlah: i.jumlah,
+        harga_satuan: i.harga_satuan,
+        harga_baris: i.jumlah * i.harga_satuan,
+      });
+    }
+  }
+
+  return { ok: true, data: [...peta.values()] };
 }
 
 // ─────────────────────────────────────────────────────────────

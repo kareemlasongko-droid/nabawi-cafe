@@ -25,7 +25,7 @@ import type {
   StatusPesanan,
   MetodeBayar,
 } from "./tipe";
-import { hitungTagihan, ATURAN_BAWAAN } from "./aturan";
+import { hitungTagihan, ATURAN_BAWAAN, nomorPesanan } from "./aturan";
 
 const g = globalThis as unknown as {
   __demoOrder?: {
@@ -38,6 +38,13 @@ const g = globalThis as unknown as {
     urutItem: number;
     urutTagihan: number;
     urutPanggilan: number;
+    /**
+     * Menu yang diedit saat mode demo. Disimpan di store yang sama dengan
+     * pesanan supaya kasir bisa mencoba alur "tandai habis → pelanggan
+     * melihat Habis" tanpa database. MENU_CONTOH sendiri tidak diubah:
+     * itu daftar bawaan, bukan data.
+     */
+    menu: Map<number, boolean>;
   };
 };
 
@@ -60,6 +67,7 @@ function toko() {
       urutItem: 1,
       urutTagihan: 1,
       urutPanggilan: 1,
+      menu: new Map<number, boolean>(),
     };
   }
   return g.__demoOrder;
@@ -130,7 +138,7 @@ export function demoBuatPesanan(masuk: {
 
   const pesanan: Pesanan = {
     id: t.urutPesanan++,
-    nomor: `M${meja.nomor}-DEMO${t.urutPesanan}`,
+    nomor: `${nomorPesanan(meja.nomor)}-D${t.urutPesanan}`,
     meja_id: meja.id,
     status: "menunggu_konfirmasi",
     nama_pemesan: masuk.nama,
@@ -184,6 +192,38 @@ export function demoBuatPesanan(masuk: {
 export function demoAmbilPesanan(sesi?: string) {
   const t = toko();
   return sesi ? t.pesanan.filter((p) => p.sesi_id === sesi) : t.pesanan;
+}
+
+/**
+ * Item satu tagihan meja, digabung per menu+harga — sama seperti
+ * ambilItemTagihan di jalur database. Dipakai struk di mode demo.
+ */
+export function demoItemTagihan(mejaId: number) {
+  const t = toko();
+  const pesananSah = new Set(
+    t.pesanan
+      .filter((p) => p.meja_id === mejaId && p.status !== "ditolak" && p.status !== "dibatalkan")
+      .map((p) => p.id)
+  );
+
+  const peta = new Map<string, { nama: string; jumlah: number; harga_satuan: number; harga_baris: number }>();
+  for (const i of t.items) {
+    if (!pesananSah.has(i.pesanan_id)) continue;
+    const kunci = `${i.nama_saat_pesan}|${i.harga_satuan}`;
+    const ada = peta.get(kunci);
+    if (ada) {
+      ada.jumlah += i.jumlah;
+      ada.harga_baris = ada.jumlah * ada.harga_satuan;
+    } else {
+      peta.set(kunci, {
+        nama: i.nama_saat_pesan,
+        jumlah: i.jumlah,
+        harga_satuan: i.harga_satuan,
+        harga_baris: i.jumlah * i.harga_satuan,
+      });
+    }
+  }
+  return [...peta.values()];
 }
 
 /** Item milik satu pesanan — dipakai portal dapur & pelayan. */
@@ -263,6 +303,16 @@ export function demoBayar(tagihanId: number, metode: MetodeBayar, diterima: numb
 
 export function demoMeja() {
   return toko().meja;
+}
+
+/** Terapkan penandaan habis/tersedia dari mode demo ke daftar menu. */
+export function demoMenuDenganStatus(daftar: Menu[]): Menu[] {
+  const ubah = toko().menu;
+  return daftar.map((m) => (ubah.has(m.id) ? { ...m, tersedia: ubah.get(m.id)! } : m));
+}
+
+export function demoSetTersedia(menuId: number, tersedia: boolean) {
+  toko().menu.set(menuId, tersedia);
 }
 
 export function demoTagihan() {

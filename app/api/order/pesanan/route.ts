@@ -16,7 +16,12 @@ import { NextResponse } from "next/server";
 import { cekBuka, validasiPesananMasuk } from "@/app/lib/order/aturan";
 import { buatPesanan } from "@/app/lib/order/data";
 import { PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
-import { demoBuatPesanan, demoAmbilPesanan, MENU_CONTOH } from "@/app/lib/order/demo";
+import {
+  demoBuatPesanan,
+  demoAmbilPesanan,
+  demoMenuDenganStatus,
+  MENU_CONTOH,
+} from "@/app/lib/order/demo";
 import { ambilMenu } from "@/app/lib/order/data";
 
 export const dynamic = "force-dynamic";
@@ -44,9 +49,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ pesan: "Isi permintaan tidak terbaca." }, { status: 400 });
   }
 
-  // 1. Jam buka
+  /*
+    1. Jam buka (P-12).
+
+    `lewatiJamBuka` HANYA berlaku di mode demo dan hanya untuk pengujian.
+    Tanpa ini, alat uji hanya bisa berjalan pada jam operasional cafe —
+    dan kegagalan "pesanan terkirim" yang muncul di luar jam buka mudah
+    disalahartikan sebagai bug. Di mode sungguhan (kunci server terpasang)
+    flag ini diabaikan sepenuhnya, jadi tidak ada jalan memesan di luar jam.
+  */
+  const bolehLewati =
+    !PUNYA_KUNCI_SERVER &&
+    badan !== null &&
+    typeof badan === "object" &&
+    (badan as { lewatiJamBuka?: boolean }).lewatiJamBuka === true;
+
   const buka = cekBuka();
-  if (!buka.buka) {
+  if (!buka.buka && !bolehLewati) {
     return NextResponse.json({ pesan: buka.alasan, kode: "tutup" }, { status: 409 });
   }
 
@@ -64,15 +83,27 @@ export async function POST(req: Request) {
 
   // 3-4. Simpan
   if (!PUNYA_KUNCI_SERVER) {
-    // Mode demo. Harga diambil dari menu asli bila bisa dibaca; kalau
-    // database tidak terjangkau, pakai MENU_CONTOH — daftar yang sama
-    // dengan yang ditampilkan ke pelanggan, jadi harga yang dilihat
-    // pelanggan = harga yang dihitung. (Daftar kosong akan membuat semua
-    // item Rp0 dan tagihan nol — itu bug yang pernah terjadi di sini.)
+    /*
+      Mode demo: menu dibaca dari database lebih dulu (menu memang publik,
+      tidak butuh kunci server), dan MENU_CONTOH hanya jadi cadangan bila
+      database tidak terjangkau.
+
+      Cadangan itu aman SELAMA halaman pelanggan memakai sumber yang sama:
+      offline → pelanggan melihat MENU_CONTOH, tagihan dihitung dari
+      MENU_CONTOH. Yang berbahaya adalah campuran — pelanggan melihat menu
+      asli tapi tagihan dihitung dari menu contoh. Karena itu halaman
+      pelanggan memilih sumbernya dengan aturan yang sama persis.
+    */
     const menu = await ambilMenu();
     const hasil = demoBuatPesanan({
       ...v.bersih,
-      menu: menu.ok ? menu.data.menu : MENU_CONTOH.menu,
+      /*
+        Tanda "habis" dari kasir/dapur (K-08, D-07) hidup di store demo,
+        bukan di MENU_CONTOH. Tanpa demoMenuDenganStatus di sini, menu yang
+        sudah ditandai habis tetap bisa dipesan di mode demo — dan uji
+        otomatis akan melaporkannya lulus, padahal produksi menolaknya.
+      */
+      menu: demoMenuDenganStatus(menu.ok ? menu.data.menu : MENU_CONTOH.menu),
     });
     if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });
     return NextResponse.json({ ...hasil, demo: true });
@@ -104,6 +135,14 @@ export async function GET(req: Request) {
     q: `select=id,nomor,status,created_at,total_item&sesi_id=eq.${encodeURIComponent(
       sesi
     )}&order=created_at.desc&limit=10`,
+    /*
+      Header ini WAJIB, bukan hiasan. Policy RLS pesanan_baca_sesi berbunyi
+      "sesi_id = header x-sesi-order". Tanpa header, PostgREST menerima
+      permintaan yang sah tetapi RLS mengembalikan nol baris — tamu melihat
+      "belum ada pesanan" padahal pesanannya tersimpan. Tidak terdeteksi di
+      mode demo karena demo memfilter sendiri di memori.
+    */
+    headers: { "x-sesi-order": sesi },
   });
 
   if (!res.ok) return NextResponse.json({ pesan: res.pesan, pesanan: [] }, { status: 200 });

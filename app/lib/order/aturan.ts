@@ -103,6 +103,14 @@ export type StatusBuka = {
  * Apakah cafe sedang buka.
  * `sekarang` bisa diisi agar mudah diuji. Tanpa argumen memakai waktu nyata.
  */
+/**
+ * Apakah cafe sedang buka, menurut jam di zona Asia/Jakarta.
+ *
+ * `sekarang` bisa diisi untuk pengujian dan untuk pratinjau. Tanpa itu,
+ * seluruh alat uji alur hanya bisa berjalan pada jam operasional — uji
+ * yang dijalankan pukul 20.05 akan gagal di langkah "kirim pesanan"
+ * dengan 409 dan menutupi hasil sebenarnya.
+ */
 export function cekBuka(sekarang: Date = new Date(), jam: JamBuka = JAM_BAWAAN): StatusBuka {
   const bagian = new Intl.DateTimeFormat("en-GB", {
     timeZone: ZONA,
@@ -253,6 +261,18 @@ export function pembayaranCukup(metode: MetodeBayar, total: number, diterima: nu
  * Nomor pendek untuk diteriakkan di dapur: "M12-0417".
  * Meja + jam-menit, supaya unik dalam satu jam dan mudah dibaca dari jauh.
  */
+/**
+ * Nomor pesanan yang dilihat pelayan di tiket: M12-2030-47.
+ *
+ * Bagian jam-menit saja TIDAK cukup. Kolom `nomor` punya unique index, dan
+ * satu meja bisa mengirim dua pesanan dalam menit yang sama (dua orang
+ * memesan bersamaan, atau tamu menambah minuman saat pesanan pertama baru
+ * dikirim). Dengan M12-2030 saja, pesanan kedua ditolak database dan tamu
+ * hanya melihat kegagalan tanpa sebab.
+ *
+ * Dua digit acak di belakang membuat bentrok praktis tidak terjadi; data.ts
+ * tetap mencoba ulang sekali bila toh bentrok.
+ */
 export function nomorPesanan(meja: string, sekarang: Date = new Date()): string {
   const fmt = new Intl.DateTimeFormat("en-GB", {
     timeZone: ZONA,
@@ -260,5 +280,6 @@ export function nomorPesanan(meja: string, sekarang: Date = new Date()): string 
     minute: "2-digit",
     hour12: false,
   }).format(sekarang);
-  return `M${meja}-${fmt.replace(":", "")}`;
+  const acak = Math.floor(Math.random() * 90) + 10; // 10–99, selalu 2 digit
+  return `M${meja}-${fmt.replace(":", "")}-${acak}`;
 }
