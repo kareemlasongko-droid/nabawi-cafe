@@ -36,6 +36,31 @@ menampilkan pita "Mode demo".
 Tidak ada perubahan kode. `PUNYA_KUNCI_SERVER` otomatis menjadi `true`, pita
 mode demo hilang, dan semua penulisan memakai kunci server.
 
+### Menu tidak lagi jatuh ke data contoh
+
+Selama ini, kalau database tidak terbaca, portal pelanggan menampilkan
+`MENU_CONTOH` — 14 hidangan contoh (Harira, Tajine, Couscous) dengan harga
+karangan. Itu wajar saat aplikasi belum punya menu sungguhan, tapi berbahaya
+sekarang menu asli sudah terisi 126 item: tamu bisa memesan makanan yang tidak
+dijual Nabawi dengan harga yang tidak berlaku, lalu kecewa saat kasir menolak.
+
+Aturan sekarang:
+
+| Keadaan | Yang ditampilkan |
+|---|---|
+| Kunci server ada, database terbaca | Menu asli dari database |
+| Kunci server ada, database gagal | Layar "Menu belum bisa dimuat" + saran panggil pelayan |
+| Belum ada kunci server (mode demo) | Database bila terbaca; `MENU_CONTOH` hanya bila database tak terjangkau |
+
+Menu contoh tetap disediakan untuk mode demo supaya halaman bisa dicoba tanpa
+database — pita "Mode demo" sudah memberi tahu bahwa itu bukan menu sungguhan.
+Yang dijaga: **pelanggan dan kasir selalu melihat sumber menu yang sama**, jadi
+harga yang dilihat tamu = harga yang dihitung tagihan.
+
+Cara memastikannya di produksi: buka portal pelanggan, lalu periksa ada
+`Nasi Goreng Kebuli` dan `Cappuccino Dingin`. Kalau yang muncul `Harira`, berarti
+kuncinya belum terpasang dan halaman sedang mode demo.
+
 ### Kenapa harus kunci server, bukan anon
 
 Seluruh penulisan lewat route server. Browser tamu tidak pernah memegang kunci

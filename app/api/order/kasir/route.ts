@@ -35,6 +35,16 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (!PUNYA_KUNCI_SERVER) {
+    /*
+      Menu dibaca dari database walau sedang mode demo. Menu memang publik
+      (policy SELECT terbuka), jadi tidak butuh kunci server. Yang tidak
+      bisa dilakukan tanpa kunci adalah MENYIMPAN pesanan.
+
+      Ini penting: kalau di sini dipakai MENU_CONTOH, kasir melihat 14 menu
+      karangan sementara tamu melihat 126 menu asli — dan tombol "tandai
+      habis" akan menandai menu yang tidak pernah ada.
+    */
+    const menuAsli = await ambilMenu();
     const meja = demoMeja().map((m) => ({
       ...m,
       tagihan: demoTagihan().find((t) => t.meja_id === m.id && t.status !== "lunas") ?? null,
@@ -66,7 +76,7 @@ export async function GET() {
       // Menu ikut dikirim: kasir harus bisa menandai habis tanpa membuka
       // halaman lain (K-08). Membaca menu memang publik; yang dibatasi
       // hanya penulisannya.
-      menu: demoMenuDenganStatus(MENU_CONTOH.menu),
+      menu: demoMenuDenganStatus(menuAsli.ok ? menuAsli.data.menu : MENU_CONTOH.menu),
       aturan: ATURAN_BAWAAN,
       demo: true,
     });
@@ -155,7 +165,9 @@ export async function POST(req: Request) {
     }
 
     if (!PUNYA_KUNCI_SERVER) {
-      if (!MENU_CONTOH.menu.some((m) => m.id === id)) {
+      const daftar = await ambilMenu();
+      const menuSah = daftar.ok ? daftar.data.menu : MENU_CONTOH.menu;
+      if (!menuSah.some((m) => m.id === id)) {
         return NextResponse.json({ pesan: `Menu ${id} tidak dikenal.` }, { status: 400 });
       }
       demoSetTersedia(id, badan.tersedia);

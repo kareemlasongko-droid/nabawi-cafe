@@ -25,6 +25,10 @@ export async function GET() {
   let merah = 15;
 
   if (!PUNYA_KUNCI_SERVER) {
+    // Menu tetap dibaca dari database (publik): dapur harus melihat menu
+    // asli, bukan daftar contoh, supaya penandaan "habis" mengenai menu
+    // yang benar-benar dijual.
+    const menuAsli = await ambilMenu();
     const tiket = demoAmbilPesanan()
       .filter((p) => ["diterima", "diproses", "siap"].includes(p.status))
       .map((p) => ({
@@ -41,7 +45,7 @@ export async function GET() {
       tiket,
       ambang: { kuning, merah },
       // D-07: dapur menandai bahan/menu habis langsung dari papan tiket.
-      menu: demoMenuDenganStatus(MENU_CONTOH.menu),
+      menu: demoMenuDenganStatus(menuAsli.ok ? menuAsli.data.menu : MENU_CONTOH.menu),
       demo: true,
     });
   }
@@ -130,7 +134,8 @@ export async function POST(req: Request) {
       dan menyimpannya di store — perilakunya berbeda dari mode sungguhan,
       dan tombol yang salah kirim tidak akan pernah kelihatan salah saat uji.
     */
-    if (!MENU_CONTOH.menu.some((m) => m.id === id)) {
+    const daftarMenu = (await ambilMenu());
+    if (!(daftarMenu.ok ? daftarMenu.data.menu : MENU_CONTOH.menu).some((m) => m.id === id)) {
       return NextResponse.json({ pesan: `Menu ${id} tidak dikenal.` }, { status: 400 });
     }
     demoSetTersedia(id, badan.tersedia);

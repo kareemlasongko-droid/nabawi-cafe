@@ -83,11 +83,17 @@ export async function POST(req: Request) {
 
   // 3-4. Simpan
   if (!PUNYA_KUNCI_SERVER) {
-    // Mode demo. Harga diambil dari menu asli bila bisa dibaca; kalau
-    // database tidak terjangkau, pakai MENU_CONTOH — daftar yang sama
-    // dengan yang ditampilkan ke pelanggan, jadi harga yang dilihat
-    // pelanggan = harga yang dihitung. (Daftar kosong akan membuat semua
-    // item Rp0 dan tagihan nol — itu bug yang pernah terjadi di sini.)
+    /*
+      Mode demo: menu dibaca dari database lebih dulu (menu memang publik,
+      tidak butuh kunci server), dan MENU_CONTOH hanya jadi cadangan bila
+      database tidak terjangkau.
+
+      Cadangan itu aman SELAMA halaman pelanggan memakai sumber yang sama:
+      offline → pelanggan melihat MENU_CONTOH, tagihan dihitung dari
+      MENU_CONTOH. Yang berbahaya adalah campuran — pelanggan melihat menu
+      asli tapi tagihan dihitung dari menu contoh. Karena itu halaman
+      pelanggan memilih sumbernya dengan aturan yang sama persis.
+    */
     const menu = await ambilMenu();
     const hasil = demoBuatPesanan({
       ...v.bersih,

@@ -23,8 +23,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (!PUNYA_KUNCI_SERVER) {
+    // Menu publik: tetap dibaca dari database walau mode demo.
+    const asli = await ambilMenu();
     return NextResponse.json({
-      menu: demoMenuDenganStatus(MENU_CONTOH.menu).map((m) => ({
+      menu: demoMenuDenganStatus(asli.ok ? asli.data.menu : MENU_CONTOH.menu).map((m) => ({
         id: m.id,
         tersedia: m.tersedia,
       })),
