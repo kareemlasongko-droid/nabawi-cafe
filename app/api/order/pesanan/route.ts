@@ -16,7 +16,12 @@ import { NextResponse } from "next/server";
 import { cekBuka, validasiPesananMasuk } from "@/app/lib/order/aturan";
 import { buatPesanan } from "@/app/lib/order/data";
 import { PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
-import { demoBuatPesanan, demoAmbilPesanan, MENU_CONTOH } from "@/app/lib/order/demo";
+import {
+  demoBuatPesanan,
+  demoAmbilPesanan,
+  demoMenuDenganStatus,
+  MENU_CONTOH,
+} from "@/app/lib/order/demo";
 import { ambilMenu } from "@/app/lib/order/data";
 
 export const dynamic = "force-dynamic";
@@ -44,9 +49,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ pesan: "Isi permintaan tidak terbaca." }, { status: 400 });
   }
 
-  // 1. Jam buka
+  /*
+    1. Jam buka (P-12).
+
+    `lewatiJamBuka` HANYA berlaku di mode demo dan hanya untuk pengujian.
+    Tanpa ini, alat uji hanya bisa berjalan pada jam operasional cafe —
+    dan kegagalan "pesanan terkirim" yang muncul di luar jam buka mudah
+    disalahartikan sebagai bug. Di mode sungguhan (kunci server terpasang)
+    flag ini diabaikan sepenuhnya, jadi tidak ada jalan memesan di luar jam.
+  */
+  const bolehLewati =
+    !PUNYA_KUNCI_SERVER &&
+    badan !== null &&
+    typeof badan === "object" &&
+    (badan as { lewatiJamBuka?: boolean }).lewatiJamBuka === true;
+
   const buka = cekBuka();
-  if (!buka.buka) {
+  if (!buka.buka && !bolehLewati) {
     return NextResponse.json({ pesan: buka.alasan, kode: "tutup" }, { status: 409 });
   }
 
@@ -72,7 +91,13 @@ export async function POST(req: Request) {
     const menu = await ambilMenu();
     const hasil = demoBuatPesanan({
       ...v.bersih,
-      menu: menu.ok ? menu.data.menu : MENU_CONTOH.menu,
+      /*
+        Tanda "habis" dari kasir/dapur (K-08, D-07) hidup di store demo,
+        bukan di MENU_CONTOH. Tanpa demoMenuDenganStatus di sini, menu yang
+        sudah ditandai habis tetap bisa dipesan di mode demo — dan uji
+        otomatis akan melaporkannya lulus, padahal produksi menolaknya.
+      */
+      menu: demoMenuDenganStatus(menu.ok ? menu.data.menu : MENU_CONTOH.menu),
     });
     if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });
     return NextResponse.json({ ...hasil, demo: true });

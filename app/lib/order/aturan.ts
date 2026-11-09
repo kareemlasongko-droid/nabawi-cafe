@@ -103,6 +103,14 @@ export type StatusBuka = {
  * Apakah cafe sedang buka.
  * `sekarang` bisa diisi agar mudah diuji. Tanpa argumen memakai waktu nyata.
  */
+/**
+ * Apakah cafe sedang buka, menurut jam di zona Asia/Jakarta.
+ *
+ * `sekarang` bisa diisi untuk pengujian dan untuk pratinjau. Tanpa itu,
+ * seluruh alat uji alur hanya bisa berjalan pada jam operasional — uji
+ * yang dijalankan pukul 20.05 akan gagal di langkah "kirim pesanan"
+ * dengan 409 dan menutupi hasil sebenarnya.
+ */
 export function cekBuka(sekarang: Date = new Date(), jam: JamBuka = JAM_BAWAAN): StatusBuka {
   const bagian = new Intl.DateTimeFormat("en-GB", {
     timeZone: ZONA,

@@ -480,6 +480,72 @@ export async function catatPembayaran(masuk: {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Item per tagihan (untuk struk)
+// ─────────────────────────────────────────────────────────────
+
+export type BarisStruk = {
+  nama: string;
+  jumlah: number;
+  harga_satuan: number;
+  /** nama, jumlah, harga satuan, harga baris (PRD bagian 11). */
+  harga_baris: number;
+};
+
+/**
+ * Semua item yang termasuk dalam satu tagihan sebuah meja.
+ *
+ * Dipakai struk (K-10). Struk baru bisa dicetak SETELAH tagihan lunas, dan
+ * saat itu pesanan sudah tidak masuk daftar aktif — jadi item tidak bisa
+ * lagi diambil dari /api/order/kasir. Karena itu server mengirimkannya
+ * bersama tagihan.
+ *
+ * Pesanan yang ditolak/dibatalkan tidak dihitung, sama seperti
+ * hitungUlangTagihan, supaya jumlah baris struk selalu cocok dengan
+ * subtotalnya.
+ */
+export async function ambilItemTagihan(mejaId: number): Promise<Hasil<BarisStruk[]>> {
+  const pesananRes = await db<{ id: number }[]>("pesanan", {
+    q: `select=id&meja_id=eq.${mejaId}&status=not.in.(ditolak,dibatalkan)`,
+  });
+  if (!pesananRes.ok) return { ok: false, pesan: pesananRes.pesan };
+
+  const ids = pesananRes.data.map((p) => p.id);
+  if (ids.length === 0) return { ok: true, data: [] };
+
+  const itemRes = await db<ItemPesanan[]>("item_pesanan", {
+    q: `select=*&pesanan_id=in.(${ids.join(",")})&order=id.asc`,
+  });
+  if (!itemRes.ok) return { ok: false, pesan: itemRes.pesan };
+
+  /*
+    Item dengan menu yang sama digabung menjadi satu baris. Kalau tidak,
+    struk tamu yang memesan 2 kopi di awal lalu 1 kopi lagi di tengah makan
+    akan menampilkan dua baris "Kopi Mint" — lebih sulit dicocokkan dengan
+    yang diingat tamu, dan mudah disangka tagihan ganda. Harga satuan
+    dipakai dari item pertama; dalam satu tagihan harganya sama karena
+    harga dikunci saat dipesan.
+  */
+  const peta = new Map<string, BarisStruk>();
+  for (const i of itemRes.data) {
+    const kunci = `${i.nama_saat_pesan}|${i.harga_satuan}`;
+    const ada = peta.get(kunci);
+    if (ada) {
+      ada.jumlah += i.jumlah;
+      ada.harga_baris = ada.jumlah * ada.harga_satuan;
+    } else {
+      peta.set(kunci, {
+        nama: i.nama_saat_pesan,
+        jumlah: i.jumlah,
+        harga_satuan: i.harga_satuan,
+        harga_baris: i.jumlah * i.harga_satuan,
+      });
+    }
+  }
+
+  return { ok: true, data: [...peta.values()] };
+}
+
+// ─────────────────────────────────────────────────────────────
 // Pembacaan untuk portal internal
 // ─────────────────────────────────────────────────────────────
 

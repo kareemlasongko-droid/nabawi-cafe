@@ -68,6 +68,46 @@ total   = subtotal + layanan + pajak, dibulatkan sekali ke kelipatan 100
 Biaya layanan dikenakan **sekali per tagihan**, bukan per pesanan — tamu yang
 menambah menu dua kali tidak membayar dua kali biaya layanan.
 
+## Struk (K-10)
+
+Struk memuat: nama cafe, wilayah, nomor meja, tanggal & jam, nama kasir,
+daftar item (nama, jumlah, harga satuan, harga baris), subtotal, biaya
+layanan dengan persentasenya, pajak dengan persentasenya, pembulatan, total,
+metode bayar, nominal diterima, dan kembalian.
+
+Dua keputusan yang perlu diketahui:
+
+- **Item digabung per menu + harga.** Tamu yang memesan 2 kopi di awal lalu
+  1 kopi lagi menuliskan "3× Kopi" sebagai satu baris, bukan dua baris yang
+  mudah disangka tagihan ganda. Jumlah baris struk selalu sama dengan
+  subtotal — diuji.
+- **Harga satuan hanya dicetak bila jumlahnya lebih dari satu.** Untuk satu
+  item, harga satuan sama persis dengan harga baris dan hanya menambah baris
+  yang harus dibaca.
+- **Alamat baru berupa wilayah ("Yogyakarta").** Alamat lengkap Nabawi belum
+  ada di repo maupun PRD. Nomor rumah tidak dikarang: alamat salah di dokumen
+  yang diserahkan ke tamu lebih buruk daripada alamat singkat yang benar.
+  Ganti `ALAMAT_STRUK` di `PortalKasir.tsx` setelah alamat resmi ada.
+
+## Menandai menu habis (K-08 dan D-07)
+
+Yang menandai bisa **kasir** dan **dapur**, karena yang tahu bahan habis lebih
+dulu adalah dapur. Kalau hanya kasir yang bisa, dapur harus berteriak atau
+berjalan ke depan, dan selama jeda itu tamu tetap bisa memesan menu yang tidak
+bisa dibuat.
+
+- Kasir: panel "Ketersediaan menu" di bawah denah meja.
+- Dapur: tombol "Menu habis" di bilah atas, membuka deretan tombol besar.
+- Portal pelanggan: daftar menu diperbarui tiap **5 detik** tanpa memuat ulang
+  halaman, sehingga kata kunci pencarian dan posisi gulir tamu tidak hilang.
+  Sebelum ini terukur 14 detik — cukup lama bagi tamu untuk memesan menu yang
+  sudah habis.
+- Semua penandaan tercatat di `log_perubahan` (siapa, kapan, sebelum/sesudah).
+
+Endpoint: `GET /api/order/menu/tersedia` (publik, ramping),
+`POST /api/order/kasir` dan `POST /api/order/dapur` dengan
+`{aksi:"set_tersedia", menu_id, tersedia}`.
+
 ## Aturan status
 
 ```
@@ -114,8 +154,11 @@ database yang memeriksa, bug alur baru muncul di produksi.
   masuknya belum). Portal staf saat ini terbuka bagi siapa pun yang tahu
   alamatnya. `/order/masuk` menyatakan ini terang-terangan, bukan menampilkan
   formulir sandi palsu.
-- Pindah meja, batal pesanan oleh kasir + log, tandai menu habis dari kasir.
-- Struk belum memuat alamat kafe.
+- Pelanggan belum bisa membatalkan pesanan sendiri (P-11).
+- Kasir belum bisa: pindah pesanan ke meja lain (K-06), batalkan pesanan/item
+  dengan alasan (K-07), buat pesanan manual (K-13).
+- Login per peran (bagian 13) dan penanda offline (bagian 14).
+- Alamat lengkap kafe di struk.
 - Pengaturan pajak/layanan masih lewat database; halaman admin hanya
   menampilkannya.
 

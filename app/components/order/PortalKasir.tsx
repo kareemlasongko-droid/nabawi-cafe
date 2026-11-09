@@ -23,7 +23,14 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { rupiah, sejak, type Meja, type Tagihan, type Panggilan } from "@/app/lib/order/tipe";
+import {
+  rupiah,
+  sejak,
+  type Meja,
+  type Menu,
+  type Tagihan,
+  type Panggilan,
+} from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
 import { IkonCentang, IkonSilang, IkonBel, IkonBill, IkonJam, IkonMeja } from "./Ikon";
 
@@ -47,11 +54,54 @@ type PesananK = {
   items: ItemPesanan[];
 };
 
+/** Satu baris di struk: nama, jumlah, harga satuan, harga baris. */
+type BarisStruk = {
+  nama: string;
+  jumlah: number;
+  harga_satuan: number;
+  harga_baris: number;
+};
+
+type MejaKasir = Meja & {
+  tagihan: Tagihan | null;
+  /** Item milik tagihan meja ini — dipakai struk, bukan tabel antrean. */
+  items_tagihan?: BarisStruk[];
+};
+
 type DataKasir = {
   pesanan: PesananK[];
-  meja: (Meja & { tagihan: Tagihan | null })[];
+  meja: MejaKasir[];
   panggilan: (Panggilan & { meja_nomor: string })[];
+  menu?: Menu[];
+  aturan: { pajakPersen: number; layananPersen: number; layananRp: number; pembulatan: number };
   demo: boolean;
+};
+
+/**
+ * Alamat yang tercetak di struk (PRD bagian 11: nama cafe, ALAMAT, nomor
+ * meja, tanggal dan jam, nama kasir).
+ *
+ * Catatan jujur: alamat lengkap Nabawi belum ada di repo maupun di PRD,
+ * jadi yang dicetak hanya wilayahnya. JANGAN mengarang nomor rumah pada
+ * dokumen yang diserahkan ke tamu — alamat salah di struk lebih buruk
+ * daripada alamat singkat yang benar.
+ *
+ * Nama kafe TIDAK diulang di sini: baris tepat di atasnya sudah
+ * "Nabawi Cafe & Resto", dan struk kertas hanya selebar 8 cm.
+ */
+const ALAMAT_STRUK = "Yogyakarta";
+
+type StrukData = {
+  tagihan: Tagihan;
+  meja: string;
+  metode: string;
+  diterima: number;
+  kembalian: number;
+  kasir: string;
+  waktu: string;
+  items: BarisStruk[];
+  pajakPersen: number;
+  layananPersen: number;
 };
 
 export function PortalKasir() {
@@ -65,9 +115,20 @@ export function PortalKasir() {
   const [sedang, setSedang] = useState(false);
   const [suara, setSuara] = useState(true);
   const [bayar, setBayar] = useState<{ tagihan: Tagihan; meja: string } | null>(null);
-  const [struk, setStruk] = useState<{ tagihan: Tagihan; meja: string; metode: string; diterima: number; kembalian: number; kasir: string; waktu: string } | null>(null);
+  const [menuHabisBuka, setMenuHabisBuka] = useState(false);
+  const [menuSibuk, setMenuSibuk] = useState(0);
+  const [struk, setStruk] = useState<StrukData | null>(null);
 
   const jumlahLalu = useRef(0);
+
+  /*
+    Persentase pajak & layanan untuk dicetak di struk ("PPN 11%").
+    Sumbernya tarif dari server (aturan), bukan angka yang ditulis di
+    komponen — kalau pemilik mengubah tarif, struk ikut berubah tanpa
+    menyentuh kode.
+  */
+  const pajakPersen = data?.aturan?.pajakPersen ?? 11;
+  const layananPersen = data?.aturan?.layananPersen ?? 0;
 
   const muat = useCallback(async () => {
     try {
@@ -123,6 +184,42 @@ export function PortalKasir() {
     }
   }
 
+  /**
+   * K-08 — tandai menu habis / tersedia lagi.
+   *
+   * Perubahan diterapkan optimistis di layar lalu dikembalikan bila server
+   * menolak. Kasir menekan tombol ini sambil berdiri di depan tamu; menunggu
+   * satu putaran polling (4 detik) membuat tombol terasa tidak bekerja dan
+   * kasir menekannya berkali-kali.
+   */
+  async function setTersedia(menuId: number, tersedia: boolean) {
+    setMenuSibuk(menuId);
+    setData((d) =>
+      d?.menu
+        ? { ...d, menu: d.menu.map((m) => (m.id === menuId ? { ...m, tersedia } : m)) }
+        : d
+    );
+    try {
+      const res = await fetch("/api/order/kasir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aksi: "set_tersedia", menu_id: menuId, tersedia, oleh: "kasir" }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        setGalat(j.pesan ?? "Gagal menandai menu.");
+        await muat();
+        return;
+      }
+      setGalat("");
+    } catch {
+      setGalat("Koneksi terputus. Ketersediaan menu belum berubah.");
+      await muat();
+    } finally {
+      setMenuSibuk(0);
+    }
+  }
+
   async function tanganiPanggilan(id: number) {
     await fetch("/api/order/kasir", {
       method: "POST",
@@ -142,6 +239,9 @@ export function PortalKasir() {
   );
 
   const mejaTerpilih = data?.meja.find((m) => m.nomor === mejaPilih) ?? null;
+
+  const menu = data?.menu ?? [];
+  const habis = useMemo(() => menu.filter((m) => !m.tersedia), [menu]);
 
   return (
     <div className="min-h-dvh bg-cream-200">
@@ -448,6 +548,87 @@ export function PortalKasir() {
             })}
           </ul>
 
+          {/*
+            ── Ketersediaan menu (K-08) ──
+            Diletakkan di kolom kanan, di bawah denah, dan bisa dilipat.
+            Kasir menandai menu habis beberapa kali per jam sibuk, tetapi
+            hanya butuh sekejap — panel yang selalu terbuka akan mendorong
+            denah meja ke bawah, padahal denah yang dipakai terus-menerus.
+          */}
+          <div className="mt-3 rounded-xl border border-ink-900/12 bg-cream-50">
+            <button
+              type="button"
+              onClick={() => setMenuHabisBuka((b) => !b)}
+              aria-expanded={menuHabisBuka}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+            >
+              <span className="flex-1 text-[0.75rem] font-extrabold text-ink-900">
+                Ketersediaan menu
+              </span>
+              <span className="text-[0.6875rem] font-semibold text-ink-500">
+                {habis.length} habis
+              </span>
+              <span
+                className={[
+                  "text-ink-500 transition-transform",
+                  menuHabisBuka ? "rotate-180" : "",
+                ].join(" ")}
+                aria-hidden="true"
+              >
+                ▾
+              </span>
+            </button>
+
+            {/* Dua kolom: dengan satu kolom bergulir, daftar terpotong di
+                tengah baris dan kasir harus menggulir untuk mencari menu
+                yang sedang ia cari. 14 menu muat tanpa gulir. */}
+            {menuHabisBuka && (
+              <ul className="grid border-t border-ink-900/10 sm:grid-cols-2">
+                {menu.length === 0 ? (
+                  <li className="px-3 py-3 text-[0.75rem] text-ink-500">
+                    Menu tidak terbaca dari database.
+                  </li>
+                ) : (
+                  menu.map((m) => (
+                    <li
+                      key={m.id}
+                      className="flex min-w-0 items-center gap-2 border-b border-ink-900/8 px-3 py-1.5 sm:odd:border-r"
+                    >
+                      <span
+                        className={[
+                          "min-w-0 flex-1 truncate text-[0.75rem]",
+                          m.tersedia ? "text-ink-900" : "text-ink-500 line-through",
+                        ].join(" ")}
+                      >
+                        {m.nama}
+                      </span>
+                      {/*
+                        Sakelar, bukan tombol "Habis"/"Tersedia" yang harus
+                        ditebak keadaannya. Label teksnya tetap ada karena
+                        warna saja tidak cukup (aksesibilitas).
+                      */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={!m.tersedia}
+                        onClick={() => setTersedia(m.id, !m.tersedia)}
+                        disabled={menuSibuk === m.id}
+                        className={[
+                          "flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[0.625rem] font-bold transition disabled:opacity-50",
+                          m.tersedia
+                            ? "bg-cream-200 text-ink-500"
+                            : "bg-clay-600 text-cream-50",
+                        ].join(" ")}
+                      >
+                        {m.tersedia ? "Ada" : "Habis"}
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </div>
+
           {/* ── Detail tagihan meja terpilih ── */}
           {mejaTerpilih && (
             <div className="mt-3 rounded-xl border border-ink-900/12 bg-cream-50 p-3">
@@ -487,6 +668,11 @@ export function PortalKasir() {
         <DialogBayar
           tagihan={bayar.tagihan}
           meja={bayar.meja}
+          // Item diambil dari state SEBELUM pembayaran: setelah lunas,
+          // pesanan keluar dari daftar aktif dan itemnya tidak dikirim lagi.
+          items={data?.meja.find((m) => m.nomor === bayar.meja)?.items_tagihan ?? []}
+          pajakPersen={pajakPersen}
+          layananPersen={layananPersen}
           onTutup={() => setBayar(null)}
           onSukses={(s) => {
             setBayar(null);
@@ -565,21 +751,19 @@ function Baris({ k, v }: { k: string; v: string }) {
 function DialogBayar({
   tagihan,
   meja,
+  items,
+  pajakPersen,
+  layananPersen,
   onTutup,
   onSukses,
 }: {
   tagihan: Tagihan;
   meja: string;
+  items: BarisStruk[];
+  pajakPersen: number;
+  layananPersen: number;
   onTutup: () => void;
-  onSukses: (s: {
-    tagihan: Tagihan;
-    meja: string;
-    metode: string;
-    diterima: number;
-    kembalian: number;
-    kasir: string;
-    waktu: string;
-  }) => void;
+  onSukses: (s: StrukData) => void;
 }) {
   const [metode, setMetode] = useState<"tunai" | "qris_kasir" | "kartu">("tunai");
   const [diterima, setDiterima] = useState<string>(String(tagihan.total));
@@ -619,6 +803,9 @@ function DialogBayar({
         kembalian,
         kasir,
         waktu: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }),
+        items,
+        pajakPersen,
+        layananPersen,
       });
     } catch {
       setGalat("Koneksi terputus. Pembayaran belum tercatat.");
@@ -754,21 +941,7 @@ function DialogBayar({
  * untuk uang. Tujuannya supaya kasir dan pelanggan sama-sama bisa
  * mencocokkan angka secara vertikal, bukan membaca kalimat.
  */
-function Struk({
-  data,
-  onTutup,
-}: {
-  data: {
-    tagihan: Tagihan;
-    meja: string;
-    metode: string;
-    diterima: number;
-    kembalian: number;
-    kasir: string;
-    waktu: string;
-  };
-  onTutup: () => void;
-}) {
+function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
   const labelMetode: Record<string, string> = {
     tunai: "Tunai",
     qris_kasir: "QRIS di kasir",
@@ -780,9 +953,13 @@ function Struk({
       <div className="w-full max-w-xs rounded-xl bg-cream-50 p-4 shadow-2xl">
         <div className="border-b border-dashed border-ink-900/25 pb-2 text-center">
           <p className="text-[0.8125rem] font-extrabold text-ink-900">Nabawi Cafe &amp; Resto</p>
-          <p className="text-[0.625rem] leading-tight text-ink-500">
-            Cafe &amp; Resto berkonsep Maroko · riverside view
-          </p>
+          {/*
+            Alamat wajib ada di struk (PRD bagian 11). Sebelumnya baris ini
+            berisi teks pemasaran "berkonsep Maroko · riverside view" — tidak
+            berguna bagi tamu yang membawa pulang struk dan ingin tahu ini
+            tagihan tempat mana.
+          */}
+          <p className="text-[0.625rem] leading-tight text-ink-500">{ALAMAT_STRUK}</p>
         </div>
 
         <div className="mt-2 space-y-0.5 font-mono text-[0.6875rem] text-ink-700">
@@ -802,17 +979,59 @@ function Struk({
 
         <div className="my-2 border-t border-dashed border-ink-900/25" />
 
+        {/*
+          Daftar item (PRD bagian 11): nama, jumlah, harga satuan, harga
+          baris. Tanpa ini struk hanya berisi angka akhir, dan tamu yang
+          merasa ditagih lebih besar tidak bisa mencocokkan sendiri — satu-
+          satunya jalan adalah memanggil kasir lagi.
+        */}
+        <ul className="space-y-1 font-mono text-[0.6875rem]">
+          {data.items.length === 0 ? (
+            <li className="text-ink-500">Tidak ada item tercatat.</li>
+          ) : (
+            data.items.map((i) => (
+              <li key={`${i.nama}-${i.harga_satuan}`}>
+                <div className="flex justify-between gap-2">
+                  <span className="min-w-0 flex-1 break-words text-ink-900">
+                    {i.jumlah}× {i.nama}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-ink-900">
+                    {rupiah(i.harga_baris)}
+                  </span>
+                </div>
+                {/*
+                  Harga satuan ditulis hanya bila jumlahnya lebih dari satu.
+                  Untuk 1 item angkanya sama persis dengan harga baris dan
+                  hanya menambah baris yang harus dibaca.
+                */}
+                {i.jumlah > 1 && (
+                  <div className="pl-3 text-[0.625rem] text-ink-500">
+                    @ {rupiah(i.harga_satuan)}
+                  </div>
+                )}
+              </li>
+            ))
+          )}
+        </ul>
+
+        <div className="my-2 border-t border-dashed border-ink-900/25" />
+
         <dl className="space-y-1 font-mono text-[0.6875rem]">
           <div className="flex justify-between">
             <dt className="text-ink-500">Subtotal</dt>
             <dd className="tabular-nums text-ink-900">{rupiah(data.tagihan.subtotal)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Biaya layanan</dt>
+            <dt className="text-ink-500">
+              Biaya layanan
+              {data.layananPersen > 0 ? ` ${data.layananPersen}%` : ""}
+            </dt>
             <dd className="tabular-nums text-ink-900">{rupiah(data.tagihan.layanan)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Pajak</dt>
+            <dt className="text-ink-500">
+              Pajak{data.pajakPersen > 0 ? ` ${data.pajakPersen}%` : ""}
+            </dt>
             <dd className="tabular-nums text-ink-900">{rupiah(data.tagihan.pajak)}</dd>
           </div>
           {data.tagihan.pembulatan !== 0 && (
