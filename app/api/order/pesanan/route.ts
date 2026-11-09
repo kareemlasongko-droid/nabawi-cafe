@@ -129,6 +129,14 @@ export async function GET(req: Request) {
     q: `select=id,nomor,status,created_at,total_item&sesi_id=eq.${encodeURIComponent(
       sesi
     )}&order=created_at.desc&limit=10`,
+    /*
+      Header ini WAJIB, bukan hiasan. Policy RLS pesanan_baca_sesi berbunyi
+      "sesi_id = header x-sesi-order". Tanpa header, PostgREST menerima
+      permintaan yang sah tetapi RLS mengembalikan nol baris — tamu melihat
+      "belum ada pesanan" padahal pesanannya tersimpan. Tidak terdeteksi di
+      mode demo karena demo memfilter sendiri di memori.
+    */
+    headers: { "x-sesi-order": sesi },
   });
 
   if (!res.ok) return NextResponse.json({ pesan: res.pesan, pesanan: [] }, { status: 200 });

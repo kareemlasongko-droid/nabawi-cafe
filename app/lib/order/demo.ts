@@ -25,7 +25,7 @@ import type {
   StatusPesanan,
   MetodeBayar,
 } from "./tipe";
-import { hitungTagihan, ATURAN_BAWAAN } from "./aturan";
+import { hitungTagihan, ATURAN_BAWAAN, nomorPesanan } from "./aturan";
 
 const g = globalThis as unknown as {
   __demoOrder?: {
@@ -138,7 +138,7 @@ export function demoBuatPesanan(masuk: {
 
   const pesanan: Pesanan = {
     id: t.urutPesanan++,
-    nomor: `M${meja.nomor}-DEMO${t.urutPesanan}`,
+    nomor: `${nomorPesanan(meja.nomor)}-D${t.urutPesanan}`,
     meja_id: meja.id,
     status: "menunggu_konfirmasi",
     nama_pemesan: masuk.nama,

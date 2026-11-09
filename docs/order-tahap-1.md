@@ -18,28 +18,73 @@ kasir setelah makan.
 Portal internal **tidak ditautkan** dari website publik dan diberi
 `robots: noindex`.
 
-## Keadaan sekarang: MODE DEMO
+## Mengaktifkan mode sungguhan
 
-Kunci server database (`SUPABASE_SERVICE_KEY`) belum dipasang, jadi:
+Sistem berjalan **mode demo** selama `SUPABASE_SERVICE_KEY` belum ada: data
+pesanan hidup di memori proses, hilang saat server restart, dan setiap portal
+menampilkan pita "Mode demo".
 
-- Semua data order hidup di memori proses (`globalThis.__demoOrder`).
-- Pesanan, tagihan, dan panggilan **hilang saat server restart** dan **tidak
-  dibagi antar-instance** — dua orang yang membuka portal berbeda bisa melihat
-  data berbeda di lingkungan serverless.
-- Semua portal menampilkan pita **"Mode demo"** yang jelas. Ini disengaja:
-  lebih baik terlihat seperti alat peraga daripada terlihat seperti sistem
-  sungguhan yang diam-diam kehilangan pesanan.
-- Hak tulis anon **tidak** dibuka untuk mengakalinya. Kalau dibuka, siapa pun
-  yang menemukan anon key bisa mengubah harga dan status pesanan.
+### Langkah
 
-Untuk mengaktifkan mode sungguhan, pasang di Vercel:
+1. Supabase → **Settings → API** → salin kunci **`service_role`**
+   (project `mvuqdakfzffhrnzxnmke`).
+2. Vercel → project `nabawi-cafe` → **Settings → Environment Variables**.
+3. Tambah `SUPABASE_SERVICE_KEY` = kunci tadi, centang **Production, Preview,
+   Development**.
+4. **Redeploy.** Variabel baru tidak berlaku pada deployment yang sudah jadi.
 
-```
-SUPABASE_SERVICE_KEY = <service role key project mvuqdakfzffhrnzxnmke>
-```
+Tidak ada perubahan kode. `PUNYA_KUNCI_SERVER` otomatis menjadi `true`, pita
+mode demo hilang, dan semua penulisan memakai kunci server.
 
-Tanpa variabel itu, endpoint tulis tetap menolak dengan status 503 dan pesan
-yang menjelaskan sebabnya.
+### Kenapa harus kunci server, bukan anon
+
+Seluruh penulisan lewat route server. Browser tamu tidak pernah memegang kunci
+apa pun selain anon key yang memang publik. Kalau browser diberi hak tulis
+langsung ke tabel pesanan, siapa pun bisa mengubah status atau harga pesanan
+orang lain — dan semua validasi di server (jam buka, harga dari database,
+batas laju) bisa dilewati.
+
+### Policy RLS (sudah dirapikan di migrasi `kunci_mode_sungguhan_rls`)
+
+| Tabel | Anon bisa | Catatan |
+| --- | --- | --- |
+| `menu`, `kategori_menu`, `meja`, `pengaturan` | SELECT | halaman publik |
+| `pesanan` | SELECT **hanya sesi sendiri** | syarat `sesi_id = header x-sesi-order` |
+| `pesanan`, `item_pesanan`, `panggilan` | **tidak bisa tulis** | ditutup; penulisan lewat server |
+| `tagihan`, `pembayaran`, `log_perubahan`, `pengguna_internal` | tidak bisa | berisi uang & data internal |
+
+Policy tulis anon untuk `pesanan`/`item_pesanan`/`panggilan` **dihapus**.
+Sebelumnya syaratnya `true`, artinya siapa pun yang memegang anon key bisa
+menyuntik pesanan palsu langsung ke database tanpa lewat validasi server.
+Aplikasi tidak membutuhkannya karena semua penulisan memakai `service_role`
+yang melewati RLS.
+
+### Tiga hal yang akan patah tanpa perbaikan ini
+
+Ketiganya tidak terlihat di mode demo karena demo tidak menyentuh RLS:
+
+1. **Tagihan gagal dibuat.** `tagihan` tidak punya policy tulis. Tanpa kunci
+   server, alur pertama berhenti setelah pesanan tersimpan — tamu melihat
+   error dan pesanannya menggantung tanpa tagihan.
+2. **Status pesanan tamu tidak pernah muncul.** Policy baca mencocokkan header
+   `x-sesi-order`, tetapi kode tidak pernah mengirimnya. Sekarang dikirim di
+   `GET /api/order/pesanan`.
+3. **Nomor pesanan bertabrakan.** Dulu `M12-2030` (jam:menit). Dua tamu di
+   meja yang sama menambah pesanan dalam menit yang sama = unique violation,
+   pesanan kedua ditolak. Sekarang `M12-2030-47` + satu kali coba ulang, dan
+   pesan galatnya bahasa manusia, bukan pesan Postgres.
+
+### Setelah kunci terpasang, wajib dicoba
+
+- [ ] Kirim pesanan dari `/order?meja=12` → muncul di kasir.
+- [ ] Terima → muncul di dapur → Siap → pelayan → Sudah diantar.
+- [ ] Status di layar tamu berubah tanpa memuat ulang.
+- [ ] Tutup tagihan → struk berisi item → meja kembali kosong.
+- [ ] Tandai menu habis dari kasir → hilang dari portal tamu dalam ~5 detik.
+
+Kalau salah satu gagal, kembalikan ke mode demo dengan menghapus variabel
+`SUPABASE_SERVICE_KEY` lalu redeploy — sistem tidak akan kehilangan data
+yang sudah ada, hanya berhenti menyimpan yang baru.
 
 ## Skema database
 
