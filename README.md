@@ -25,30 +25,56 @@ npm start
 
 ## Alur deploy
 
-Deploy sepenuhnya ditangani **integrasi Git Vercel**. Tidak ada perintah deploy di
-repo ini (`npm run deploy` tidak ada), tidak ada `vercel.json`, dan tidak ada
-kredensial Vercel di lingkungan pengembangan — jadi tidak ada jalur lain yang
-bisa menerbitkan production selain Vercel.
+**Production hanya naik kalau dipromosikan manual.** Merge ke `main` tidak
+lagi menerbitkan production secara otomatis.
 
 | Tahap | Sumber | Hasil | Domain |
 | --- | --- | --- | --- |
-| Development | `npm run dev` di mesin lokal / sandbox | HMR, bukan versi publik | `localhost:3000` |
-| Preview | setiap push ke branch PR | Deployment Preview | URL preview per-commit, berubah tiap deploy |
-| Production | merge (atau push langsung) ke `main` | Deployment Production | `https://nabawi-cafe.vercel.app` |
+| Development | `npm run dev` | HMR, bukan versi publik | `localhost:3000` |
+| Preview | setiap push ke branch PR | Deployment Preview | URL preview per-commit |
+| Production | **promosikan manual** di dashboard Vercel | Deployment Production | `https://nabawi-cafe.vercel.app` |
 
-Catatan:
+### Yang mengunci production
 
-- **Production hanya dari `main`.** Branch `main` adalah *Production Branch* di
-  setelan Vercel. Selama setelan itu tidak diubah di dashboard, push ke branch
-  lain tidak akan pernah menimpa production.
-- **Preview tetap dipakai** untuk memeriksa perubahan sebelum merge; itulah yang
-  dilaporkan sebagai cek "Vercel" pada setiap pull request.
-- **Database dipakai bersama.** Preview dan production memakai Supabase yang sama
-  (`SUPABASE_URL` / `SUPABASE_ANON_KEY`), jadi perubahan skema atau isi data
-  langsung terasa di kedua lingkungan. Tidak ada database staging terpisah.
-- Kalau suatu saat ingin mematikan preview per-branch, itu bisa diatur lewat
-  `vercel.json` → `git.deploymentEnabled`, tetapi konsekuensinya cek Vercel pada
-  PR ikut hilang. Setelan yang dipakai sekarang sengaja membiarkan preview hidup.
+`vercel.json`:
+
+```json
+{ "git": { "deploymentEnabled": { "main": false } } }
+```
+
+ Push ke `main` — termasuk merge pull request — **tidak** membuat deployment
+production. Preview per-branch tetap dibuat, jadi cek Vercel pada PR masih ada
+dan perubahan tetap bisa diperiksa sebelum dipromosikan.
+
+### Cara naik ke production
+
+1. Buka Vercel → project `nabawi-cafe` → tab **Deployments**.
+2. Pilih deployment preview yang sudah diperiksa.
+3. Menu **⋯ → Promote to Production**.
+
+Cara ini juga berarti production bisa **di-rollback** kapan saja dengan
+memilih deployment lama dan mempromosikannya kembali.
+
+### Kenapa bukan lewat git
+
+Repository ini tidak punya jalur deploy lain: tidak ada `npm run deploy`,
+tidak ada kredensial Vercel di lingkungan pengembangan, dan integrasi Git
+Vercel-lah satu-satunya yang terhubung ke akun. Mematikan auto-deploy di
+`vercel.json` berarti satu-satunya cara menaikkan production adalah tindakan
+manual yang disengaja di dashboard.
+
+**Catatan:** kalau di dashboard Vercel ada setelan yang berlawanan (mis.
+"Production Branch" atau opsi auto-deploy yang dipaksa hidup), setelan
+dashboard menang atas `vercel.json`. Periksa sekali di
+**Settings → Git → Ignored Build Step / Production Branch** setelah perubahan
+ini masuk.
+
+### Database dipakai bersama
+
+Preview dan production memakai Supabase yang sama (`SUPABASE_URL` /
+`SUPABASE_ANON_KEY`), jadi perubahan skema atau isi data langsung terasa di
+keduanya. Tidak ada database staging terpisah. Karena itu migrasi database
+juga harus dianggap sebagai tindakan production.
 
 ## Konsep tampilan
 
