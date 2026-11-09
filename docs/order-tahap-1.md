@@ -61,6 +61,49 @@ Cara memastikannya di produksi: buka portal pelanggan, lalu periksa ada
 `Nasi Goreng Kebuli` dan `Cappuccino Dingin`. Kalau yang muncul `Harira`, berarti
 kuncinya belum terpasang dan halaman sedang mode demo.
 
+### Izin tabel `service_role` (migrasi `izin_service_role`)
+
+Jebakan yang baru ketahuan **setelah** kunci dipasang di production: peran
+`service_role` ternyata hanya memegang `REFERENCES`, `TRIGGER`, dan `TRUNCATE`
+pada seluruh tabel `public` — **tidak ada `SELECT`, `INSERT`, `UPDATE`, maupun
+`DELETE`**. Akibatnya production menampilkan:
+
+```
+Meja 1 tidak dikenali — permission denied for table meja
+```
+
+Yang menyesatkan: di sandbox ini **tidak pernah terlihat**, karena sandbox tidak
+punya jaringan keluar sehingga selalu jatuh ke mode demo yang tidak menyentuh
+database sama sekali.
+
+Perlu dicatat: **RLS tidak menggantikan izin tabel.** RLS menentukan baris mana
+yang boleh disentuh; izin tabel menentukan apakah peran itu boleh menyentuh tabel
+tersebut sama sekali. Keduanya harus benar.
+
+Migrasi `20261102000100_izin_service_role.sql` memberi `SELECT, INSERT, UPDATE,
+DELETE` pada semua tabel, `USAGE, SELECT` pada semua sekuens, plus
+`ALTER DEFAULT PRIVILEGES` supaya tabel baru otomatis ikut.
+
+### Periksa sendiri setelah live: satu permintaan HTTP
+
+Cara tercepat memastikan mode sungguhan benar-benar jalan — bukan hanya pitanya
+hilang — adalah membuka alamat ini di browser:
+
+```
+https://nabawi-cafe.vercel.app/api/order/kasir
+```
+
+Perhatikan **`"demo": false`** di akhir jawabannya.
+
+| Yang terlihat | Artinya |
+| --- | --- |
+| `"demo": false` + daftar 20 meja | Mode sungguhan jalan |
+| `"demo": true` | Kunci belum terbaca — redeploy belum jalan |
+| `permission denied for table ...` | Izin `service_role` belum diperbaiki |
+
+Ini menguji **baca dan tulis** sekaligus: endpoint kasir membaca pesanan,
+tagihan, dan panggilan dari database sungguhan.
+
 ### Kenapa harus kunci server, bukan anon
 
 Seluruh penulisan lewat route server. Browser tamu tidak pernah memegang kunci
