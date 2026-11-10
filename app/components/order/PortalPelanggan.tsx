@@ -428,58 +428,39 @@ export function PortalPelanggan({
           meja ditaruh paling atas, besar, dan area-nya ikut disebut. */}
       <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/95 backdrop-blur">
         {/*
-          Baris identitas: logo + nama kafe, lalu nomor meja di kanan.
+          SATU BARIS — dan isinya dipilih berdasarkan apa yang benar-benar
+          dibutuhkan tamu, bukan apa yang ingin ditampilkan pemilik.
 
-          Meja tetap yang paling menonjol — salah meja berarti seluruh
-          pesanan salah antar — tetapi kafe harus punya wajah. Sebelumnya
-          nama kafe di kepala ini SEMPAT DIHAPUS karena terpotong jadi
-          "Nabawi Cafe …" di layar 390 px; masalahnya waktu itu teksnya
-          ditaruh di baris yang sama dengan nomor meja dan dua tombol.
-          Sekarang ia punya barisnya sendiri yang ringkas (44 px), jadi
-          tidak berebut ruang dengan tombol Panggil dan Minta bill.
+          Lebarnya diukur dari metrik font aslinya, bukan dikira-kira.
+          Di layar 375px (isi 343px) sisa untuk nama hanya 131px, sedangkan
+          "Nabawi Cafe & Resto" 15px ExtraBold butuh 158px. Karena itu:
+
+          1. Tombol Panggil + Bill TIDAK boleh terpotong — itu fitur. Padding
+             dipangkas (px-2, ikon 16px) dan kotak meja mengecil 36 → 32px.
+          2. "& Resto" dan keterangan hanya muncul mulai 640px. Di ponsel
+             nama inti "Nabawi Cafe" (97px) tetap utuh, tidak jadi ellipsis
+             di tengah merek.
+          3. Area meja pindah ke atribut `title` + teks pembaca layar. Ia
+             mengulang isi kotak meja dan baru penting saat tamu ragu.
+          4. Tinggi kepala TIDAK bertambah: baris identitas lama (26px)
+             dihapus, isinya masuk ke baris ini.
         */}
-        <div className="mx-auto flex max-w-[45rem] items-center gap-3 px-4 pt-2.5">
-          <LogoNabawi ukuran={26} label="Nabawi Cafe & Resto" />
-          <span className="ml-auto shrink-0 rounded-full bg-bersih-100 px-2 py-0.5 text-[0.6875rem] font-bold text-tinta-700">
-            Meja {mejaNomor}
+        <div className="mx-auto flex max-w-[45rem] items-center gap-1.5 px-4 py-2.5">
+          <span
+            className="grid size-8 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-bersih-0"
+            title={`Meja ${mejaNomor} · ${mejaArea}`}
+          >
+            <span className="text-[0.9375rem] font-extrabold leading-none">{mejaNomor}</span>
+            <span className="sr-only">Meja {mejaNomor}, {mejaArea}</span>
           </span>
-        </div>
 
-        <div className="mx-auto flex max-w-[45rem] items-center gap-3 px-4 py-2.5">
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-bersih-0">
-              <span className="text-[1.0625rem] font-extrabold leading-none">{mejaNomor}</span>
-            </span>
-            {/*
-              Isi kepala HANYA yang dibutuhkan tamu: meja mana ia duduk dan
-              di area mana. Nama kafe sebelumnya ada di sini dan selalu
-              terpotong jadi "Nabawi Cafe …" di layar 390 px — teks yang
-              tidak menambah informasi tetapi memakan ruang yang dipakai
-              tombol Panggil dan Minta bill. Nama kafe tetap ada di judul
-              halaman dan struk.
-            */}
-            {/*
-              Satu baris saja. Dua tombol di kanan (Panggil, Minta bill) sudah
-              memakan ~250 px dari 390 px, jadi baris kedua PASTI terpotong.
-              Isi yang tersisa: nomor meja besar (sudah terbaca dari kotak di
-              kiri) dan nama areanya. Itu dua hal yang dibutuhkan tamu untuk
-              memastikan ia membuka meja yang benar.
-            */}
-            <div className="min-w-0">
-              <p className="truncate text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-tinta-500">
-                Meja {mejaNomor}
-              </p>
-              <p className="truncate text-[0.9375rem] font-extrabold capitalize leading-tight text-tinta-900">
-                {mejaArea}
-              </p>
-            </div>
-          </div>
+          <LogoNabawi ukuran={20} sebaris ringkas label="Nabawi Cafe & Resto" />
 
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={() => panggil("pelayan")}
-              className="flex h-11 items-center gap-1.5 rounded-[0.625rem] border border-bersih-300 px-2.5 text-[0.8125rem] font-semibold text-tinta-900 transition active:scale-[0.97] active:bg-bersih-100"
+              className="flex h-10 items-center gap-1 rounded-[0.625rem] border border-bersih-300 px-2 text-[0.8125rem] font-semibold text-tinta-900 transition active:scale-[0.97] active:bg-bersih-100"
               title="Panggil pelayan ke meja"
             >
               <IkonBel className="size-4" />
@@ -488,13 +469,14 @@ export function PortalPelanggan({
             <button
               type="button"
               onClick={() => panggil("bill")}
-              className="flex h-11 items-center gap-1.5 rounded-[0.625rem] bg-aksi-500 px-3 text-[0.8125rem] font-bold text-bersih-0 transition active:scale-[0.97] active:bg-aksi-600"
+              className="flex h-10 items-center gap-1 rounded-[0.625rem] bg-aksi-500 px-2 text-[0.8125rem] font-bold text-bersih-0 transition active:scale-[0.97] active:bg-aksi-600"
             >
               <IkonBill className="size-4" />
-              Minta bill
+              Bill
             </button>
           </div>
         </div>
+
 
         {/* Jam buka + status. Kalau tutup, pesan ini muncul SEBELUM pelanggan
             memilih menu — bukan setelah menekan Kirim (P-12). */}

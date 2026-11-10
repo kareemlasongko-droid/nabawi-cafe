@@ -136,20 +136,17 @@ export function PortalPelayan() {
         <div className="mx-auto flex max-w-[34rem] items-center gap-2 px-3 py-2.5">
           {/* Identitas + nama layar. Dua kolom ini sengaja dipisah garis:
               "Pelayan" adalah peran, "Nabawi Cafe" adalah tempatnya. */}
-          <LogoNabawi ukuran={32} hanyaLogo label="Nabawi Cafe & Resto" />
-          <span aria-hidden="true" className="h-7 w-px shrink-0 bg-bersih-200" />
-          <div className="min-w-0 flex-1">
-            {/* Nama kafe di baris atas, peran di bawah. Pelayan membawa HP
-                ini sambil berjalan dan sering berpapasan dengan layar lain;
-                tiga baris pendek lebih mudah dikenali sekilas daripada
-                satu nama peran tanpa penanda tempat. */}
-            <p className="truncate text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-tinta-500">
-              Nabawi Cafe &amp; Resto
-            </p>
-            <h1 className="truncate text-[1.0625rem] font-extrabold leading-none text-tinta-900">
+          <LogoNabawi ukuran={28} sebaris label="Nabawi Cafe & Resto" />
+          <span aria-hidden="true" className="h-6 w-px shrink-0 bg-bersih-200" />
+          <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
+            <h1 className="shrink-0 text-[1.0625rem] font-extrabold leading-none text-tinta-900">
               Pelayan
             </h1>
-            <p className="mt-0.5 truncate text-[0.6875rem] text-tinta-500">
+            {/* Ringkasan tugas sejajar dengan peran, dipisah titik tengah.
+                Dua baris terpisah akan memakan 20px tinggi kepala yang di
+                HP pelayan dipakai untuk satu kartu pesanan lagi. */}
+            <p className="min-w-0 truncate text-[0.6875rem] leading-none text-tinta-500">
+              <span aria-hidden="true" className="mr-1.5 opacity-50">·</span>
               {galat || `${urutSiap.length} siap diantar · ${panggilan.length} panggilan`}
             </p>
           </div>

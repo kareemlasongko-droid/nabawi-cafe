@@ -26,10 +26,30 @@ export function LogoNabawi({
   tema = "terang",
   /** Ukuran kotak logo dalam px. Teks menyesuaikan sendiri. */
   ukuran = 36,
-  /** Baris kedua kecil di bawah nama. Kosongkan bila tidak perlu. */
+  /**
+   * Keterangan kecil. Dengan `sebaris`, ia diletakkan SETELAH nama dalam
+   * baris yang sama (dipisah titik tengah), bukan di bawahnya.
+   */
   keterangan,
-  /** Sembunyikan teks, hanya logo (dipakai di layar sangat sempit). */
+  /** Sembunyikan teks, hanya logo. */
   hanyaLogo = false,
+  /**
+   * Semua isi dalam satu baris.
+   *
+   * Dipakai seluruh portal order: kepala dua baris memakan ~20px ruang
+   * yang di dapur dipakai untuk satu tiket lagi, dan di portal pelanggan
+   * memaksa kepala setinggi 96px. Dengan satu baris, nama kafe dan
+   * keterangannya sejajar — bukan bertumpuk.
+   */
+  sebaris = false,
+  /**
+   * Sembunyikan keterangan di bawah 640px.
+   * Hanya dipakai kepala portal pelanggan: di sana tombol Panggil + Bill
+   * berebut ruang dengan identitas, dan keterangannya cuma mengulang angka
+   * yang sudah ada di judul bagian. Portal staf TIDAK memakai ini — angka
+   * antrean kasir adalah alasan layar itu dibuka.
+   */
+  ringkas = false,
   /**
    * Keterangan dibaca pembaca layar saat `hanyaLogo` aktif. Tanpa ini,
    * logo tanpa teks menjadi elemen tanpa nama.
@@ -40,13 +60,15 @@ export function LogoNabawi({
   ukuran?: number;
   keterangan?: string;
   hanyaLogo?: boolean;
+  sebaris?: boolean;
+  ringkas?: boolean;
   label?: string;
 }) {
   const nama = tema === "gelap" ? "text-gelap-isi" : "text-tinta-900";
   const sub = tema === "gelap" ? "text-gelap-samar" : "text-tinta-500";
 
   return (
-    <span className="flex min-w-0 items-center gap-2" aria-label={label}>
+    <span className="flex min-w-0 items-center gap-1.5" aria-label={label}>
       {/*
         Cincin tipis di sekitar logo: logo adalah PNG persegi dengan latar
         putih. Di kepala dapur yang gelap, sudut putihnya akan terlihat
@@ -62,14 +84,39 @@ export function LogoNabawi({
         style={{ width: ukuran, height: ukuran }}
       />
       {!hanyaLogo && (
-        <span className="min-w-0">
+        <span className={`min-w-0 ${sebaris ? "flex items-baseline gap-1.5 whitespace-nowrap" : ""}`}>
           <span
-            className={`block truncate text-[0.9375rem] font-extrabold leading-none ${nama}`}
+            className={`min-w-0 truncate text-[0.9375rem] font-extrabold leading-none ${nama} ${
+              sebaris ? "" : "block"
+            }`}
           >
-            Nabawi Cafe <span className="font-semibold opacity-60">&amp; Resto</span>
+            Nabawi Cafe{" "}
+            {/*
+              "& Resto" dan keterangan hanya tampil mulai 640px.
+              Di ponsel 390px kepala portal pelanggan hanya punya 358px dan
+              tombol Panggil + Bill sudah memakan ~145px. Memaksa semuanya
+              muat berarti ellipsis di tengah merek ("Nabawi Cafe & Res…")
+              dan angka status yang terpotong ("0 pesanan menu…") — keduanya
+              terbaca sebagai kerusakan, bukan sebagai penyesuaian.
+              Yang disembunyikan pun bukan informasi hilang: jumlah antrean,
+              tiket, dan menu sudah tercetak di judul bagian dan chip tepat
+              di bawah kepala ini, dengan angka yang lebih besar. Nama inti
+              "Nabawi Cafe" tetap utuh di semua lebar.
+            */}
+            <span className="hidden font-semibold opacity-60 sm:inline">&amp; Resto</span>
           </span>
           {keterangan && (
-            <span className={`mt-0.5 block truncate text-[0.6875rem] leading-tight ${sub}`}>
+            <span
+              title={keterangan}
+              className={`min-w-0 truncate text-[0.6875rem] leading-none ${sub} ${
+                sebaris ? (ringkas ? "hidden sm:block" : "") : "mt-0.5 block"
+              }`}
+            >
+              {sebaris && (
+                <span aria-hidden="true" className="mr-1.5 opacity-50">
+                  ·
+                </span>
+              )}
               {keterangan}
             </span>
           )}

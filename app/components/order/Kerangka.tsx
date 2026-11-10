@@ -74,10 +74,20 @@ export function BilahStaf({
           layar itu — kalau tablet kasir dan tablet dapur tertukar, tidak
           ada yang bisa memastikannya dari layar.
         */}
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <LogoNabawi ukuran={34} keterangan={keterangan} />
-          <span aria-hidden="true" className="h-8 w-px shrink-0 bg-bersih-200" />
-          <h1 className="min-w-0 truncate text-[0.9375rem] font-extrabold tracking-tight text-tinta-900 sm:text-base">
+        {/*
+          SATU BARIS, dan urutannya disengaja: identitas → garis → peran.
+          Nama layar ("Kasir") diletakkan paling kanan karena ia yang
+          membedakan tablet satu dengan lainnya; identitas kafe selalu sama
+          di semua layar, jadi tidak perlu jadi yang pertama dibaca.
+
+          `min-w-0` di tiap tingkat wajib: tanpa itu, `truncate` tidak
+          bekerja di dalam flex dan nama yang panjang akan mendorong
+          tombol keluar layar, bukan terpotong.
+        */}
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <LogoNabawi ukuran={30} sebaris keterangan={keterangan} />
+          <span aria-hidden="true" className="h-6 w-px shrink-0 bg-bersih-200" />
+          <h1 className="min-w-0 shrink-0 truncate text-[0.9375rem] font-extrabold tracking-tight text-tinta-900">
             {judul}
           </h1>
         </div>

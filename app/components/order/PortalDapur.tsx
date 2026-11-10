@@ -173,14 +173,15 @@ export function PortalDapur() {
             nama kafe tak terbaca — persis kegagalan yang dicegah oleh
             prop `tema` di komponen logo.
           */}
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <LogoNabawi
               tema="gelap"
-              ukuran={34}
+              ukuran={30}
+              sebaris
               keterangan={galat || `${baru.length} tiket baru · ${(tiket ?? []).length} total`}
             />
-            <span aria-hidden="true" className="h-8 w-px shrink-0 bg-tinta-700" />
-            <h1 className="min-w-0 truncate text-[1.0625rem] font-extrabold tracking-tight text-gelap-isi">
+            <span aria-hidden="true" className="h-6 w-px shrink-0 bg-tinta-700" />
+            <h1 className="min-w-0 shrink-0 truncate text-[1.0625rem] font-extrabold tracking-tight text-gelap-isi">
               Dapur &amp; Bar
             </h1>
           </div>
