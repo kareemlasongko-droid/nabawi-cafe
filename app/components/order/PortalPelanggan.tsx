@@ -24,8 +24,13 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { hitungTagihan, type AturanBiaya, ATURAN_BAWAAN } from "@/app/lib/order/aturan";
-import { rupiah, type KategoriMenu, type Menu } from "@/app/lib/order/tipe";
+import {
+  ATURAN_BAWAAN,
+  bacaPilihan,
+  hitungTagihan,
+  type AturanBiaya,
+} from "@/app/lib/order/aturan";
+import { rupiah, type KategoriMenu, type Menu, type PilihanMenu } from "@/app/lib/order/tipe";
 import {
   IkonCari,
   IkonKeranjang,
@@ -39,7 +44,13 @@ import {
   IkonKiri,
 } from "./Ikon";
 
-type Baris = { menu: Menu; jumlah: number; catatan: string };
+type Baris = {
+  menu: Menu;
+  jumlah: number;
+  catatan: string;
+  /** Opsi yang dipilih. Kosong bila menu ini tidak punya pilihan. */
+  pilihan: PilihanMenu[];
+};
 
 type StatusPesananPelanggan = {
   id: number;
@@ -115,6 +126,12 @@ export function PortalPelanggan({
   */
   const [daftarMenu, setDaftarMenu] = useState<Menu[]>(menu);
   const [bukaKeranjang, setBukaKeranjang] = useState(false);
+  /*
+    Menu yang sedang dipilihkan opsi (sambal/saus/rasa). null = lembar
+    tertutup. Disimpan sebagai Menu, bukan id, supaya lembar tetap benar
+    walau daftar menu diperbarui polling di tengah pemilihan.
+  */
+  const [pilihUntuk, setPilihUntuk] = useState<Menu | null>(null);
   const [nama, setNama] = useState("");
   const [mengirim, setMengirim] = useState(false);
   const [pesanGalat, setPesanGalat] = useState("");
@@ -270,30 +287,55 @@ export function PortalPelanggan({
     return peta;
   }, [daftar]);
 
-  function tambah(m: Menu) {
+  /**
+   * Menu ini punya pilihan yang harus ditentukan pelanggan?
+   * Dibaca lewat bacaPilihan() supaya data rusak tidak meloloskan menu
+   * berpilihan ke keranjang tanpa pilihan — server akan menolaknya dan
+   * pelanggan hanya melihat galat tanpa tahu apa yang kurang.
+   */
+  function opsiDari(m: Menu): PilihanMenu[] {
+    return bacaPilihan(m.pilihan);
+  }
+
+  /**
+   * Kunci baris keranjang: menu + pilihan.
+   *
+   * Hanya id menu TIDAK cukup. Dua Rice Bowl dengan sambal berbeda adalah
+   * dua baris terpisah dengan harga berbeda; kalau digabung berdasarkan id,
+   * salah satu rasa hilang dan tagihannya keliru.
+   */
+  function kunciBaris(menuId: number, pilihan: PilihanMenu[]): string {
+    const nama = pilihan.map((p) => p.nama).sort().join("|").toLowerCase();
+    return `${menuId}::${nama}`;
+  }
+
+  function tambah(m: Menu, pilihan: PilihanMenu[] = []) {
     if (!m.tersedia || !bukaSekarang) return;
+    const kunci = kunciBaris(m.id, pilihan);
     setKeranjang((k) => {
-      const ada = k.find((b) => b.menu.id === m.id);
+      const ada = k.find((b) => kunciBaris(b.menu.id, b.pilihan) === kunci);
       if (ada) {
         return k.map((b) =>
-          b.menu.id === m.id ? { ...b, jumlah: Math.min(20, b.jumlah + 1) } : b
+          kunciBaris(b.menu.id, b.pilihan) === kunci
+            ? { ...b, jumlah: Math.min(20, b.jumlah + 1) }
+            : b
         );
       }
-      return [...k, { menu: m, jumlah: 1, catatan: "" }];
+      return [...k, { menu: m, jumlah: 1, catatan: "", pilihan }];
     });
     setBaruSaja((n) => n + 1);
   }
 
-  function ubahJumlah(id: number, d: number) {
+  function ubahJumlah(kunci: string, d: number) {
     setKeranjang((k) =>
       k
-        .map((b) => (b.menu.id === id ? { ...b, jumlah: b.jumlah + d } : b))
+        .map((b) => (kunciBaris(b.menu.id, b.pilihan) === kunci ? { ...b, jumlah: b.jumlah + d } : b))
         .filter((b) => b.jumlah > 0)
     );
   }
 
-  function hapus(id: number) {
-    setKeranjang((k) => k.filter((b) => b.menu.id !== id));
+  function hapus(kunci: string) {
+    setKeranjang((k) => k.filter((b) => kunciBaris(b.menu.id, b.pilihan) !== kunci));
   }
 
   async function kirim() {
@@ -313,6 +355,8 @@ export function PortalPelanggan({
             menu_id: b.menu.id,
             jumlah: b.jumlah,
             catatan: b.catatan.trim() || null,
+            // Hanya NAMA opsi. Harga dihitung server dari database.
+            pilihan: b.pilihan.map((p) => p.nama),
           })),
         }),
       });
@@ -540,7 +584,15 @@ export function PortalPelanggan({
               </h2>
               <ul className="divide-y divide-ink-900/8 overflow-hidden rounded-2xl border border-ink-900/10 bg-cream-50">
                 {isi.map((m) => {
+                  const opsi = opsiDari(m);
+                  /*
+                    Baris keranjang untuk menu ini. Bila menu punya pilihan,
+                    hanya baris dengan pilihan PERTAMA yang ditampilkan sebagai
+                    penghitung cepat, supaya tombol +/- tetap satu tempat.
+                    Pilihan lain diatur di dalam keranjang (bisa dihapus).
+                  */
                   const diKeranjang = keranjang.find((b) => b.menu.id === m.id);
+                  const kunciPertama = diKeranjang ? kunciBaris(diKeranjang.menu.id, diKeranjang.pilihan) : "";
                   const habis = !m.tersedia;
                   return (
                     <li
@@ -583,6 +635,11 @@ export function PortalPelanggan({
                         </p>
                         <p className="mt-1 text-[0.8125rem] font-bold text-ink-900">
                           {rupiah(m.harga)}
+                          {opsi.some((p) => p.tambah > 0) && (
+                            <span className="ml-1 text-[0.625rem] font-semibold text-ink-500">
+                              + pilihan
+                            </span>
+                          )}
                         </p>
                       </div>
 
@@ -594,7 +651,7 @@ export function PortalPelanggan({
                         <div className="flex shrink-0 items-center gap-1 self-center rounded-lg border border-ink-900/15 bg-cream-100 p-0.5">
                           <button
                             type="button"
-                            onClick={() => ubahJumlah(m.id, -1)}
+                            onClick={() => ubahJumlah(kunciPertama, -1)}
                             aria-label={`Kurangi ${m.nama}`}
                             className="grid size-9 place-items-center rounded-md text-ink-900 transition active:bg-cream-300"
                           >
@@ -605,7 +662,7 @@ export function PortalPelanggan({
                           </span>
                           <button
                             type="button"
-                            onClick={() => ubahJumlah(m.id, 1)}
+                            onClick={() => ubahJumlah(kunciPertama, 1)}
                             aria-label={`Tambah ${m.nama}`}
                             className="grid size-9 place-items-center rounded-md text-ink-900 transition active:bg-cream-300"
                           >
@@ -615,12 +672,20 @@ export function PortalPelanggan({
                       ) : (
                         <button
                           type="button"
-                          onClick={() => tambah(m)}
+                          onClick={() => (opsi.length > 0 ? setPilihUntuk(m) : tambah(m))}
                           disabled={!bukaSekarang}
-                          aria-label={`Tambah ${m.nama} ke keranjang`}
+                          aria-label={
+                            opsi.length > 0
+                              ? `Pilih ${m.nama}`
+                              : `Tambah ${m.nama} ke keranjang`
+                          }
                           className="grid size-11 shrink-0 self-center place-items-center rounded-xl bg-forest-900 text-cream-50 transition active:scale-95 disabled:opacity-40"
                         >
-                          <IkonTambah className="size-5" />
+                          {opsi.length > 0 ? (
+                            <span className="px-2 text-[0.6875rem] font-bold">Pilih</span>
+                          ) : (
+                            <IkonTambah className="size-5" />
+                          )}
                         </button>
                       )}
                     </li>
@@ -676,6 +741,56 @@ export function PortalPelanggan({
         </div>
       )}
 
+
+      {/* ── Lembar pilih opsi (sambal / saus / rasa) ──
+          Muncul SEBELUM masuk keranjang, bukan sesudah. Kalau pelanggan
+          menekan (+) dan barang langsung masuk tanpa ditanya, dapur
+          menerima pesanan tanpa saus — persis masalah yang diperbaiki di
+          sini. Muncul sebagai lembar bawah supaya jangkauan ibu jari. */}
+      {pilihUntuk && (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-ink-900/45">
+          <button
+            type="button"
+            aria-label="Tutup pilihan"
+            onClick={() => setPilihUntuk(null)}
+            className="flex-1"
+          />
+          <div className="rounded-t-2xl bg-cream-50 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
+            <div className="mx-auto max-w-[45rem]">
+              <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-ink-500">
+                Pilih salah satu
+              </p>
+              <h2 className="mt-1 text-[1rem] font-extrabold text-ink-900">{pilihUntuk.nama}</h2>
+              <div className="mt-3 space-y-2">
+                {opsiDari(pilihUntuk).map((p) => (
+                  <button
+                    key={p.nama}
+                    type="button"
+                    onClick={() => {
+                      tambah(pilihUntuk, [p]);
+                      setPilihUntuk(null);
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-ink-900/15 bg-cream-100 px-3 py-3 text-left transition active:bg-cream-200"
+                  >
+                    <span className="text-[0.875rem] font-bold text-ink-900">{p.nama}</span>
+                    <span className="shrink-0 text-[0.75rem] font-semibold text-ink-700">
+                      {p.tambah > 0 ? `+${rupiah(p.tambah)}` : "Gratis"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPilihUntuk(null)}
+                className="mt-3 h-11 w-full rounded-xl border border-ink-900/15 text-[0.8125rem] font-bold text-ink-700 active:bg-cream-100"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Lembar keranjang ── */}
       {bukaKeranjang && (
         <div className="fixed inset-0 z-40 flex flex-col justify-end bg-ink-900/45">
@@ -708,22 +823,37 @@ export function PortalPelanggan({
                 </p>
               ) : (
                 <ul className="divide-y divide-ink-900/8">
-                  {keranjang.map((b) => (
-                    <li key={b.menu.id} className="py-3">
+                  {keranjang.map((b) => {
+                    /*
+                      Harga satuan sudah termasuk tambahan pilihan. Menampilkan
+                      b.menu.harga saja akan membuat pelanggan menghitung
+                      sendiri dan mengira tagihannya salah.
+                    */
+                    const kunci = kunciBaris(b.menu.id, b.pilihan);
+                    const satuan = b.menu.harga + b.pilihan.reduce((n, p) => n + p.tambah, 0);
+                    return (
+                    <li key={kunci} className="py-3">
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
                           <p className="text-[0.875rem] font-bold text-ink-900">{b.menu.nama}</p>
+                          {b.pilihan.length > 0 && (
+                            <p className="mt-0.5 text-[0.75rem] font-semibold text-clay-700">
+                              {b.pilihan
+                                .map((p) => (p.tambah > 0 ? `${p.nama} (+${rupiah(p.tambah)})` : p.nama))
+                                .join(", ")}
+                            </p>
+                          )}
                           <p className="text-[0.75rem] text-ink-500">
-                            {rupiah(b.menu.harga)} × {b.jumlah} ={" "}
+                            {rupiah(satuan)} × {b.jumlah} ={" "}
                             <span className="font-bold text-ink-900">
-                              {rupiah(b.menu.harga * b.jumlah)}
+                              {rupiah(satuan * b.jumlah)}
                             </span>
                           </p>
                         </div>
                         <div className="flex items-center gap-1 rounded-lg border border-ink-900/15 p-0.5">
                           <button
                             type="button"
-                            onClick={() => ubahJumlah(b.menu.id, -1)}
+                            onClick={() => ubahJumlah(kunci, -1)}
                             className="grid size-8 place-items-center rounded-md active:bg-cream-200"
                             aria-label={`Kurangi ${b.menu.nama}`}
                           >
@@ -734,7 +864,7 @@ export function PortalPelanggan({
                           </span>
                           <button
                             type="button"
-                            onClick={() => ubahJumlah(b.menu.id, 1)}
+                            onClick={() => ubahJumlah(kunci, 1)}
                             className="grid size-8 place-items-center rounded-md active:bg-cream-200"
                             aria-label={`Tambah ${b.menu.nama}`}
                           >
@@ -743,7 +873,7 @@ export function PortalPelanggan({
                         </div>
                         <button
                           type="button"
-                          onClick={() => hapus(b.menu.id)}
+                          onClick={() => hapus(kunci)}
                           aria-label={`Hapus ${b.menu.nama}`}
                           className="grid size-8 place-items-center rounded-md text-clay-700 active:bg-clay-600/10"
                         >
@@ -758,7 +888,9 @@ export function PortalPelanggan({
                         onChange={(e) =>
                           setKeranjang((k) =>
                             k.map((x) =>
-                              x.menu.id === b.menu.id ? { ...x, catatan: e.target.value } : x
+                              kunciBaris(x.menu.id, x.pilihan) === kunci
+                                ? { ...x, catatan: e.target.value }
+                                : x
                             )
                           )
                         }
@@ -767,7 +899,8 @@ export function PortalPelanggan({
                         className="mt-2 h-9 w-full rounded-lg border border-ink-900/12 bg-cream-100 px-2.5 text-[0.75rem] text-ink-900 outline-none placeholder:text-ink-500/70 focus:border-forest-700"
                       />
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
 

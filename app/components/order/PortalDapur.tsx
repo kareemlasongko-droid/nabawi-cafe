@@ -36,6 +36,7 @@ type Item = {
   nama_saat_pesan: string;
   jumlah: number;
   catatan: string | null;
+  pilihan?: { nama: string; tambah: number }[] | null;
 };
 
 type MenuRingkas = { id: number; nama: string; tersedia: boolean };
@@ -335,6 +336,17 @@ export function PortalDapur() {
                                 {i.nama_saat_pesan}
                               </span>
                             </div>
+                            {/*
+                              Pilihan (saus/rasa) didahulukan di atas catatan,
+                              dengan huruf besar dan kontras tinggi. Dapur harus
+                              membacanya dari dua meter; salah saus = hidangan
+                              dibuat ulang.
+                            */}
+                            {Array.isArray(i.pilihan) && i.pilihan.length > 0 && (
+                              <p className="mt-1 ml-8 rounded-md bg-mint-100 px-2 py-1 text-[0.8125rem] font-extrabold uppercase leading-tight tracking-wide text-mint-700">
+                                {i.pilihan.map((p) => p.nama).join(" · ")}
+                              </p>
+                            )}
                             {i.catatan && (
                               /* Catatan: tebal, latar terang, tidak dipotong.
                                  Dipotong berarti dapur bisa melewatkan

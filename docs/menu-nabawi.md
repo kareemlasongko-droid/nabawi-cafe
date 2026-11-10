@@ -13,6 +13,46 @@ lalu jalankan ulang migrasinya.
 | Harga termurah | Rp10.000 (`Mini Croffle Original`, `Black Tea Panas`, `Mineral Bottle`) |
 | Harga termahal | Rp375.000 (`Nasi Liwet Kastrol 4 Pax`) |
 
+## Pilihan menu (sambal / saus / rasa)
+
+Empat menu punya pilihan. Sebelum ada fitur ini, pilihan hanya tertulis di
+deskripsi: dapur menerima "Wagyu Meltique" tanpa tahu saus apa yang diminta,
+lalu menebak. Sekarang pelanggan **wajib memilih satu** sebelum item masuk
+keranjang, dan pilihannya ikut sampai ke dapur, kasir, dan struk.
+
+| Menu | Opsi | Tambahan harga |
+|---|---|---|
+| Rice Bowl Chicken | Sambal Matah, BBQ, Gravy, Salted Egg | Salted Egg **+Rp5.000** (contoh) |
+| Wagyu Meltique | Mushroom, BBQ, Black Pepper | gratis |
+| Crispy Chicken Steak | Mushroom, BBQ, Black Pepper | gratis |
+| Flavoured Latte Panas / Dingin | Vanilla, Caramel, Hazelnut, Rum, Banana, Cotton Candy, Butter Scotch | gratis |
+
+> **Angka tambahan harga masih CONTOH** dan harus dikonfirmasi pemilik.
+> Selama masih 0, tidak ada yang ditagih untuk pilihan itu.
+
+### Mengubah pilihan tanpa deploy
+
+Cukup SQL di Supabase — tidak perlu menyentuh kode:
+
+```sql
+UPDATE public.menu
+SET pilihan = '[{"nama":"Salted Egg","tambah":8000}]'::jsonb
+WHERE nama = 'Rice Bowl Chicken';
+```
+
+Menaikkan tambahan harga **tidak** mengubah tagihan yang sudah terlanjur
+dibuat: harga dikunci per item saat pesanan disimpan.
+
+### Aturan yang dijaga kode
+
+- **Satu pilihan per item.** Dua saus sekaligus ditolak.
+- **Harga tidak pernah diterima dari browser.** Browser hanya mengirim NAMA
+  opsi; server mencocokkannya ke database lalu mengambil `tambah` dari sana.
+  Tanpa ini, siapa pun bisa mengirim `tambah: 0` untuk Wagyu dan membayar
+  harga dasar.
+- **Dua saus berbeda = dua baris keranjang dan struk.** Bukan digabung.
+- **Pilihan ikut tercetak** di struk, kasir, dan layar dapur (huruf besar).
+
 ## Cara memasukkan ke database
 
 Berkas `supabase/migrations/20261102000000_menu_nabawi.sql` berisi seluruh

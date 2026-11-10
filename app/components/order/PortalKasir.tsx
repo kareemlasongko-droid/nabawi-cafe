@@ -40,6 +40,7 @@ type ItemPesanan = {
   jumlah: number;
   harga_satuan: number;
   catatan: string | null;
+  pilihan?: { nama: string; tambah: number }[] | null;
 };
 
 type PesananK = {
@@ -57,6 +58,8 @@ type PesananK = {
 /** Satu baris di struk: nama, jumlah, harga satuan, harga baris. */
 type BarisStruk = {
   nama: string;
+  /** Opsi yang dipilih; kosong bila menu tidak punya pilihan. */
+  pilihan?: { nama: string; tambah: number }[] | null;
   jumlah: number;
   harga_satuan: number;
   harga_baris: number;
@@ -347,6 +350,11 @@ export function PortalKasir() {
                           <p className="text-[0.8125rem] font-semibold leading-tight text-ink-900">
                             {i.nama_saat_pesan}
                           </p>
+                          {Array.isArray(i.pilihan) && i.pilihan.length > 0 && (
+                            <p className="mt-0.5 text-[0.6875rem] font-extrabold uppercase tracking-wide text-forest-700">
+                              {i.pilihan.map((p) => p.nama).join(" · ")}
+                            </p>
+                          )}
                           {i.catatan && (
                             <p className="mt-0.5 text-[0.6875rem] font-bold text-clay-700">
                               {i.catatan}
@@ -990,7 +998,7 @@ function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
             <li className="text-ink-500">Tidak ada item tercatat.</li>
           ) : (
             data.items.map((i) => (
-              <li key={`${i.nama}-${i.harga_satuan}`}>
+              <li key={`${i.nama}-${i.harga_satuan}-${(i.pilihan ?? []).map((p) => p.nama).sort().join(",")}`}>
                 <div className="flex justify-between gap-2">
                   <span className="min-w-0 flex-1 break-words text-ink-900">
                     {i.jumlah}× {i.nama}
@@ -999,6 +1007,16 @@ function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
                     {rupiah(i.harga_baris)}
                   </span>
                 </div>
+                {/*
+                  Pilihan dicetak di struk. Kalau tidak, tamu tidak bisa
+                  membuktikan saus mana yang ia pesan saat tagihan dipersoalkan,
+                  dan kasir tidak punya dasar untuk membela dapur.
+                */}
+                {Array.isArray(i.pilihan) && i.pilihan.length > 0 && (
+                  <div className="pl-3 text-[0.625rem] font-bold uppercase tracking-wide text-ink-700">
+                    {i.pilihan.map((p) => p.nama).join(" · ")}
+                  </div>
+                )}
                 {/*
                   Harga satuan ditulis hanya bila jumlahnya lebih dari satu.
                   Untuk 1 item angkanya sama persis dengan harga baris dan

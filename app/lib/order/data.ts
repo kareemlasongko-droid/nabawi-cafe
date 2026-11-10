@@ -6,7 +6,13 @@
  * kuat, jadi kegagalan harus ditangani sebagai keadaan biasa.
  */
 import { db, PUNYA_KUNCI_SERVER } from "./db";
-import { ATURAN_BAWAAN, hitungTagihan, type AturanBiaya } from "./aturan";
+import {
+  ATURAN_BAWAAN,
+  bacaPilihan,
+  hitungTagihan,
+  periksaPilihan,
+  type AturanBiaya,
+} from "./aturan";
 import type {
   KategoriMenu,
   Menu,
@@ -17,6 +23,7 @@ import type {
   Panggilan,
   StatusPesanan,
   MetodeBayar,
+  PilihanMenu,
 } from "./tipe";
 import { nomorPesanan } from "./aturan";
 
@@ -121,7 +128,7 @@ export async function buatPesanan(masuk: {
   meja: string;
   sesi: string;
   nama: string | null;
-  items: { menu_id: number; jumlah: number; catatan: string | null }[];
+  items: { menu_id: number; jumlah: number; catatan: string | null; pilihan: string[] }[];
 }): Promise<Hasil<HasilBuatPesanan>> {
   if (!PUNYA_KUNCI_SERVER) {
     return {
@@ -151,6 +158,7 @@ export async function buatPesanan(masuk: {
     jumlah: number;
     harga_satuan: number;
     catatan: string | null;
+    pilihan: PilihanMenu[];
   }[] = [];
 
   for (const it of masuk.items) {
@@ -162,12 +170,29 @@ export async function buatPesanan(masuk: {
     if (!mnu.tersedia) {
       return { ok: false, pesan: `${mnu.nama} sedang habis. Hapus dari keranjang.` };
     }
+
+    /*
+      3b. Pilihan (sambal / saus / rasa).
+
+      Browser hanya mengirim NAMA opsi. Tambahan harganya diambil dari sini,
+      dari database, lalu dijumlahkan ke harga_satuan. Kalau kiriman browser
+      dipercaya, siapa pun bisa mengirim {"nama":"Black Pepper","tambah":0}
+      dan makan Wagyu dengan harga dasar — tidak ada yang menahannya karena
+      total tagihan hanya menjumlahkan isi item_pesanan.
+    */
+    const pilihanMenu = bacaPilihan(mnu.pilihan);
+    const cekP = periksaPilihan(pilihanMenu, it.pilihan);
+    if (!cekP.ok) {
+      return { ok: false, pesan: `${mnu.nama}: ${cekP.pesan}` };
+    }
+
     itemFinal.push({
       menu_id: mnu.id,
       nama_saat_pesan: mnu.nama,
       jumlah: it.jumlah,
-      harga_satuan: mnu.harga,
+      harga_satuan: mnu.harga + cekP.tambah,
       catatan: it.catatan,
+      pilihan: cekP.pilihan,
     });
   }
 
@@ -512,7 +537,10 @@ export async function catatPembayaran(masuk: {
 
 export type BarisStruk = {
   nama: string;
+  /** Opsi yang dipilih; kosong bila menu tidak punya pilihan. */
+  pilihan?: PilihanMenu[];
   jumlah: number;
+  /** Sudah termasuk tambahan pilihan. */
   harga_satuan: number;
   /** nama, jumlah, harga satuan, harga baris (PRD bagian 11). */
   harga_baris: number;
@@ -554,7 +582,19 @@ export async function ambilItemTagihan(mejaId: number): Promise<Hasil<BarisStruk
   */
   const peta = new Map<string, BarisStruk>();
   for (const i of itemRes.data) {
-    const kunci = `${i.nama_saat_pesan}|${i.harga_satuan}`;
+    /*
+      Pilihan ikut masuk kunci penggabungan. Dua Rice Bowl dengan saus
+      berbeda tetapi tambahan harga yang sama akan tergabung kalau kuncinya
+      hanya nama+harga — struk lalu menampilkan "2× Rice Bowl" padahal
+      dapurnya mengerjakan dua rasa. Nama pilihan diurutkan supaya
+      urutannya tidak memengaruhi penggabungan.
+    */
+    const pilihan = bacaPilihan(i.pilihan);
+    const labelPilihan = pilihan
+      .map((p) => p.nama)
+      .sort()
+      .join(",");
+    const kunci = `${i.nama_saat_pesan}|${i.harga_satuan}|${labelPilihan}`;
     const ada = peta.get(kunci);
     if (ada) {
       ada.jumlah += i.jumlah;
@@ -562,6 +602,7 @@ export async function ambilItemTagihan(mejaId: number): Promise<Hasil<BarisStruk
     } else {
       peta.set(kunci, {
         nama: i.nama_saat_pesan,
+        pilihan,
         jumlah: i.jumlah,
         harga_satuan: i.harga_satuan,
         harga_baris: i.jumlah * i.harga_satuan,

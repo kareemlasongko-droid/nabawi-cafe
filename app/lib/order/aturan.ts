@@ -5,7 +5,93 @@
  * sekali dan dipakai di mana saja: server saat menyimpan, dan layar saat
  * menampilkan perkiraan total.
  */
-import type { MetodeBayar } from "./tipe";
+import type { MetodeBayar, PilihanMenu } from "./tipe";
+
+// ─────────────────────────────────────────────────────────────
+// Pilihan menu (sambal / saus / rasa)
+// ─────────────────────────────────────────────────────────────
+
+/** Batas jumlah opsi per menu. Empat menu saat ini maksimal 7. */
+export const BATAS_PILIHAN = 12;
+
+/**
+ * Merapikan data pilihan dari database menjadi bentuk yang bisa dipercaya.
+ *
+ * Data jsonb bisa berbentuk apa saja kalau salah tulis di SQL Editor —
+ * `{}`, `null`, `[{"nama":123}]`, `tambah` berupa teks. Semua pembacaan
+ * menu lewat sini supaya satu baris rusak tidak membuat seluruh halaman
+ * gagal, dan supaya `tambah` dijamin angka (NaN di tengah perhitungan
+ * tagihan akan menghasilkan total NaN yang lolos ke struk).
+ */
+export function bacaPilihan(mentah: unknown): PilihanMenu[] {
+  if (!Array.isArray(mentah)) return [];
+  const hasil: PilihanMenu[] = [];
+  for (const x of mentah) {
+    if (!x || typeof x !== "object") continue;
+    const o = x as Record<string, unknown>;
+    const nama = typeof o.nama === "string" ? o.nama.trim().slice(0, 80) : "";
+    if (!nama) continue;
+    const angka = Number(o.tambah);
+    // Tambahan harga negatif tidak masuk akal (menurunkan harga jual) dan
+    // akan disalahgunakan. Dibulatkan ke rupiah utuh, dibatasi wajar.
+    const tambah = Number.isFinite(angka) ? Math.max(0, Math.round(angka)) : 0;
+    if (hasil.some((p) => p.nama.toLowerCase() === nama.toLowerCase())) continue;
+    hasil.push({ nama, tambah });
+    if (hasil.length >= BATAS_PILIHAN) break;
+  }
+  return hasil;
+}
+
+/**
+ * Memeriksa pilihan yang dikirim pelanggan terhadap pilihan menu di database.
+ *
+ * ATURAN: satu rasa/saus per item (permintaan pemilik). Kosong diperbolehkan
+ * bila menu memang tidak punya pilihan; bila menu punya pilihan, pelanggan
+ * WAJIB memilih satu — kalau tidak, dapur tetap harus menebak, dan itulah
+ * masalah yang sedang diperbaiki.
+ *
+ * Harga TIDAK diambil dari kiriman browser. Nama opsi dicocokkan ke menu,
+ * lalu `tambah` diambil dari database. Browser hanya boleh menyebut NAMA.
+ */
+export function periksaPilihan(
+  tersedia: PilihanMenu[],
+  diminta: unknown
+): { ok: true; pilihan: PilihanMenu[]; tambah: number } | { ok: false; pesan: string } {
+  if (tersedia.length === 0) {
+    // Menu tanpa pilihan: kiriman apa pun diabaikan, bukan ditolak. Menu bisa
+    // saja baru dihapus pilihannya saat pelanggan masih memegang layar lama.
+    return { ok: true, pilihan: [], tambah: 0 };
+  }
+
+  const daftar = Array.isArray(diminta)
+    ? diminta.filter((x): x is string => typeof x === "string").map((x) => x.trim())
+    : typeof diminta === "string"
+      ? [diminta.trim()]
+      : [];
+
+  const dipilih = daftar.filter(Boolean);
+  if (dipilih.length === 0) {
+    return { ok: false, pesan: `Pilih dulu: ${tersedia.map((p) => p.nama).join(", ")}.` };
+  }
+  if (dipilih.length > 1) {
+    return { ok: false, pesan: "Pilih satu saja, tidak bisa lebih dari satu." };
+  }
+
+  const cari = tersedia.find((p) => p.nama.toLowerCase() === dipilih[0].toLowerCase());
+  if (!cari) {
+    return {
+      ok: false,
+      pesan: `Pilihan "${dipilih[0]}" tidak tersedia untuk menu ini.`,
+    };
+  }
+  return { ok: true, pilihan: [cari], tambah: cari.tambah };
+}
+
+/** Tambahan harga dari pilihan yang sudah diperiksa. */
+export function tambahanPilihan(pilihan: PilihanMenu[] | null | undefined): number {
+  if (!Array.isArray(pilihan)) return 0;
+  return pilihan.reduce((n, p) => n + (Number.isFinite(p?.tambah) ? p.tambah : 0), 0);
+}
 
 // ─────────────────────────────────────────────────────────────
 // Pajak, biaya layanan, pembulatan (PRD bagian 11)
@@ -156,6 +242,12 @@ export type ItemMasuk = {
   jumlah: number;
   /** Selalu dinormalkan: string kosong menjadi null oleh validasi. */
   catatan: string | null;
+  /**
+   * NAMA opsi yang dipilih pelanggan, mis. ["Black Pepper"].
+   * Hanya nama — harga tidak pernah diterima dari browser. Dicocokkan ke
+   * database oleh `periksaPilihan()` saat pesanan disimpan.
+   */
+  pilihan: string[];
 };
 
 export type PesananMasuk = {
@@ -229,7 +321,24 @@ export function validasiPesananMasuk(masuk: unknown): HasilValidasi {
     const catatan =
       typeof it.catatan === "string" ? it.catatan.trim().slice(0, BATAS_CATATAN) : "";
 
-    items.push({ menu_id: menuId, jumlah, catatan: catatan || null });
+    /*
+      Pilihan dibaca sebagai daftar NAMA saja. Isinya belum divalidasi di
+      sini karena validasi butuh data menu dari database (lihat data.ts).
+      Yang dijaga di sini: bentuknya tidak aneh dan panjangnya terbatas,
+      supaya tidak ada kiriman raksasa yang membebani database.
+    */
+    const pilihanMentah = Array.isArray(it.pilihan)
+      ? it.pilihan
+      : typeof it.pilihan === "string"
+        ? [it.pilihan]
+        : [];
+    const pilihan = pilihanMentah
+      .filter((x): x is string => typeof x === "string")
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+
+    items.push({ menu_id: menuId, jumlah, catatan: catatan || null, pilihan });
   }
 
   return { ok: true, bersih: { meja, nama: nama || null, sesi, items } };

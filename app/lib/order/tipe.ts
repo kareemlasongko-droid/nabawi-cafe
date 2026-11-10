@@ -20,6 +20,19 @@ export type MetodeBayar = "tunai" | "qris_kasir" | "kartu";
 
 export type Peran = "kasir" | "dapur" | "pelayan" | "pemilik";
 
+/**
+ * Satu opsi yang bisa dipilih pelanggan, mis. "Saus Black Pepper".
+ *
+ * `tambah` adalah tambahan harga dalam rupiah. Nol berarti gratis. Nilai ini
+ * disimpan di database, bukan di kode, supaya pemilik cafe bisa mengubahnya
+ * tanpa deploy — dan supaya server bisa menghitung ulang tanpa mempercayai
+ * apa pun yang dikirim browser.
+ */
+export type PilihanMenu = {
+  nama: string;
+  tambah: number;
+};
+
 export type Menu = {
   id: number;
   nama: string;
@@ -29,6 +42,12 @@ export type Menu = {
   foto_url: string | null;
   tersedia: boolean;
   urutan: number;
+  /**
+   * Opsi yang bisa dipilih. Kosong berarti menu ini tidak punya pilihan.
+   * Bentuknya tidak dijamin benar di sini — data dari database selalu
+   * dirapikan lewat `bacaPilihan()` sebelum dipakai.
+   */
+  pilihan?: PilihanMenu[] | null;
 };
 
 export type KategoriMenu = {
@@ -52,8 +71,11 @@ export type ItemPesanan = {
   menu_id: number | null;
   nama_saat_pesan: string;
   jumlah: number;
+  /** Harga satuan SUDAH termasuk tambahan pilihan yang dipilih. */
   harga_satuan: number;
   catatan: string | null;
+  /** Opsi yang dipilih pelanggan; null bila menu tidak punya pilihan. */
+  pilihan?: PilihanMenu[] | null;
 };
 
 export type Pesanan = {
