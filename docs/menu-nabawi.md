@@ -31,7 +31,34 @@ Cappuccino Dingin Rp32.000). Tanpa akhiran itu, 13 nama menjadi kembar.
 
 Beberapa sub-grup dokumen digabung ke satu kategori:
 
-| Sub-grup di dokumen | Kategori di aplikasi |
+Kategori akhirnya **diringkas menjadi 6** (migrasi
+`20261103000000_ringkas_kategori.sql`). Dengan 18 kategori, baris chip di
+portal pelanggan selebar ±1.662 px sedangkan layar HP ±390 px — pelanggan
+harus menggeser lebih dari 4 lebar layar hanya untuk melihat pilihan. Dengan
+6 kategori menjadi ±749 px.
+
+| Kategori | Item | Digabung dari |
+|---|---|---|
+| Makanan Utama | 28 | Nasi & Rice Bowl, Ayam, Sapi & Iga, Udang, Ikan, Steak, Burger, Pasta |
+| Camilan & Pastry | 27 | Lauk & Sayur, Camilan, Pastry |
+| Kopi | 24 | Kopi |
+| Non-Kopi | 27 | Minuman Signature, Teh & Coklat |
+| Cheese & Milkshake | 11 | Cheese Series, Milkshake |
+| Jus & Dessert | 9 | Jus Segar, Dessert |
+
+**Kopi sengaja berdiri sendiri.** Digabung ke "Non-Kopi" atau "Minuman" akan
+menjadi 51 item yang harus digulir untuk menemukan Cappuccino — menu paling
+sering dicari di kafe.
+
+**"Lauk & Sayur" digabung ke Camilan & Pastry** meskipun Tumis Kangkung bukan
+camilan: hanya 6 item, dan berperan sebagai pendamping, bukan tujuan utama.
+
+Karena chip "Ayam"/"Ikan"/"Udang" hilang, **kotak cari ikut mencocokkan nama
+kategori** — mengetik "gurame" tetap menemukan Gurame Bakar Minang.
+
+Riwayat penggabungan dari sub-grup dokumen asli:
+
+| Sub-grup di dokumen | Kategori (sebelum diringkas) |
 |---|---|
 | SIGNATURE COFFEE + REGULAR COFFEE | Kopi |
 | SIGNATURE ICED COFFEE | Kopi |

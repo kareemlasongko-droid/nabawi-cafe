@@ -225,13 +225,31 @@ export function PortalPelanggan({
   const subtotal = keranjang.reduce((n, b) => n + b.menu.harga * b.jumlah, 0);
   const rincian = useMemo(() => hitungTagihan(subtotal, aturan), [subtotal, aturan]);
 
+  /*
+    Nama kategori ikut dicari, bukan hanya nama menu.
+
+    Sejak kategori diringkas 18 -> 6, "Ayam", "Ikan", dan "Udang" tidak
+    lagi punya chip sendiri — semuanya masuk "Makanan Utama". Tanpa ini,
+    mengetik "gurame" tidak menemukan "Gurame Bakar Minang" karena nama
+    kategorinya tidak ikut dicocokkan, dan tamu kehilangan cara cepat
+    yang dulu disediakan chip.
+  */
+  const namaKategori = useMemo(() => {
+    const peta = new Map<number, string>();
+    for (const k of kategori) peta.set(k.id, k.nama.toLowerCase());
+    return peta;
+  }, [kategori]);
+
   const daftar = useMemo(() => {
     const q = cari.trim().toLowerCase();
     return daftarMenu.filter((m) => {
       if (kategoriAktif !== "semua" && m.kategori_id !== kategoriAktif) return false;
       if (!q) return true;
+      const namaK = m.kategori_id != null ? (namaKategori.get(m.kategori_id) ?? "") : "";
       return (
-        m.nama.toLowerCase().includes(q) || m.deskripsi.toLowerCase().includes(q)
+        m.nama.toLowerCase().includes(q) ||
+        m.deskripsi.toLowerCase().includes(q) ||
+        namaK.includes(q)
       );
     });
     /*
@@ -240,7 +258,7 @@ export function PortalPelanggan({
       dependensinya prop, tanda "habis" dari kasir tidak pernah muncul
       sampai halaman dimuat ulang — dan itulah yang terjadi sebelum ini.
     */
-  }, [daftarMenu, cari, kategoriAktif]);
+  }, [daftarMenu, cari, kategoriAktif, namaKategori]);
 
   const perKategori = useMemo(() => {
     const peta = new Map<number | null, Menu[]>();
