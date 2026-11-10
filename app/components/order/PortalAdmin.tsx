@@ -63,8 +63,9 @@ export function PortalAdmin({
   const [cari, setCari] = useState("");
   const [kategoriSaring, setKategoriSaring] = useState<number | "semua">("semua");
   const [statusSaring, setStatusSaring] = useState<Saringan>("semua");
+  const [hanyaRekomendasi, setHanyaRekomendasi] = useState(false);
 
-  const hasilSaring = useMemo(
+  const hasilSaringDasar = useMemo(
     () =>
       saringMenu(menu, namaKategori, {
         cari,
@@ -74,7 +75,19 @@ export function PortalAdmin({
     [menu, cari, kategoriSaring, statusSaring, namaKategori]
   );
 
-  const adaSaringan = cari.trim() !== "" || kategoriSaring !== "semua" || statusSaring !== "semua";
+  /*
+    Saringan rekomendasi diterapkan SETELAH saringMenu, bukan ditambahkan ke
+    dalamnya: `saringMenu` juga dipakai uji dan logikanya harus tetap soal
+    "cari + kategori + status". Menumpuk dua urusan di satu fungsi membuat
+    keduanya lebih sulit diuji, bukan lebih mudah.
+  */
+  const hasilSaring = useMemo(
+    () => (hanyaRekomendasi ? hasilSaringDasar.filter((m) => m.rekomendasi === true) : hasilSaringDasar),
+    [hasilSaringDasar, hanyaRekomendasi]
+  );
+
+  const adaSaringan =
+    cari.trim() !== "" || kategoriSaring !== "semua" || statusSaring !== "semua" || hanyaRekomendasi;
 
   /**
    * Jumlah menu per kategori SETELAH kata kunci dan status diterapkan.
@@ -89,6 +102,7 @@ export function PortalAdmin({
     setCari("");
     setKategoriSaring("semua");
     setStatusSaring("semua");
+    setHanyaRekomendasi(false);
   }
 
 
@@ -314,6 +328,28 @@ export function PortalAdmin({
                 </ChipSaring>
               ))}
 
+              {/* Saringan rekomendasi dipisah garis tipis: ia bukan status
+                  ketersediaan, dan mencampurnya ke baris yang sama membuat
+                  admin mengira "Rekomendasi" sama jenisnya dengan "Habis". */}
+              <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-bersih-200" />
+              <button
+                type="button"
+                onClick={() => setHanyaRekomendasi((b) => !b)}
+                aria-pressed={hanyaRekomendasi}
+                className={[
+                  "flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[0.6875rem] font-bold transition",
+                  hanyaRekomendasi
+                    ? "bg-tinta-900 text-bersih-0"
+                    : "bg-bersih-100 text-tinta-700 active:bg-bersih-200",
+                ].join(" ")}
+              >
+                <IkonBintang className="size-3.5" />
+                Rekomendasi
+                <span className="tabular-nums opacity-60">
+                  {menu.filter((m) => m.rekomendasi === true).length}
+                </span>
+              </button>
+
               {/* Ringkasan hasil + tombol bersihkan. Diletakkan di baris yang
                   sama dengan status supaya mata tidak perlu berpindah jauh
                   untuk tahu "berapa yang tersisa". */}
@@ -375,14 +411,32 @@ export function PortalAdmin({
                 {hasilSaring.map((m) => (
                   <tr key={m.id} className={m.tersedia ? "" : "bg-bersih-50"}>
                     <td className="px-3 py-2">
-                      <p
-                        className={[
-                          "text-[0.9375rem] font-bold leading-tight",
-                          m.tersedia ? "text-tinta-900" : "text-tinta-500 line-through",
-                        ].join(" ")}
-                      >
-                        {m.nama}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p
+                          className={[
+                            "text-[0.9375rem] font-bold leading-tight",
+                            m.tersedia ? "text-tinta-900" : "text-tinta-500 line-through",
+                          ].join(" ")}
+                        >
+                          {m.nama}
+                        </p>
+                        {/*
+                          Lencana "Rekomendasi" di samping nama.
+
+                          Sebelumnya hanya ada tombol bintang di kolom paling
+                          kanan — bentuknya kecil dan jauh dari nama, sehingga
+                          admin harus menyapu ke kanan untuk tahu menu mana
+                          yang sudah ditandai. Di portal pelanggan lencana ini
+                          sudah muncul; di sini harus sama supaya admin dan
+                          tamu melihat hal yang sama.
+                        */}
+                        {m.rekomendasi === true && (
+                          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-tanah-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-clay-800">
+                            <IkonBintang className="size-3" />
+                            Rekomendasi
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-0.5 line-clamp-1 text-[0.6875rem] text-tinta-500">
                         {m.deskripsi}
                       </p>
