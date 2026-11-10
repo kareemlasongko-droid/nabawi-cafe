@@ -83,6 +83,21 @@ async function main() {
     "pelanggan: logo dan meja di baris yang sama",
     kepalaPelanggan.indexOf("logo-nabawi") < kepalaPelanggan.indexOf("Meja 3"),
   );
+  // Tiga elemen di satu garis harus setinggi kontrol (40px = h-10).
+  // Tiga tinggi berbeda (20/28/40) pernah terbaca sebagai elemen yang
+  // kebetulan berdekatan, bukan satu bilah.
+  cek(
+    "pelanggan: logo setinggi kontrol (40px)",
+    kepalaPelanggan.includes("flex h-10 shrink-0 items-center") &&
+      kepalaPelanggan.includes("width:28px;height:28px"),
+  );
+  cek(
+    "pelanggan: kotak meja 40x40",
+    kepalaPelanggan.includes("grid size-10"),
+  );
+  const tinggiTombol = [...kepalaPelanggan.matchAll(/<button[^>]*class="[^"]*h-10/g)];
+  cek("pelanggan: dua tombol setinggi 40px", tinggiTombol.length === 2);
+
   cek(
     "pelanggan: Meja, Panggil, Bill berada di kelompok kanan",
     kepalaPelanggan.indexOf("Meja 3") < kepalaPelanggan.indexOf("Panggil") &&

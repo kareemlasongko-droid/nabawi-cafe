@@ -433,30 +433,48 @@ export function PortalPelanggan({
           ibu jari berada saat ponsel dipegang satu tangan — dan tombol
           Panggil/Bill paling sering ditekan, jadi ia ikut ke sana.
 
-          Lebarnya dihitung dari metrik font Plus Jakarta Sans (bukan
-          dikira-kira). Di layar 360px isinya 336px:
-            kiri  : logo 20 + jarak 8 + "Nabawi Cafe" 95  = 123
-            kanan : meja 28 + Panggil 79 + Bill 51 + jarak = 174
-          Sisa 39px. Karena itu, di bawah 640px:
-            1. "& Resto" dan nama layar disembunyikan — memaksanya muat
+          TINGGI: logo, kotak meja, dan kedua tombol sama-sama 40px (h-10).
+          Sebelumnya 20/28/40 — tiga tinggi berbeda di satu garis terbaca
+          sebagai tiga elemen yang kebetulan berdekatan, bukan satu bilah.
+
+          LEBAR dihitung dari metrik Plus Jakarta Sans, bukan dikira-kira.
+          Di layar 360px isinya 336px:
+            kiri  : logo 28 + "Nabawi Cafe" 95            = 131
+            kanan : meja 40 + Panggil 70 + Bill 40 + jarak = 162
+          Total 301px, sisa 35px. Karena itu, di bawah 640px:
+            1. "& Resto" dan keterangan disembunyikan — memaksanya muat
                berarti ellipsis di tengah merek, yang terbaca sebagai rusak.
             2. Label "Panggil"/"Bill" tetap TAMPIL: tanpa teks, tamu tidak
                tahu ikon lonceng dan kertas itu apa. Padding tombolnya yang
                dipangkas, bukan artinya.
+            3. Di bawah 390px ikon di dalam tombol dilepas (labelnya tetap
+               ada). Di 375px dua ikon menyisakan 2px — terlalu mepet untuk
+               teks yang bisa membesar saat pengaturan huruf perangkat
+               dinaikkan.
         */}
         <div className="mx-auto flex max-w-[45rem] items-center justify-between gap-3 px-3 py-2.5">
           {/* ── KIRI: identitas kafe ── */}
           <div className="flex min-w-0 items-center">
-            <LogoNabawi ukuran={20} ringkas label="Nabawi Cafe & Resto" />
+            <LogoNabawi
+              ukuran={28}
+              setinggiKontrol
+              ringkas
+              label="Nabawi Cafe & Resto"
+            />
           </div>
 
           {/* ── KANAN: meja + tombol ── */}
           <div className="flex shrink-0 items-center gap-1.5">
+            {/*
+              Kotak meja setinggi tombol (40px) dan selebar tinggi itu juga:
+              ia bukan tombol, jadi tidak boleh terlihat seperti tombol —
+              latar tinta penuh yang membedakannya.
+            */}
             <span
-              className="grid size-7 place-items-center rounded-[0.5rem] bg-tinta-900 text-bersih-0"
+              className="grid size-10 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-bersih-0"
               title={`Meja ${mejaNomor} · ${mejaArea}`}
             >
-              <span className="text-[0.8125rem] font-extrabold leading-none">{mejaNomor}</span>
+              <span className="text-[1.0625rem] font-extrabold leading-none">{mejaNomor}</span>
               <span className="sr-only">
                 Meja {mejaNomor}, {mejaArea}
               </span>
@@ -465,18 +483,18 @@ export function PortalPelanggan({
             <button
               type="button"
               onClick={() => panggil("pelayan")}
-              className="flex h-10 items-center gap-1 rounded-[0.625rem] border border-bersih-300 px-2 text-[0.8125rem] font-semibold text-tinta-900 transition active:scale-[0.97] active:bg-bersih-100"
+              className="flex h-10 items-center gap-1 rounded-[0.625rem] border border-bersih-300 px-2 text-[0.8125rem] font-semibold text-tinta-900 transition active:scale-[0.97] active:bg-bersih-100 min-[390px]:px-2.5"
               title="Panggil pelayan ke meja"
             >
-              <IkonBel className="size-4" />
+              <IkonBel className="hidden size-4 min-[390px]:block" />
               Panggil
             </button>
             <button
               type="button"
               onClick={() => panggil("bill")}
-              className="flex h-10 items-center gap-1 rounded-[0.625rem] bg-aksi-500 px-2 text-[0.8125rem] font-bold text-bersih-0 transition active:scale-[0.97] active:bg-aksi-600"
+              className="flex h-10 items-center gap-1 rounded-[0.625rem] bg-aksi-500 px-2 text-[0.8125rem] font-bold text-bersih-0 transition active:scale-[0.97] active:bg-aksi-600 min-[390px]:px-2.5"
             >
-              <IkonBill className="size-4" />
+              <IkonBill className="hidden size-4 min-[390px]:block" />
               Bill
             </button>
           </div>

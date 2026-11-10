@@ -35,6 +35,14 @@ export function LogoNabawi({
   /** Ukuran kotak logo dalam px. Teks menyesuaikan sendiri. */
   ukuran = 30,
   /**
+   * Samakan tinggi logo dengan kontrol di sebelahnya (tombol 40px).
+   * Di kepala portal pelanggan logo, kotak meja, dan dua tombol berada di
+   * satu garis; tiga tinggi berbeda (20, 28, 40) terbaca sebagai tiga
+   * elemen yang tidak sengaja disejajarkan — bukan sebagai satu bilah.
+   * Di portal staf tidak dipakai: kepala staf lebih tinggi dari isinya.
+   */
+  setinggiKontrol = false,
+  /**
    * Keterangan kecil (jumlah antrean, tiket, menu). Selalu diletakkan
    * SETELAH nama layar dalam baris yang sama, dipisah titik tengah.
    */
@@ -72,6 +80,7 @@ export function LogoNabawi({
 }: {
   tema?: "terang" | "gelap";
   ukuran?: number;
+  setinggiKontrol?: boolean;
   keterangan?: string;
   layar?: ReactNode;
   keteranganPonsel?: string;
@@ -90,14 +99,25 @@ export function LogoNabawi({
         sebagai kotak terang — cincin membuat bentuknya dibaca sebagai
         "logo bundar", bukan sebagai gambar yang salah tempat.
       */}
-      <Image
-        src="/images/logo-nabawi.png"
-        alt={hanyaLogo ? (label ?? "Nabawi Cafe & Resto") : ""}
-        width={100}
-        height={100}
-        className="shrink-0 rounded-full ring-1 ring-black/5"
-        style={{ width: ukuran, height: ukuran }}
-      />
+      {/*
+        `setinggiKontrol`: logo dibungkus kotak setinggi tombol (40px) dan
+        diratakan tengah. Yang bertambah tinggi adalah kotaknya, bukan
+        gambarnya — logo 28px yang diperbesar sampai 40px kehilangan
+        ketajaman cincinnya, sedangkan kotak kosong di sekelilingnya tidak
+        mengubah apa pun selain garis dasar baris.
+      */}
+      <span
+        className={setinggiKontrol ? "flex h-10 shrink-0 items-center" : "flex shrink-0"}
+      >
+        <Image
+          src="/images/logo-nabawi.png"
+          alt={hanyaLogo ? (label ?? "Nabawi Cafe & Resto") : ""}
+          width={100}
+          height={100}
+          className="shrink-0 rounded-full ring-1 ring-black/5"
+          style={{ width: ukuran, height: ukuran }}
+        />
+      </span>
       {!hanyaLogo && (
         <span className="flex min-w-0 items-baseline gap-1.5 whitespace-nowrap">
           <span

@@ -117,7 +117,7 @@ keterangan), bukan dikira-kira. Di ponsel 360px ruang isi hanya **336px**
 | Dapur | identitas 186 + tiga tombol ikon 116 | 34px |
 | Pelayan | identitas 235 + tombol bunyi 40 | 53px |
 | Admin | identitas 206 + dua tab 112 | 10px |
-| Pelanggan | identitas 129 + meja/Panggil/Bill 172 | 27px |
+| Pelanggan | identitas 131 + meja/Panggil/Bill 170 | 35px |
 
 Di tablet semuanya kembali penuh: "& Resto", nama layar panjang, dan keterangan
 tiga angka. Yang dipendekkan di ponsel, berurutan sesuai prioritas:
@@ -133,6 +133,18 @@ Portal pelanggan memakai `ringkas`: hanya "Nabawi Cafe", tanpa keterangan,
 karena di sana ruangnya dipakai kotak meja dan dua tombol. Label "Panggil" dan
 "Bill" **tidak** disembunyikan — tamu tidak akan tahu arti ikon lonceng dan
 kertas, sedangkan pelayan/kasir sudah dilatih.
+
+### Tinggi di portal pelanggan
+
+Logo (28px), kotak meja, dan kedua tombol sama-sama **40px**. Tiga tinggi
+berbeda di satu garis — 20/28/40 — terbaca sebagai elemen yang kebetulan
+berdekatan, bukan satu bilah. Logo tetap 28px agar cincinnya tajam; yang
+setinggi 40px adalah kotak pembungkusnya (`setinggiKontrol`).
+
+Konsekuensinya lebar bertambah 32px, jadi dua penyesuaian ikut masuk: ikon di
+dalam tombol hanya muncul mulai **390px** (di bawah itu label teks saja), dan
+padding tombol naik 2px di lebar yang sama. Di 375px, dua ikon menyisakan 2px
+— terlalu mepet untuk teks yang bisa membesar saat huruf perangkat dinaikkan.
 
 ### Kenapa tidak ada `flex-wrap`
 
