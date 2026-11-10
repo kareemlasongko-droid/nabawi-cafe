@@ -30,9 +30,18 @@ keranjang, dan pilihannya ikut sampai ke dapur, kasir, dan struk.
 > **Angka tambahan harga masih CONTOH** dan harus dikonfirmasi pemilik.
 > Selama masih 0, tidak ada yang ditagih untuk pilihan itu.
 
-### Mengubah pilihan tanpa deploy
+### Mengubah pilihan — SEKARANG LEWAT ADMIN
 
-Cukup SQL di Supabase — tidak perlu menyentuh kode:
+Buka `/order/admin`, cari menunya, klik **Ubah**. Di bagian **Pilihan /
+add-on** ada daftar isian: nama opsi + tambahan harga (Rp). Kosongkan
+daftarnya untuk menghapus semua pilihan dari menu itu.
+
+Tambahan harga bisa diisi 0 untuk opsi gratis (mis. pilihan saus tanpa
+biaya). Admin juga bisa menambah pilihan pada menu yang sebelumnya tidak
+punya — pelanggan akan langsung ditanya saat memesan menu itu.
+
+SQL tetap bisa dipakai untuk pekerjaan massal (mis. menaikkan semua opsi
+sekaligus), tetapi bukan lagi satu-satunya jalan:
 
 ```sql
 UPDATE public.menu
@@ -42,6 +51,22 @@ WHERE nama = 'Rice Bowl Chicken';
 
 Menaikkan tambahan harga **tidak** mengubah tagihan yang sudah terlanjur
 dibuat: harga dikunci per item saat pesanan disimpan.
+
+### Yang dijaga saat menyimpan dari admin
+
+| Kejadian | Perilaku |
+|---|---|
+| Nama opsi dikosongkan | Baris itu diabaikan, bukan membuat gagal simpan |
+| Dua opsi bernama sama | **Ditolak**, pesan menyebut nama yang bentrok |
+| Tambahan harga negatif | **Ditolak** — bukan dijepit diam-diam ke 0 |
+| Lebih dari 12 opsi | **Ditolak** |
+| Hanya mengubah "tersedia" | Pilihan **tidak tersentuh** |
+| Simpan `pilihan: []` atau `null` | Semua pilihan dihapus |
+
+Baris "hanya mengubah tersedia" itu bukan kehalusan: kasir menandai menu
+habis beberapa kali sehari, dan kalau PATCH `{tersedia:false}` ikut
+mengosongkan pilihan, add-on seluruh menu akan lenyap tanpa ada yang
+menyadarinya sampai pelanggan berikutnya tidak ditanya saus.
 
 ### Aturan yang dijaga kode
 

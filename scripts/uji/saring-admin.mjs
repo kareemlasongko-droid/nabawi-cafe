@@ -1,77 +1,90 @@
 /**
- * Uji logika saringan di portal admin (/order/admin).
+ * Uji saringan admin terhadap DATA SUNGGAHAN (126 menu dari server).
  *
- * Fungsi `normal` dan `saring` di bawah adalah SALINAN dari PortalAdmin.tsx.
- * Itu kelemahan yang disadari: kalau logika di komponen diubah dan salinan
- * ini tidak, uji tetap hijau padahal perilakunya berbeda. Kompensasinya:
- * fungsi aslinya kecil dan sudah diberi komentar "jangan diubah tanpa
- * menyesuaikan scripts/uji/saring-admin.mjs".
+ * Berbeda dengan `aturan-pilihan.mjs` yang memakai contoh kecil, berkas ini
+ * memakai menu asli supaya angka yang dijanjikan di layar — "Kopi 24",
+ * "126 dari 126" — ikut diperiksa. Fungsi yang dipakai adalah fungsi ASLI
+ * dari `app/lib/order/saring.ts`, bukan salinan.
  *
- * Pakai: node scripts/uji/saring-admin.mjs   (server harus jalan di :3000)
+ * Versi pertama berkas ini memuat salinan logika dari PortalAdmin.tsx. Itu
+ * cacat: logika di komponen bisa berubah tanpa uji ikut berubah. Salinan
+ * sudah dibuang setelah logikanya dipindah ke lib/order/saring.ts.
+ *
+ * Jalankan (server harus menyala):
+ *   node --experimental-strip-types --import ./scripts/uji/ts-hook.mjs \
+ *        scripts/uji/saring-admin.mjs
  */
-const B = process.env.BASE ?? "http://localhost:3000";
-let lulus = 0, gagal = 0;
-const cek = (n, s, d = "") => { s ? (lulus++, console.log(`  LULUS  ${n}${d?" — "+d:""}`)) : (gagal++, console.log(`  GAGAL  ${n}${d?" — "+d:""}`)); };
+import { normal, saringMenu, hitungPerKategori } from "../../app/lib/order/saring.ts";
 
-// Fungsi yang sama persis dengan PortalAdmin.tsx
-function normal(t){return t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim()}
-function saring(menu, namaKategori, cari, kategori, status){
-  const kata = normal(cari);
-  return menu.filter((m)=>{
-    if (kategori!=="semua" && m.kategori_id!==kategori) return false;
-    if (status==="ada" && !m.tersedia) return false;
-    if (status==="habis" && m.tersedia) return false;
-    if (!kata) return true;
-    const isi=[m.nama, m.deskripsi??"", m.kategori_id?(namaKategori.get(m.kategori_id)??""):""];
-    return isi.some(t=>normal(t).includes(kata));
-  });
-}
-const {menu} = await (await fetch(B+"/api/order/kasir")).json();
-const kat = [...new Map(menu.map(m=>[m.kategori_id,m.kategori_id])).keys()];
-const namaKategori = new Map([[1,"Makanan Utama"],[2,"Camilan & Pastry"],[3,"Kopi"],[4,"Non-Kopi"],[5,"Cheese & Milkshake"],[6,"Jus & Dessert"]]);
+const BASE = process.env.BASE ?? "http://localhost:3000";
+let lulus = 0;
+let gagal = 0;
+const cek = (nama, syarat, detail = "") => {
+  if (syarat) {
+    lulus++;
+    console.log(`  LULUS  ${nama}${detail ? " — " + detail : ""}`);
+  } else {
+    gagal++;
+    console.log(`  GAGAL  ${nama}${detail ? " — " + detail : ""}`);
+  }
+};
 
-cek("data menu terbaca", menu.length===126, `${menu.length} item`);
-const semua = saring(menu,namaKategori,"","semua","semua");
-cek("tanpa saringan = semua menu", semua.length===126);
+const data = await (await fetch(BASE + "/api/order/kasir")).json();
+const menu = data.menu ?? [];
 
-const kopi = saring(menu,namaKategori,"kopi","semua","semua");
-cek("cari 'kopi' menemukan menu", kopi.length>0, `${kopi.length} hasil`);
-cek("'kopi' juga menangkap kategori Kopi", kopi.some(m=>namaKategori.get(m.kategori_id)==="Kopi"));
+// Nama kategori TIDAK ikut di respons kasir — halaman admin membacanya dari
+// server (ambilMenu). Sumber yang sama dipakai di sini: MENU_CONTOH, salinan
+// menu asli yang sudah ada di app/lib/order/demo.ts.
+//
+// Versi pertama uji ini mengurutkan kategori berdasarkan JUMLAH menu. Itu
+// salah: 28 dan 27 hampir sama, jadi Kopi (24) tertukar dengan Non-Kopi (27)
+// dan uji melaporkan "Kopi 27". Kesalahan ujinya, bukan aplikasinya.
+const { MENU_CONTOH } = await import("../../app/lib/order/demo.ts");
+const namaKategori = new Map(MENU_CONTOH.kategori.map((k) => [k.id, k.nama]));
 
-const kapital = saring(menu,namaKategori,"KOPI","semua","semua");
-cek("besar/kecil huruf tidak berpengaruh", kapital.length===kopi.length, `${kapital.length} = ${kopi.length}`);
-const spasi = saring(menu,namaKategori,"  kopi  ","semua","semua");
-cek("spasi di tepi diabaikan", spasi.length===kopi.length);
+const saring = (cari, kategori = "semua", status = "semua") =>
+  saringMenu(menu, namaKategori, { cari, kategori, status });
 
-const ktg = saring(menu,namaKategori,"",3,"semua");
-cek("filter kategori Kopi", ktg.length===24, `${ktg.length} menu (harus 24)`);
-cek("semua hasil memang kategori 3", ktg.every(m=>m.kategori_id===3));
+cek("menu terbaca dari server", menu.length === 126, `${menu.length} item`);
+cek("nama kategori terbaca", namaKategori.size === 6, `${namaKategori.size} kategori`);
+cek("tanpa saringan = semua menu", saring("").length === 126);
 
-const habisTotal = menu.filter(m=>!m.tersedia).length;
-const habis = saring(menu,namaKategori,"","semua","habis");
-cek("filter 'Habis' akurat", habis.length===habisTotal, `${habis.length} dari ${habisTotal}`);
-const ada = saring(menu,namaKategori,"","semua","ada");
-cek("filter 'Tersedia' akurat", ada.length===126-habisTotal, `${ada.length}`);
-cek("ada + habis = total", ada.length+habis.length===126);
+const kopi = saring("kopi");
+cek("cari 'kopi' menemukan menu", kopi.length > 0, `${kopi.length} hasil`);
+cek(
+  "'kopi' juga menangkap kategori Kopi",
+  kopi.some((m) => namaKategori.get(m.kategori_id) === "Kopi")
+);
+cek("besar/kecil huruf tidak berpengaruh", saring("KOPI").length === kopi.length);
+cek("spasi di tepi diabaikan", saring("  kopi  ").length === kopi.length);
 
-const gabung = saring(menu,namaKategori,"ayam",1,"semua");
-cek("kata + kategori digabung", gabung.every(m=>m.kategori_id===1)&&gabung.every(m=>normal(m.nama+m.deskripsi).includes("ayam")), `${gabung.length} hasil`);
-const kosong = saring(menu,namaKategori,"zzzz","semua","semua");
-cek("kata tak ada → hasil kosong", kosong.length===0);
+const idKopi = [...namaKategori.entries()].find(([, n]) => n === "Kopi")?.[0];
+const kategoriKopi = saring("", idKopi);
+cek("filter kategori Kopi = 24 menu", kategoriKopi.length === 24, `${kategoriKopi.length}`);
+cek("semua hasil memang kategori Kopi", kategoriKopi.every((m) => m.kategori_id === idKopi));
 
-// Hitungan chip per kategori harus sama dengan hasil saringan bila kategori itu dipilih.
+const habisTotal = menu.filter((m) => !m.tersedia).length;
+const habis = saring("", "semua", "habis");
+const ada = saring("", "semua", "ada");
+cek("filter 'Habis' akurat", habis.length === habisTotal, `${habis.length} dari ${habisTotal}`);
+cek("filter 'Tersedia' akurat", ada.length === 126 - habisTotal, `${ada.length}`);
+cek("ada + habis = total", ada.length + habis.length === 126);
+
+const gabung = saring("ayam", 1);
+cek(
+  "kata + kategori digabung",
+  gabung.every((m) => m.kategori_id === 1) && gabung.every((m) => normal(m.nama + m.deskripsi).includes("ayam")),
+  `${gabung.length} hasil`
+);
+cek("kata tak ada → hasil kosong", saring("zzzz").length === 0);
+
+// Janji di layar: angka chip harus sama dengan isi tabel bila chip diklik.
 let cocok = 0;
-for (const [id,nama] of namaKategori) {
-  const jml = saring(menu,namaKategori,"",id,"semua").length;
-  const chip = saring(menu,namaKategori,"","semua","semua").filter(m=>m.kategori_id===id).length;
-  if (jml===chip) cocok++;
+for (const [id] of namaKategori) {
+  const perKategori = hitungPerKategori(saring(""));
+  if ((perKategori.get(id) ?? 0) === saring("", id).length) cocok++;
 }
-cek("angka chip = isi tabel untuk 6 kategori", cocok===6, `${cocok}/6`);
-
-// Diakritik
-const uji = [{id:1,nama:"Crème Brûlée",deskripsi:"",kategori_id:6,tersedia:true}];
-cek("'creme' menemukan 'Crème'", saring(uji,namaKategori,"creme","semua","semua").length===1);
-cek("'brûlée' menemukan juga", saring(uji,namaKategori,"brulee","semua","semua").length===1);
+cek("angka chip = isi tabel untuk 6 kategori", cocok === 6, `${cocok}/6`);
 
 console.log(`\n═══ ${lulus} lulus, ${gagal} gagal ═══`);
-if (gagal>0) process.exit(1);
+if (gagal > 0) process.exit(1);

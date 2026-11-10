@@ -20,34 +20,12 @@
 import { useMemo, useState } from "react";
 import { rupiah } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
-import type { KategoriMenu, Menu } from "@/app/lib/order/tipe";
+import type { KategoriMenu, Menu, PilihanMenu } from "@/app/lib/order/tipe";
 import type { AturanBiaya } from "@/app/lib/order/aturan";
-import { IkonCentang, IkonSilang, IkonTambah, IkonCari, IkonCariHapus } from "./Ikon";
+import { IkonCentang, IkonSilang, IkonTambah, IkonHapus, IkonCari, IkonCariHapus } from "./Ikon";
+import { saringMenu, hitungPerKategori, type SaringanStatus } from "@/app/lib/order/saring";
 
-/**
- * Normalisasi untuk pencarian.
- *
- * `normalize("NFD")` + buang tanda diakritik bukan hiasan: nama menu di sini
- * ditulis pemilik cafe, dan begitu ada satu "Crème Brûlée" atau "Café Latte",
- * pencarian "creme" akan gagal pada pencocokan huruf mentah. Dengan
- * normalisasi, "creme" tetap menemukannya.
- *
- * `toLowerCase` dipakai, bukan `toLocaleLowerCase`, karena data menu bukan
- * teks antarmuka — hasilnya harus sama di semua perangkat staf.
- *
- * JANGAN ubah fungsi ini tanpa menyesuaikan `scripts/uji/saring-admin.mjs`.
- * Uji itu memuat salinan logika yang sama; kalau berbeda, uji bisa hijau
- * padahal perilaku di layar sudah berubah.
- */
-function normal(teks: string) {
-  return teks
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-type Saringan = "semua" | "ada" | "habis";
+type Saringan = SaringanStatus;
 
 export function PortalAdmin({
   awal,
@@ -86,24 +64,15 @@ export function PortalAdmin({
   const [kategoriSaring, setKategoriSaring] = useState<number | "semua">("semua");
   const [statusSaring, setStatusSaring] = useState<Saringan>("semua");
 
-  const hasilSaring = useMemo(() => {
-    const kata = normal(cari);
-    return menu.filter((m) => {
-      if (kategoriSaring !== "semua" && m.kategori_id !== kategoriSaring) return false;
-      if (statusSaring === "ada" && !m.tersedia) return false;
-      if (statusSaring === "habis" && m.tersedia) return false;
-      if (!kata) return true;
-      // Nama kategori ikut dicari, bukan hanya nama menu: admin yang mengetik
-      // "kopi" mengharapkan seluruh kopi muncul, tidak peduli kata "kopi" ada
-      // di nama menunya atau tidak.
-      const isi = [
-        m.nama,
-        m.deskripsi ?? "",
-        m.kategori_id ? (namaKategori.get(m.kategori_id) ?? "") : "",
-      ];
-      return isi.some((teks) => normal(teks).includes(kata));
-    });
-  }, [menu, cari, kategoriSaring, statusSaring, namaKategori]);
+  const hasilSaring = useMemo(
+    () =>
+      saringMenu(menu, namaKategori, {
+        cari,
+        kategori: kategoriSaring,
+        status: statusSaring,
+      }),
+    [menu, cari, kategoriSaring, statusSaring, namaKategori]
+  );
 
   const adaSaringan = cari.trim() !== "" || kategoriSaring !== "semua" || statusSaring !== "semua";
 
@@ -114,14 +83,7 @@ export function PortalAdmin({
    * chip "Kopi 24" akan menipu — diklik, hasilnya nol. Dengan hitungan
    * gabungan, setiap chip menjawab "kalau saya pilih ini, akan ada berapa".
    */
-  const jumlahPerKategori = useMemo(() => {
-    const peta = new Map<number, number>();
-    for (const m of hasilSaring) {
-      if (m.kategori_id === null) continue;
-      peta.set(m.kategori_id, (peta.get(m.kategori_id) ?? 0) + 1);
-    }
-    return peta;
-  }, [hasilSaring]);
+  const jumlahPerKategori = useMemo(() => hitungPerKategori(hasilSaring), [hasilSaring]);
 
   function bersihkanSaringan() {
     setCari("");
@@ -161,6 +123,7 @@ export function PortalAdmin({
     deskripsi: string;
     harga: number;
     kategori_id: number | null;
+    pilihan: PilihanMenu[];
   }) {
     setSibuk(true);
     setGalat("");
@@ -422,6 +385,21 @@ export function PortalAdmin({
                       <p className="mt-0.5 line-clamp-1 text-[0.6875rem] text-tinta-500">
                         {m.deskripsi}
                       </p>
+                      {/* Penanda pilihan. Tanpa ini, satu-satunya cara tahu
+                          sebuah menu punya add-on adalah membuka dialognya
+                          satu per satu. */}
+                      {Array.isArray(m.pilihan) && m.pilihan.length > 0 && (
+                        <p className="mt-1 flex flex-wrap items-center gap-1">
+                          <span className="rounded-full bg-bersih-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-tinta-700">
+                            {m.pilihan.length} pilihan
+                          </span>
+                          {m.pilihan.some((p) => p.tambah > 0) && (
+                            <span className="rounded-full bg-tanah-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-clay-800">
+                              ada tambahan harga
+                            </span>
+                          )}
+                        </p>
+                      )}
                     </td>
                     <td className="hidden px-3 py-2 text-[0.8125rem] text-tinta-500 sm:table-cell">
                       {m.kategori_id ? (namaKategori.get(m.kategori_id) ?? "—") : "—"}
@@ -536,6 +514,7 @@ export function PortalAdmin({
               deskripsi: patch.deskripsi ?? "",
               harga: patch.harga ?? 0,
               kategori_id: patch.kategori_id ?? null,
+              pilihan: patch.pilihan ?? [],
             });
           }}
           sibuk={sibuk}
@@ -606,8 +585,30 @@ function DialogMenu({
     menu?.kategori_id ? String(menu.kategori_id) : String(kategori[0]?.id ?? "")
   );
 
+  /**
+   * Pilihan disimpan sebagai teks di state, bukan angka.
+   *
+   * Alasannya bukan kemalasan: kalau `tambah` disimpan sebagai number dan
+   * langsung dirapikan ke rupiah, admin yang mengetik "50000" akan melihat
+   * angkanya melompat jadi "50.000" di tengah pengetikan dan kursor pindah
+   * ke ujung. Teks mentah dipertahankan sampai disimpan; yang dirapikan
+   * hanya saat dihitung.
+   */
+  const [pilihan, setPilihan] = useState<{ nama: string; tambah: string }[]>(
+    () => (menu?.pilihan ?? []).map((p) => ({ nama: p.nama, tambah: p.tambah ? String(p.tambah) : "" }))
+  );
+
   const angka = Number(harga.replace(/\D/g, "")) || 0;
-  const sah = nama.trim().length > 0 && angka > 0;
+  // Baris pilihan yang namanya kosong diabaikan, bukan membuat seluruh
+  // penyimpanan gagal: admin sering menekan "+ Tambah pilihan" lalu berubah
+  // pikiran dan langsung menyimpan.
+  const pilihanBersih = pilihan
+    .map((p) => ({ nama: p.nama.trim(), tambah: Math.max(0, Math.round(Number(p.tambah.replace(/\D/g, "")) || 0)) }))
+    .filter((p) => p.nama.length > 0);
+  const namaPilihanGanda = pilihanBersih.some(
+    (p, i) => pilihanBersih.findIndex((q) => q.nama.toLowerCase() === p.nama.toLowerCase()) !== i
+  );
+  const sah = nama.trim().length > 0 && angka > 0 && !namaPilihanGanda;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-tinta-900/50 p-4">
@@ -667,6 +668,97 @@ function DialogMenu({
           </div>
         </div>
 
+        {/* ── Pilihan / add-on ─────────────────────────────────────────
+            Satu pilihan per item (keputusan pemilik). Kalau daftar kosong,
+            pelanggan tidak ditanya apa pun; kalau berisi, pelanggan WAJIB
+            memilih satu — jadi menambah opsi berarti menambah satu langkah
+            pemesanan. Kalimat penjelas di bawah ini menyatakan akibat itu
+            terang-terangan supaya tidak ada yang mengira ini "opsional". */}
+        <div className="mt-3 rounded-[0.625rem] bg-bersih-50 p-2.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
+              Pilihan / add-on
+            </p>
+            <span className="text-[0.6875rem] tabular-nums text-tinta-500">
+              {pilihanBersih.length}/{12}
+            </span>
+          </div>
+
+          {pilihan.length === 0 ? (
+            <p className="mt-1 text-[0.8125rem] leading-snug text-tinta-500">
+              Tanpa pilihan. Pelanggan langsung memasukkan menu ini ke keranjang.
+            </p>
+          ) : (
+            <ul className="mt-1.5 space-y-1.5">
+              {pilihan.map((p, i) => (
+                <li key={i} className="flex items-center gap-1.5">
+                  <input
+                    value={p.nama}
+                    onChange={(e) =>
+                      setPilihan((d) => d.map((x, j) => (j === i ? { ...x, nama: e.target.value } : x)))
+                    }
+                    maxLength={80}
+                    placeholder="Nama pilihan"
+                    aria-label={`Nama pilihan ${i + 1}`}
+                    className="h-10 min-w-0 flex-1 rounded-[0.5rem] border border-bersih-200 bg-bersih-0 px-2.5 text-[0.9375rem] text-tinta-900 outline-none placeholder:text-tinta-500 focus:border-tinta-700"
+                  />
+                  <div className="relative w-[6.5rem] shrink-0">
+                    <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[0.6875rem] text-tinta-500">
+                      +Rp
+                    </span>
+                    <input
+                      value={p.tambah}
+                      onChange={(e) =>
+                        setPilihan((d) =>
+                          d.map((x, j) =>
+                            j === i ? { ...x, tambah: e.target.value.replace(/\D/g, "") } : x
+                          )
+                        )
+                      }
+                      inputMode="numeric"
+                      placeholder="0"
+                      aria-label={`Tambahan harga pilihan ${i + 1}`}
+                      className="h-10 w-full rounded-[0.5rem] border border-bersih-200 bg-bersih-0 pl-8 pr-2 text-right text-[0.9375rem] font-bold tabular-nums text-tinta-900 outline-none placeholder:text-tinta-500 focus:border-tinta-700"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPilihan((d) => d.filter((_, j) => j !== i))}
+                    aria-label={`Hapus pilihan ${p.nama || i + 1}`}
+                    className="grid size-10 shrink-0 place-items-center rounded-[0.5rem] text-tinta-500 transition active:bg-tanah-100 active:text-clay-800"
+                  >
+                    <IkonHapus className="size-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {namaPilihanGanda && (
+            <p className="mt-1.5 text-[0.75rem] font-semibold text-clay-800">
+              Ada nama pilihan yang sama. Samakan ejaannya atau hapus salah satu.
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={() =>
+              setPilihan((d) => (d.length >= 12 ? d : [...d, { nama: "", tambah: "" }]))
+            }
+            disabled={pilihan.length >= 12}
+            className="mt-2 flex h-9 items-center gap-1 rounded-[0.5rem] border border-dashed border-bersih-300 px-2.5 text-[0.8125rem] font-bold text-tinta-700 disabled:opacity-40"
+          >
+            <IkonTambah className="size-3.5" />
+            Tambah pilihan
+          </button>
+
+          <p className="mt-1.5 text-[0.75rem] leading-snug text-tinta-500">
+            {pilihanBersih.length > 0
+              ? "Pelanggan wajib memilih satu. Tambahan harga ditambahkan ke harga satuan saat dipesan."
+              : "Isi minimal satu pilihan agar pelanggan ditanya saus/sambal/rasa."}
+          </p>
+        </div>
+
         <div className="mt-4 flex gap-2">
           <button
             type="button"
@@ -684,6 +776,9 @@ function DialogMenu({
                 deskripsi: deskripsi.trim(),
                 harga: angka,
                 kategori_id: kategoriId ? Number(kategoriId) : null,
+                // Selalu dikirim, termasuk array kosong: itulah caranya
+                // menghapus semua pilihan dari sebuah menu.
+                pilihan: pilihanBersih,
               })
             }
             className="h-11 flex-1 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-bold text-bersih-0 disabled:opacity-40"
