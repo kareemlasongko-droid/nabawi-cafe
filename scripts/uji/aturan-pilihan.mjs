@@ -125,3 +125,40 @@ cek(
 
 console.log(`\n═══ ${lulus} lulus, ${gagal} gagal ═══`);
 if (gagal > 0) process.exit(1);
+
+// ═══ Urutan menu: rekomendasi dulu, sisanya tidak berubah ═══════════════
+console.log("\n── Urutan menu di kategori pelanggan ──");
+const { urutkanMenu } = await import("../../app/lib/order/aturan.ts");
+
+const m = (nama, urutan, rekomendasi = false) => ({ nama, urutan, rekomendasi });
+const dasar = [m("A", 1), m("B", 2), m("C", 3), m("D", 4)];
+const hasilUrut = urutkanMenu([...dasar, { ...m("Z", 9), rekomendasi: true }]);
+
+cek("rekomendasi naik ke atas", hasilUrut[0].nama === "Z", hasilUrut.map((x) => x.nama).join(","));
+cek(
+  "sisanya tetap urut seperti semula",
+  hasilUrut.slice(1).map((x) => x.nama).join(",") === "A,B,C,D",
+  hasilUrut.slice(1).map((x) => x.nama).join(",")
+);
+cek("tidak ada menu hilang", hasilUrut.length === 5);
+cek("tidak mengubah array asli", dasar.map((x) => x.nama).join(",") === "A,B,C,D");
+
+const duaRek = urutkanMenu([m("A", 1), m("B", 2, true), m("C", 3, true)]);
+cek("dua rekomendasi urut menurut urutan", duaRek.map((x) => x.nama).join(",") === "B,C,A", duaRek.map((x) => x.nama).join(","));
+
+const rekomendasiHabis = urutkanMenu([{ ...m("Habis", 1), rekomendasi: true, tersedia: false }, m("Ada", 2)]);
+cek("rekomendasi tetap di atas walau habis", rekomendasiHabis[0].nama === "Habis", "urutan tidak berubah karena status");
+
+const tanpaUrutan = urutkanMenu([m("Beta", undefined), m("Alpha", undefined)]);
+cek("urutan kosong jatuh ke nama", tanpaUrutan.map((x) => x.nama).join(",") === "Alpha,Beta", tanpaUrutan.map((x) => x.nama).join(","));
+
+const seri = urutkanMenu([m("B", 1), m("A", 1)]);
+cek("urutan sama diurutkan stabil menurut nama", seri.map((x) => x.nama).join(",") === "A,B");
+
+// Urutan harus sama setiap kali dipanggil (tidak acak).
+const sekali = urutkanMenu([...dasar, m("E", 2, true)]).map((x) => x.nama).join(",");
+const duakali = urutkanMenu([...dasar, m("E", 2, true)]).map((x) => x.nama).join(",");
+cek("urutan deterministik", sekali === duakali, sekali);
+
+console.log(`\n═══ tambahan: ${lulus} lulus, ${gagal} gagal ═══`);
+if (gagal > 0) process.exit(1);

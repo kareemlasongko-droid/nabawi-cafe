@@ -70,6 +70,21 @@ export function IkonCariHapus({ className = "size-4" }: P) {
   );
 }
 
+/**
+ * Bintang — lencana "Rekomendasi".
+ *
+ * Digambar sebagai bintang lima sudut bergaris, bukan bintang penuh: di
+ * daftar menu lencana ini berbagi ruang dengan nama menu, dan bentuk
+ * berisi terlihat seperti tombol. Garis 1.6px sama dengan ikon lain.
+ */
+export function IkonBintang({ className = "size-4" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <path d="M12 4.2l2.45 4.96 5.47.8-3.96 3.86.94 5.45L12 16.7l-4.9 2.57.94-5.45-3.96-3.86 5.47-.8z" />
+    </svg>
+  );
+}
+
 export function IkonKeranjang({ className = "size-5" }: P) {
   return (
     <svg {...dasar} className={className}>

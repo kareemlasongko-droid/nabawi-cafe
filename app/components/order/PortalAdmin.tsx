@@ -22,7 +22,7 @@ import { rupiah } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
 import type { KategoriMenu, Menu, PilihanMenu } from "@/app/lib/order/tipe";
 import type { AturanBiaya } from "@/app/lib/order/aturan";
-import { IkonCentang, IkonSilang, IkonTambah, IkonHapus, IkonCari, IkonCariHapus } from "./Ikon";
+import { IkonCentang, IkonSilang, IkonTambah, IkonHapus, IkonBintang, IkonCari, IkonCariHapus } from "./Ikon";
 import { saringMenu, hitungPerKategori, type SaringanStatus } from "@/app/lib/order/saring";
 
 type Saringan = SaringanStatus;
@@ -124,6 +124,7 @@ export function PortalAdmin({
     harga: number;
     kategori_id: number | null;
     pilihan: PilihanMenu[];
+    rekomendasi: boolean;
   }) {
     setSibuk(true);
     setGalat("");
@@ -432,14 +433,43 @@ export function PortalAdmin({
                       </button>
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setSunting(m)}
-                        disabled={!bisaUbah}
-                        className="h-8 rounded-[0.5rem] border border-bersih-200 px-2.5 text-[0.6875rem] font-bold text-tinta-700 disabled:opacity-40"
-                      >
-                        Ubah
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/*
+                          Bintang rekomendasi: aksi yang paling sering
+                          berubah (stok sedang banyak, hidangan baru), jadi
+                          satu ketukan langsung dari tabel — bukan buka
+                          dialog lalu simpan. Sama seperti sakelar
+                          "tersedia" di kolom sebelah.
+                        */}
+                        <button
+                          type="button"
+                          onClick={() => ubahMenu(m, { rekomendasi: !m.rekomendasi })}
+                          disabled={!bisaUbah || sibuk}
+                          aria-pressed={m.rekomendasi === true}
+                          aria-label={
+                            m.rekomendasi
+                              ? `Cabut rekomendasi ${m.nama}`
+                              : `Jadikan ${m.nama} rekomendasi`
+                          }
+                          title={m.rekomendasi ? "Rekomendasi" : "Jadikan rekomendasi"}
+                          className={[
+                            "grid size-8 place-items-center rounded-[0.5rem] border transition disabled:opacity-40",
+                            m.rekomendasi
+                              ? "border-aksi-700/40 bg-tanah-100 text-clay-800"
+                              : "border-bersih-200 text-tinta-500",
+                          ].join(" ")}
+                        >
+                          <IkonBintang className={m.rekomendasi ? "size-4" : "size-4 opacity-60"} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSunting(m)}
+                          disabled={!bisaUbah}
+                          className="h-8 rounded-[0.5rem] border border-bersih-200 px-2.5 text-[0.6875rem] font-bold text-tinta-700 disabled:opacity-40"
+                        >
+                          Ubah
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -515,6 +545,7 @@ export function PortalAdmin({
               harga: patch.harga ?? 0,
               kategori_id: patch.kategori_id ?? null,
               pilihan: patch.pilihan ?? [],
+              rekomendasi: patch.rekomendasi === true,
             });
           }}
           sibuk={sibuk}
@@ -597,6 +628,7 @@ function DialogMenu({
   const [pilihan, setPilihan] = useState<{ nama: string; tambah: string }[]>(
     () => (menu?.pilihan ?? []).map((p) => ({ nama: p.nama, tambah: p.tambah ? String(p.tambah) : "" }))
   );
+  const [rekomendasi, setRekomendasi] = useState(menu?.rekomendasi === true);
 
   const angka = Number(harga.replace(/\D/g, "")) || 0;
   // Baris pilihan yang namanya kosong diabaikan, bukan membuat seluruh
@@ -759,6 +791,25 @@ function DialogMenu({
           </p>
         </div>
 
+        {/* Rekomendasi juga bisa diatur dari dialog, supaya admin yang sudah
+            membuka satu menu tidak perlu menutupnya untuk menandai bintang. */}
+        <label className="mt-3 flex cursor-pointer items-center gap-2.5 rounded-[0.625rem] bg-bersih-50 p-2.5">
+          <input
+            type="checkbox"
+            checked={rekomendasi}
+            onChange={(e) => setRekomendasi(e.target.checked)}
+            className="size-4 accent-[var(--color-aksi-500)]"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.8125rem] font-bold text-tinta-900">
+              Tampilkan sebagai rekomendasi
+            </span>
+            <span className="block text-[0.75rem] leading-snug text-tinta-500">
+              Muncul paling atas di kategorinya dengan lencana bintang.
+            </span>
+          </span>
+        </label>
+
         <div className="mt-4 flex gap-2">
           <button
             type="button"
@@ -779,6 +830,7 @@ function DialogMenu({
                 // Selalu dikirim, termasuk array kosong: itulah caranya
                 // menghapus semua pilihan dari sebuah menu.
                 pilihan: pilihanBersih,
+                rekomendasi,
               })
             }
             className="h-11 flex-1 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-bold text-bersih-0 disabled:opacity-40"

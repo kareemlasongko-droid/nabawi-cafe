@@ -28,6 +28,7 @@ import {
   ATURAN_BAWAAN,
   bacaPilihan,
   hitungTagihan,
+  urutkanMenu,
   type AturanBiaya,
 } from "@/app/lib/order/aturan";
 import { rupiah, type KategoriMenu, type Menu, type PilihanMenu } from "@/app/lib/order/tipe";
@@ -42,6 +43,7 @@ import {
   IkonKanan,
   IkonCentang,
   IkonKiri,
+  IkonBintang,
 } from "./Ikon";
 
 type Baris = {
@@ -209,14 +211,23 @@ export function PortalPelanggan({
       try {
         const res = await fetch("/api/order/menu/tersedia", { cache: "no-store" });
         if (!res.ok) return;
-        const j = (await res.json()) as { menu?: { id: number; tersedia: boolean }[] };
+        const j = (await res.json()) as {
+          menu?: { id: number; tersedia: boolean; rekomendasi?: boolean }[];
+        };
         if (!hidup || !Array.isArray(j.menu)) return;
 
-        const peta = new Map(j.menu.map((m) => [m.id, m.tersedia]));
+        const peta = new Map(j.menu.map((m) => [m.id, m]));
         setDaftarMenu((lama) =>
-          lama.map((m) => (peta.has(m.id) && peta.get(m.id) !== m.tersedia
-            ? { ...m, tersedia: peta.get(m.id)! }
-            : m))
+          lama.map((m) => {
+            const baru = peta.get(m.id);
+            if (!baru) return m;
+            const rek = baru.rekomendasi === true;
+            if (baru.tersedia === m.tersedia && rek === (m.rekomendasi === true)) return m;
+            // Mengembalikan objek baru hanya bila ada yang berubah: objek
+            // baru untuk setiap menu setiap 5 detik akan memicu render
+            // ulang seluruh daftar tanpa alasan.
+            return { ...m, tersedia: baru.tersedia, rekomendasi: rek };
+          })
         );
       } catch {
         /* koneksi putus: biarkan status lama */
@@ -284,6 +295,10 @@ export function PortalPelanggan({
       k.push(m);
       peta.set(m.kategori_id, k);
     }
+    // Rekomendasi naik ke atas DI DALAM kategorinya, bukan dipindah ke
+    // kategori lain: pelanggan yang sedang melihat "Kopi" tetap melihat
+    // kopi, hanya saja yang direkomendasikan lebih dulu.
+    for (const [kunci, isi] of peta) peta.set(kunci, urutkanMenu(isi));
     return peta;
   }, [daftar]);
 
@@ -646,9 +661,21 @@ export function PortalPelanggan({
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-[0.9375rem] font-extrabold leading-tight text-tinta-900">
-                          {m.nama}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="text-[0.9375rem] font-extrabold leading-tight text-tinta-900">
+                            {m.nama}
+                          </p>
+                          {/* Lencana rekomendasi. Warna tanah-100 dipakai
+                              bersama chip "habis"/"minta bill" di portal
+                              staf — satu aksen untuk "perhatikan ini",
+                              bukan warna baru tiap fitur. */}
+                          {m.rekomendasi === true && (
+                            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-tanah-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-clay-800">
+                              <IkonBintang className="size-3" />
+                              Rekomendasi
+                            </span>
+                          )}
+                        </div>
                         {/* Deskripsi satu baris (PRD P-03). Dua baris membuat
                             satu layar hanya memuat 4 menu, padahal pelanggan
                             perlu melihat lebih banyak untuk memutuskan. */}

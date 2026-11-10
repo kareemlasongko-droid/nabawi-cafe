@@ -172,6 +172,23 @@ const gratis = await pesan(["Sambal Matah"]);
 cek("add-on tanpa tambahan harga tetap bisa", gratis.ok === true);
 cek("harga satuan tetap 40.000", gratis.ok && gratis.data.items[0].harga_satuan === 40000);
 
+// ═══ Rekomendasi ═══════════════════════════════════════════════════════
+console.log("\n── Menandai rekomendasi dari admin ──");
+const rek1 = await simpanMenu(100, { rekomendasi: true });
+cek("tanda rekomendasi tersimpan", rek1.ok === true && TABEL.menu[0].rekomendasi === true);
+cek("add-on tidak ikut terhapus saat menandai bintang", TABEL.menu[0].pilihan.length === 2);
+
+await simpanMenu(100, { rekomendasi: "true" });
+cek("nilai teks 'true' diabaikan, bukan dianggap benar", TABEL.menu[0].rekomendasi === true, "tetap true dari langkah sebelumnya");
+
+await simpanMenu(100, { rekomendasi: false });
+cek("bintang bisa dicabut", TABEL.menu[0].rekomendasi === false);
+
+// PATCH tak berhubungan tidak boleh menyentuh rekomendasi.
+await simpanMenu(100, { rekomendasi: true });
+await simpanMenu(100, { tersedia: true });
+cek("ubah ketersediaan tidak mencabut bintang", TABEL.menu[0].rekomendasi === true);
+
 console.log(`\n═══ ${lulus} lulus, ${gagal} gagal ═══`);
 server.close();
 if (gagal > 0) process.exit(1);

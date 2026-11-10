@@ -41,6 +41,15 @@ export function rapikanMenu(b: unknown, untukBaru: boolean): HasilRapikan {
     hasil.foto_url = x.foto_url ? String(x.foto_url).slice(0, 400) : null;
   }
   if (typeof x.tersedia === "boolean") hasil.tersedia = x.tersedia;
+
+  /*
+    Rekomendasi. Hanya boolean yang diterima.
+
+    Sengaja TIDAK memakai `Boolean(x.rekomendasi)`: nilai "false" (teks) dari
+    klien yang salah akan menjadi true, dan menu yang tidak direkomendasikan
+    tiba-tiba muncul di puncak setiap kategori. Lebih baik diabaikan.
+  */
+  if (typeof x.rekomendasi === "boolean") hasil.rekomendasi = x.rekomendasi;
   if (x.urutan !== undefined) hasil.urutan = Math.round(Number(x.urutan)) || 0;
 
   /*

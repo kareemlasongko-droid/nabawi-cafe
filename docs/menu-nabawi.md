@@ -92,6 +92,35 @@ bukan respons dapur. **Menguji "data tersimpan" tidak sama dengan menguji
 "data sampai".** Sekarang ada `scripts/uji/pilihan-sampai.ts` yang
 memeriksa ketiga endpoint: pesanan, dapur, dan pelayan.
 
+## Rekomendasi
+
+Menu unggulan ditandai di `/order/admin` dengan **tombol bintang** di kolom
+paling kanan tabel — satu ketukan, tanpa membuka dialog. Bisa juga dari dalam
+dialog sunting (centang "Tampilkan sebagai rekomendasi").
+
+Di portal pelanggan, menu bertanda:
+
+1. naik ke **paling atas kategorinya**, dan
+2. mendapat lencana bintang **Rekomendasi**.
+
+Urutan sisanya **tidak berubah**: setelah semua rekomendasi, menu tetap
+mengikuti `urutan` milik pemilik, lalu nama sebagai penentu terakhir supaya
+posisi tidak berubah-ubah setiap halaman dimuat.
+
+Yang **tidak** dilakukan: memindahkan rekomendasi ke kategori lain. Tamu yang
+sedang membuka "Kopi" tetap melihat kopi — hanya yang direkomendasikan lebih
+dulu.
+
+Tanda rekomendasi tidak bergantung pada status ketersediaan. Menu rekomendasi
+yang sedang habis tetap di posisi atas dengan tanda "Habis" — memindahkannya
+ke bawah berarti urutan berubah sendiri setiap kali bahan habis.
+
+### Kenapa di database, bukan di kode
+
+Daftar rekomendasi di kode akan basi dalam hitungan hari: stok sedang banyak,
+bahan baru datang, hidangan baru dicoba. Pemilik harus bisa mengubahnya
+sendiri tanpa deploy.
+
 ## Cara memasukkan ke database
 
 Berkas `supabase/migrations/20261102000000_menu_nabawi.sql` berisi seluruh

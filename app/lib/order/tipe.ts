@@ -48,6 +48,15 @@ export type Menu = {
    * dirapikan lewat `bacaPilihan()` sebelum dipakai.
    */
   pilihan?: PilihanMenu[] | null;
+  /**
+   * Ditampilkan sebagai "Rekomendasi" di portal pelanggan dan diletakkan
+   * paling atas di kategorinya.
+   *
+   * OPSIONAL di tipe, bukan wajib: baris menu lama yang dibaca sebelum
+   * migrasi (atau dari salinan MENU_CONTOH) tidak punya kolom ini, dan
+   * `undefined` harus berarti "bukan rekomendasi" — bukan galat.
+   */
+  rekomendasi?: boolean | null;
 };
 
 export type KategoriMenu = {

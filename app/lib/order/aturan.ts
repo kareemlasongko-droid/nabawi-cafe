@@ -392,3 +392,36 @@ export function nomorPesanan(meja: string, sekarang: Date = new Date()): string 
   const acak = Math.floor(Math.random() * 90) + 10; // 10–99, selalu 2 digit
   return `M${meja}-${fmt.replace(":", "")}-${acak}`;
 }
+
+// ─────────────────────────────────────────────────────────────
+// Urutan menu di portal pelanggan
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Mengurutkan menu dalam satu kategori: rekomendasi dulu, lalu urutan
+ * pemilik, lalu nama.
+ *
+ * Kenapa bukan cukup `rekomendasi` saja: seluruh isi kategori tidak boleh
+ * berubah posisi hanya karena satu menu ditandai. `urutan` tetap jadi
+ * penentu kedua supaya sisa daftar persis seperti yang sudah disusun
+ * pemilik. `nama` jadi penentu terakhir hanya untuk memastikan urutan
+ * stabil — dua menu dengan `urutan` sama tidak boleh bertukar posisi
+ * setiap kali halaman dimuat, karena itu membuat pelanggan mengira
+ * menunya berubah.
+ *
+ * Fungsi ini murni supaya bisa diuji tanpa browser. Dipakai portal
+ * pelanggan DAN uji — satu sumber, bukan dua salinan.
+ */
+export function urutkanMenu<T extends { rekomendasi?: boolean | null; urutan?: number | null; nama: string }>(
+  daftar: T[]
+): T[] {
+  return [...daftar].sort((a, b) => {
+    const rekA = a.rekomendasi === true ? 1 : 0;
+    const rekB = b.rekomendasi === true ? 1 : 0;
+    if (rekA !== rekB) return rekB - rekA;
+    const urutA = Number.isFinite(a.urutan) ? Number(a.urutan) : 0;
+    const urutB = Number.isFinite(b.urutan) ? Number(b.urutan) : 0;
+    if (urutA !== urutB) return urutA - urutB;
+    return a.nama.localeCompare(b.nama, "id");
+  });
+}
