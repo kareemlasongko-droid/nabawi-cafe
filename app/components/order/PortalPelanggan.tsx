@@ -480,7 +480,29 @@ export function PortalPelanggan({
         )}
       </header>
 
-      <main className="mx-auto max-w-[45rem] px-4 pb-40">
+      {/*
+        Padding bawah MENYESUAIKAN tinggi bilah keranjang, bukan angka tetap.
+
+        Dulu pb-40 (160 px) dipatok. Bilah keranjang tingginya hanya 80 px di
+        HP biasa (pt-3 12 + tombol h-14 56 + pb 12) dan 102 px di iPhone
+        berponi. Jadi ada 80 px ruang kosong menganggur di bawah footer —
+        terasa seperti halaman terpotong, bukan selesai.
+
+        Sekarang: 80 px saat bilah TIDAK tampil (cukup untuk napas di ujung
+        halaman), dan tinggi bilah + jarak aman saat bilah tampil, supaya
+        baris terakhir footer tidak tertutup.
+
+          bilah tampil   : 5rem (80) + safe-area + 1.5rem jarak = 104 px
+          bilah tidak    : 5rem (80) saja
+      */}
+      <main
+        className={[
+          "mx-auto max-w-[45rem] px-4",
+          totalItem > 0 && !bukaKeranjang
+            ? "pb-[calc(6.5rem+env(safe-area-inset-bottom))]"
+            : "pb-20",
+        ].join(" ")}
+      >
         {/* ── Pesanan berjalan ──
             Ditaruh paling atas setelah kepala karena pertanyaan pertama
             pelanggan yang sudah memesan adalah "pesanan saya bagaimana".
