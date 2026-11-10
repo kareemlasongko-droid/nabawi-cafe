@@ -78,6 +78,20 @@ menyadarinya sampai pelanggan berikutnya tidak ditanya saus.
 - **Dua saus berbeda = dua baris keranjang dan struk.** Bukan digabung.
 - **Pilihan ikut tercetak** di struk, kasir, dan layar dapur (huruf besar).
 
+#### Bug yang pernah lolos: pilihan tidak sampai ke dapur
+
+Fitur pilihan di-commit dan diuji 18/0, tetapi dapur **tidak pernah**
+menerima pilihannya. Penyebabnya: `/api/order/dapur` dan
+`/api/order/pelayan` menyusun ulang objek item dengan tangan —
+`{ id, nama_saat_pesan, jumlah, catatan }` — dan `pilihan` tidak ikut
+disalin. Portal dapur sudah punya kode untuk menampilkannya; yang hilang
+datanya.
+
+Uji saat itu memeriksa respons pembuatan pesanan (di situ `pilihan` ada),
+bukan respons dapur. **Menguji "data tersimpan" tidak sama dengan menguji
+"data sampai".** Sekarang ada `scripts/uji/pilihan-sampai.ts` yang
+memeriksa ketiga endpoint: pesanan, dapur, dan pelayan.
+
 ## Cara memasukkan ke database
 
 Berkas `supabase/migrations/20261102000000_menu_nabawi.sql` berisi seluruh

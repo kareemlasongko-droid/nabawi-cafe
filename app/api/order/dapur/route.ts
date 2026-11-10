@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { ambilMenu, ambilPesananAktif, ambilAturan } from "@/app/lib/order/data";
 import { db, PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
+import { bacaPilihan } from "@/app/lib/order/aturan";
 import {
   demoAmbilPesanan,
   demoItemPesanan,
@@ -39,6 +40,14 @@ export async function GET() {
           nama_saat_pesan: i.nama_saat_pesan,
           jumlah: i.jumlah,
           catatan: i.catatan,
+          /*
+            Pilihan WAJIB ikut. Sebelum ini, dapur menerima nama menu dan
+            catatan saja — sambal/saus yang dipilih pelanggan hilang tepat
+            sebelum sampai ke orang yang harus membuatnya. Portal dapur
+            sudah punya kode untuk menampilkannya dengan huruf besar; yang
+            hilang adalah datanya, bukan tampilannya.
+          */
+          pilihan: i.pilihan ?? [],
         })),
       }));
     return NextResponse.json({
@@ -84,6 +93,9 @@ export async function GET() {
         nama_saat_pesan: i.nama_saat_pesan,
         jumlah: i.jumlah,
         catatan: i.catatan,
+        // Dibaca lewat bacaPilihan: isi kolom jsonb bisa rusak, dan satu
+        // baris rusak tidak boleh membuat papan dapur gagal tampil.
+        pilihan: bacaPilihan(i.pilihan),
       })),
     }));
 
