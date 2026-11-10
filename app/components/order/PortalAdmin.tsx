@@ -17,12 +17,37 @@
  *    fokus. Kasir/admin mengetik "68000", bukan "Rp68.000".
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { rupiah } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
 import type { KategoriMenu, Menu } from "@/app/lib/order/tipe";
 import type { AturanBiaya } from "@/app/lib/order/aturan";
-import { IkonCentang, IkonSilang, IkonTambah } from "./Ikon";
+import { IkonCentang, IkonSilang, IkonTambah, IkonCari, IkonCariHapus } from "./Ikon";
+
+/**
+ * Normalisasi untuk pencarian.
+ *
+ * `normalize("NFD")` + buang tanda diakritik bukan hiasan: nama menu di sini
+ * ditulis pemilik cafe, dan begitu ada satu "Crème Brûlée" atau "Café Latte",
+ * pencarian "creme" akan gagal pada pencocokan huruf mentah. Dengan
+ * normalisasi, "creme" tetap menemukannya.
+ *
+ * `toLowerCase` dipakai, bukan `toLocaleLowerCase`, karena data menu bukan
+ * teks antarmuka — hasilnya harus sama di semua perangkat staf.
+ *
+ * JANGAN ubah fungsi ini tanpa menyesuaikan `scripts/uji/saring-admin.mjs`.
+ * Uji itu memuat salinan logika yang sama; kalau berbeda, uji bisa hijau
+ * padahal perilaku di layar sudah berubah.
+ */
+function normal(teks: string) {
+  return teks
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+type Saringan = "semua" | "ada" | "habis";
 
 export function PortalAdmin({
   awal,
@@ -44,7 +69,66 @@ export function PortalAdmin({
   const [sibuk, setSibuk] = useState(false);
   const [tersimpan, setTersimpan] = useState("");
 
-  const namaKategori = new Map(awal.kategori.map((k) => [k.id, k.nama]));
+  // Peta id → nama. Dipakai kolom tabel, pencarian, dan chip kategori.
+  // Identitasnya dijaga stabil karena ikut jadi dependensi useMemo di bawah:
+  // kalau dibuat ulang tiap render, hasil saringan dihitung ulang terus.
+  const namaKategori = useMemo(
+    () => new Map(awal.kategori.map((k) => [k.id, k.nama])),
+    [awal.kategori]
+  );
+
+
+  // ── Saringan daftar menu ──────────────────────────────────────────────
+  // 126 menu berarti admin harus menggulir ±3 layar untuk sampai ke "Wagyu".
+  // Tiga saringan ini menjawab tiga cara orang mencari: mengetik nama,
+  // memilih kategori, atau mencari yang sedang habis untuk ditandai ulang.
+  const [cari, setCari] = useState("");
+  const [kategoriSaring, setKategoriSaring] = useState<number | "semua">("semua");
+  const [statusSaring, setStatusSaring] = useState<Saringan>("semua");
+
+  const hasilSaring = useMemo(() => {
+    const kata = normal(cari);
+    return menu.filter((m) => {
+      if (kategoriSaring !== "semua" && m.kategori_id !== kategoriSaring) return false;
+      if (statusSaring === "ada" && !m.tersedia) return false;
+      if (statusSaring === "habis" && m.tersedia) return false;
+      if (!kata) return true;
+      // Nama kategori ikut dicari, bukan hanya nama menu: admin yang mengetik
+      // "kopi" mengharapkan seluruh kopi muncul, tidak peduli kata "kopi" ada
+      // di nama menunya atau tidak.
+      const isi = [
+        m.nama,
+        m.deskripsi ?? "",
+        m.kategori_id ? (namaKategori.get(m.kategori_id) ?? "") : "",
+      ];
+      return isi.some((teks) => normal(teks).includes(kata));
+    });
+  }, [menu, cari, kategoriSaring, statusSaring, namaKategori]);
+
+  const adaSaringan = cari.trim() !== "" || kategoriSaring !== "semua" || statusSaring !== "semua";
+
+  /**
+   * Jumlah menu per kategori SETELAH kata kunci dan status diterapkan.
+   *
+   * Angka ini sengaja bukan jumlah mentah: kalau admin mengetik "ayam",
+   * chip "Kopi 24" akan menipu — diklik, hasilnya nol. Dengan hitungan
+   * gabungan, setiap chip menjawab "kalau saya pilih ini, akan ada berapa".
+   */
+  const jumlahPerKategori = useMemo(() => {
+    const peta = new Map<number, number>();
+    for (const m of hasilSaring) {
+      if (m.kategori_id === null) continue;
+      peta.set(m.kategori_id, (peta.get(m.kategori_id) ?? 0) + 1);
+    }
+    return peta;
+  }, [hasilSaring]);
+
+  function bersihkanSaringan() {
+    setCari("");
+    setKategoriSaring("semua");
+    setStatusSaring("semua");
+  }
+
 
   async function ubahMenu(m: Menu, patch: Partial<Menu>) {
     setSibuk(true);
@@ -94,6 +178,10 @@ export function PortalAdmin({
       const dibuat = Array.isArray(j.data) ? j.data[0] : j.data;
       if (dibuat) setMenu((d) => [...d, dibuat as Menu]);
       setBaru(false);
+      // Menu baru yang tidak cocok saringan akan "hilang" dari tabel tepat
+      // setelah disimpan — admin mengira penyimpanan gagal. Saringan
+      // dibersihkan supaya baris barunya pasti terlihat.
+      bersihkanSaringan();
       setTersimpan("Menu baru ditambahkan");
       setTimeout(() => setTersimpan(""), 2500);
       return true;
@@ -180,6 +268,112 @@ export function PortalAdmin({
             </button>
           </div>
 
+          {/*
+            ── Saringan ──────────────────────────────────────────────────
+            Selalu terbuka, tidak dilipat: admin membuka halaman ini untuk
+            mencari satu menu tertentu, bukan untuk membaca seluruh daftar.
+            Kolom yang harus dibuka dulu akan membuat pencarian jadi dua
+            ketukan, padahal itu pekerjaan yang paling sering dilakukan.
+
+            Urutannya mengikuti kebiasaan: ketik dulu (paling cepat), lalu
+            kategori, lalu status. Status diletakkan paling kanan karena
+            hanya dipakai saat jam sibuk atau saat menandai menu kembali ada.
+          */}
+          <div className="mb-3 rounded-[0.875rem] bg-bersih-0 p-2.5 shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)]">
+            <div className="relative">
+              <IkonCari className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-tinta-500" />
+              <input
+                value={cari}
+                onChange={(e) => setCari(e.target.value)}
+                type="search"
+                inputMode="search"
+                enterKeyHint="search"
+                placeholder="Cari menu atau kategori…"
+                aria-label="Cari menu atau kategori"
+                className="h-11 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-50 pl-9 pr-10 text-[0.9375rem] text-tinta-900 outline-none placeholder:text-tinta-500 focus:border-tinta-700 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+              />
+              {cari && (
+                <button
+                  type="button"
+                  onClick={() => setCari("")}
+                  aria-label="Hapus kata pencarian"
+                  className="absolute right-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-tinta-500 transition active:bg-bersih-100"
+                >
+                  <IkonCariHapus className="size-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Kategori: satu baris yang bisa digeser, sama seperti chip di
+                portal pelanggan supaya staf dan tamu melihat kosakata yang
+                sama. Hitungan di tiap chip memakai daftar SETELAH kata kunci
+                dan status diterapkan — jadi angka itu menjawab "kalau saya
+                pilih kategori ini, akan ada berapa baris", bukan sekadar
+                jumlah mentah yang menyesatkan. */}
+            <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <ChipSaring
+                aktif={kategoriSaring === "semua"}
+                onClick={() => setKategoriSaring("semua")}
+              >
+                Semua
+              </ChipSaring>
+              {awal.kategori.map((k) => {
+                const jumlah = jumlahPerKategori.get(k.id) ?? 0;
+                return (
+                  <ChipSaring
+                    key={k.id}
+                    aktif={kategoriSaring === k.id}
+                    onClick={() => setKategoriSaring(kategoriSaring === k.id ? "semua" : k.id)}
+                  >
+                    {k.nama}
+                    <span className="tabular-nums opacity-60">{jumlah}</span>
+                  </ChipSaring>
+                );
+              })}
+            </div>
+
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {(
+                [
+                  ["semua", "Semua status"],
+                  ["ada", "Tersedia"],
+                  ["habis", "Habis"],
+                ] as const
+              ).map(([nilai, label]) => (
+                <ChipSaring
+                  key={nilai}
+                  aktif={statusSaring === nilai}
+                  onClick={() => setStatusSaring(nilai)}
+                  kecil
+                >
+                  {label}
+                </ChipSaring>
+              ))}
+
+              {/* Ringkasan hasil + tombol bersihkan. Diletakkan di baris yang
+                  sama dengan status supaya mata tidak perlu berpindah jauh
+                  untuk tahu "berapa yang tersisa". */}
+              {/* aria-live: saat admin mengetik, angka ini berubah terus.
+                  Tanpa pengumuman, pengguna pembaca layar tidak tahu
+                  pencariannya menyisakan berapa baris. */}
+              <span
+                aria-live="polite"
+                className="ml-auto text-[0.6875rem] tabular-nums text-tinta-500"
+              >
+                {hasilSaring.length} dari {menu.length} menu
+              </span>
+              {adaSaringan && (
+                <button
+                  type="button"
+                  onClick={bersihkanSaringan}
+                  className="rounded-full px-2 py-1 text-[0.6875rem] font-bold text-tinta-700 underline decoration-bersih-300 underline-offset-2"
+                >
+                  Bersihkan
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="overflow-hidden rounded-[0.875rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0">
             <table className="w-full text-left">
               <thead>
@@ -192,7 +386,29 @@ export function PortalAdmin({
                 </tr>
               </thead>
               <tbody className="divide-y divide-bersih-200">
-                {menu.map((m) => (
+                {hasilSaring.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center">
+                      <p className="text-[0.9375rem] font-bold text-tinta-700">
+                        Tidak ada menu yang cocok
+                      </p>
+                      <p className="mx-auto mt-1 max-w-[22rem] text-[0.8125rem] leading-relaxed text-tinta-500">
+                        Coba kata lain, atau kosongkan saringan. Pencarian memeriksa nama,
+                        deskripsi, dan nama kategori.
+                      </p>
+                      {adaSaringan && (
+                        <button
+                          type="button"
+                          onClick={bersihkanSaringan}
+                          className="mt-3 h-9 rounded-[0.5rem] border border-bersih-200 px-3 text-[0.8125rem] font-bold text-tinta-700"
+                        >
+                          Tampilkan semua menu
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                {hasilSaring.map((m) => (
                   <tr key={m.id} className={m.tersedia ? "" : "bg-bersih-50"}>
                     <td className="px-3 py-2">
                       <p
@@ -477,5 +693,45 @@ function DialogMenu({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Chip saringan.
+ *
+ * Kenapa tombol biasa, bukan <select>: di tablet kasir/admin, memilih
+ * kategori lewat dropdown berarti buka-tutup panel sistem, dan pilihannya
+ * tersembunyi sampai dibuka. Chip menampilkan semua pilihan sekaligus —
+ * untuk enam kategori itu masih masuk akal, dan angkanya terlihat langsung.
+ *
+ * `aria-pressed` dipakai supaya pembaca layar mengumumkan keadaan terpilih,
+ * bukan hanya "tombol". Warna saja tidak cukup.
+ */
+function ChipSaring({
+  aktif,
+  onClick,
+  children,
+  kecil = false,
+}: {
+  aktif: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  kecil?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={aktif}
+      className={[
+        "flex shrink-0 items-center gap-1 rounded-full font-bold transition",
+        kecil ? "h-8 px-2.5 text-[0.6875rem]" : "h-9 px-3 text-[0.8125rem]",
+        aktif
+          ? "bg-tinta-900 text-bersih-0"
+          : "bg-bersih-100 text-tinta-700 active:bg-bersih-200",
+      ].join(" ")}
+    >
+      {children}
+    </button>
   );
 }

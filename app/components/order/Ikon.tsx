@@ -54,6 +54,22 @@ export function IkonCari({ className = "size-4" }: P) {
   );
 }
 
+/**
+ * Kaca pembesar dengan silang: tombol "bersihkan pencarian".
+ *
+ * Dibuat terpisah, bukan memakai IkonSilang, karena di dalam kolom isian
+ * ukuran dan ketebalannya perlu lebih kecil — silang 16px terlihat seperti
+ * tombol hapus seluruh halaman.
+ */
+export function IkonCariHapus({ className = "size-4" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <circle cx="10" cy="10" r="6" />
+      <path d="m14.5 14.5 3.5 3.5M7.5 7.5l5 5M12.5 7.5l-5 5" />
+    </svg>
+  );
+}
+
 export function IkonKeranjang({ className = "size-5" }: P) {
   return (
     <svg {...dasar} className={className}>
