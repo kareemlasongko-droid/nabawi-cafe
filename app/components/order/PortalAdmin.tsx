@@ -106,7 +106,7 @@ export function PortalAdmin({
   }
 
   return (
-    <div className="min-h-dvh bg-cream-200">
+    <div className="min-h-dvh bg-bersih-50">
       <BilahStaf
         judul="Admin menu"
         keterangan={
@@ -120,8 +120,8 @@ export function PortalAdmin({
               type="button"
               onClick={() => setTab("menu")}
               className={[
-                "h-10 rounded-lg px-3 text-[0.75rem] font-bold",
-                tab === "menu" ? "bg-ink-900 text-cream-50" : "border border-ink-900/15 text-ink-700",
+                "h-10 rounded-[0.625rem] px-3 text-[0.8125rem] font-bold",
+                tab === "menu" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
               ].join(" ")}
             >
               Menu
@@ -130,8 +130,8 @@ export function PortalAdmin({
               type="button"
               onClick={() => setTab("biaya")}
               className={[
-                "h-10 rounded-lg px-3 text-[0.75rem] font-bold",
-                tab === "biaya" ? "bg-ink-900 text-cream-50" : "border border-ink-900/15 text-ink-700",
+                "h-10 rounded-[0.625rem] px-3 text-[0.8125rem] font-bold",
+                tab === "biaya" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
               ].join(" ")}
             >
               Pajak &amp; layanan
@@ -141,7 +141,7 @@ export function PortalAdmin({
       />
 
       {!bisaUbah && (
-        <div className="border-b border-clay-600/20 bg-clay-600/8 px-4 py-2 sm:px-6">
+        <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
           <p className="text-[0.6875rem] leading-snug text-clay-800">
             <strong>Hanya-baca.</strong> Perubahan menu memerlukan kunci server database
             (SUPABASE_SERVICE_KEY) yang dipasang di Vercel. Tanpa itu, halaman ini hanya
@@ -157,15 +157,15 @@ export function PortalAdmin({
         membuat admin mengira ada dua masalah berbeda.
       */}
       {galat && bisaUbah && (
-        <div className="border-b border-clay-600/25 bg-clay-600/10 px-4 py-2 sm:px-6">
-          <p className="text-[0.75rem] font-semibold text-clay-800">{galat}</p>
+        <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
+          <p className="text-[0.8125rem] font-semibold text-clay-800">{galat}</p>
         </div>
       )}
 
       {tab === "menu" && (
         <div className="p-4 sm:p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-[0.6875rem] leading-snug text-ink-500">
+            <p className="text-[0.6875rem] leading-snug text-tinta-500">
               Harga yang diubah di sini tidak mengubah tagihan yang sudah terbuka — tagihan
               memakai harga saat dipesan.
             </p>
@@ -173,17 +173,17 @@ export function PortalAdmin({
               type="button"
               onClick={() => setBaru(true)}
               disabled={!bisaUbah}
-              className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-forest-900 px-3 text-[0.75rem] font-bold text-cream-50 disabled:opacity-40"
+              className="flex h-10 shrink-0 items-center gap-1.5 rounded-[0.625rem] bg-tinta-900 px-3 text-[0.8125rem] font-bold text-bersih-0 disabled:opacity-40"
             >
               <IkonTambah className="size-4" />
               Menu baru
             </button>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-ink-900/12 bg-cream-50">
+          <div className="overflow-hidden rounded-[0.875rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-ink-900/10 bg-cream-100 text-[0.625rem] font-bold uppercase tracking-wider text-ink-500">
+                <tr className="border-b border-bersih-200 bg-bersih-100 text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
                   <th className="px-3 py-2">Menu</th>
                   <th className="hidden px-3 py-2 sm:table-cell">Kategori</th>
                   <th className="px-3 py-2 text-right">Harga</th>
@@ -191,26 +191,26 @@ export function PortalAdmin({
                   <th className="px-3 py-2" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-900/8">
+              <tbody className="divide-y divide-bersih-200">
                 {menu.map((m) => (
-                  <tr key={m.id} className={m.tersedia ? "" : "bg-cream-100/60"}>
+                  <tr key={m.id} className={m.tersedia ? "" : "bg-bersih-50"}>
                     <td className="px-3 py-2">
                       <p
                         className={[
-                          "text-[0.8125rem] font-bold leading-tight",
-                          m.tersedia ? "text-ink-900" : "text-ink-500 line-through",
+                          "text-[0.9375rem] font-bold leading-tight",
+                          m.tersedia ? "text-tinta-900" : "text-tinta-500 line-through",
                         ].join(" ")}
                       >
                         {m.nama}
                       </p>
-                      <p className="mt-0.5 line-clamp-1 text-[0.6875rem] text-ink-500">
+                      <p className="mt-0.5 line-clamp-1 text-[0.6875rem] text-tinta-500">
                         {m.deskripsi}
                       </p>
                     </td>
-                    <td className="hidden px-3 py-2 text-[0.75rem] text-ink-500 sm:table-cell">
+                    <td className="hidden px-3 py-2 text-[0.8125rem] text-tinta-500 sm:table-cell">
                       {m.kategori_id ? (namaKategori.get(m.kategori_id) ?? "—") : "—"}
                     </td>
-                    <td className="px-3 py-2 text-right text-[0.8125rem] font-bold tabular-nums text-ink-900">
+                    <td className="px-3 py-2 text-right text-[0.9375rem] font-bold tabular-nums text-tinta-900">
                       {rupiah(m.harga)}
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -220,10 +220,10 @@ export function PortalAdmin({
                         disabled={!bisaUbah || sibuk}
                         aria-pressed={m.tersedia}
                         className={[
-                          "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[0.625rem] font-bold transition disabled:opacity-50",
+                          "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[0.6875rem] font-bold transition disabled:opacity-50",
                           m.tersedia
-                            ? "bg-mint-600/18 text-mint-700"
-                            : "bg-clay-600/15 text-clay-800",
+                            ? "bg-daun-100 text-forest-700"
+                            : "bg-tanah-100 text-clay-800",
                         ].join(" ")}
                       >
                         {m.tersedia ? (
@@ -242,7 +242,7 @@ export function PortalAdmin({
                         type="button"
                         onClick={() => setSunting(m)}
                         disabled={!bisaUbah}
-                        className="h-8 rounded-md border border-ink-900/15 px-2.5 text-[0.6875rem] font-bold text-ink-700 disabled:opacity-40"
+                        className="h-8 rounded-[0.5rem] border border-bersih-200 px-2.5 text-[0.6875rem] font-bold text-tinta-700 disabled:opacity-40"
                       >
                         Ubah
                       </button>
@@ -257,39 +257,39 @@ export function PortalAdmin({
 
       {tab === "biaya" && (
         <div className="max-w-xl p-4 sm:p-6">
-          <p className="mb-3 text-[0.75rem] leading-relaxed text-ink-500">
+          <p className="mb-3 text-[0.8125rem] leading-relaxed text-tinta-500">
             Nilai ini dipakai menghitung setiap tagihan. Rumusnya: biaya layanan dari subtotal,
             lalu pajak dari (subtotal + layanan), lalu total dibulatkan sekali per tagihan.
             Persentase pajak bawaan 11%.
           </p>
 
-          <dl className="space-y-2 rounded-xl border border-ink-900/12 bg-cream-50 p-4 text-[0.8125rem]">
+          <dl className="space-y-2 rounded-[0.875rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0 p-4 text-[0.9375rem]">
             <div className="flex justify-between">
-              <dt className="text-ink-500">Pajak</dt>
-              <dd className="font-bold tabular-nums text-ink-900">{aturan.pajakPersen}%</dd>
+              <dt className="text-tinta-500">Pajak</dt>
+              <dd className="font-bold tabular-nums text-tinta-900">{aturan.pajakPersen}%</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-ink-500">Biaya layanan</dt>
-              <dd className="font-bold tabular-nums text-ink-900">
+              <dt className="text-tinta-500">Biaya layanan</dt>
+              <dd className="font-bold tabular-nums text-tinta-900">
                 {aturan.layananPersen > 0 ? `${aturan.layananPersen}%` : rupiah(aturan.layananRp)}
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-ink-500">Pembulatan</dt>
-              <dd className="font-bold tabular-nums text-ink-900">
+              <dt className="text-tinta-500">Pembulatan</dt>
+              <dd className="font-bold tabular-nums text-tinta-900">
                 ke {rupiah(aturan.pembulatan)} terdekat
               </dd>
             </div>
           </dl>
 
-          <div className="mt-3 rounded-xl border border-ink-900/12 bg-cream-50 p-4">
-            <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-ink-500">
+          <div className="mt-3 rounded-[0.875rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0 p-4">
+            <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
               Contoh pada subtotal Rp100.000
             </p>
             <ContohBiaya aturan={aturan} />
           </div>
 
-          <p className="mt-3 text-[0.6875rem] leading-relaxed text-ink-500">
+          <p className="mt-3 text-[0.6875rem] leading-relaxed text-tinta-500">
             Untuk mengubah nilai ini, ubah tabel <code className="font-mono">pengaturan</code> di
             database atau hubungi pengembang. Halaman ini sengaja menampilkan nilainya agar kasir
             dan pemilik memakai angka yang sama.
@@ -329,7 +329,7 @@ export function PortalAdmin({
       {tersimpan && (
         <div
           role="status"
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink-900 px-4 py-2 text-[0.75rem] font-bold text-cream-50 shadow-lg"
+          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-tinta-900 px-4 py-2 text-[0.8125rem] font-bold text-bersih-0 shadow-lg"
         >
           {tersimpan}
         </div>
@@ -349,22 +349,22 @@ function ContohBiaya({ aturan }: { aturan: AturanBiaya }) {
   const total = Math.round(mentah / (aturan.pembulatan || 1)) * (aturan.pembulatan || 1);
 
   return (
-    <dl className="mt-2 space-y-1 text-[0.75rem]">
+    <dl className="mt-2 space-y-1 text-[0.8125rem]">
       <div className="flex justify-between">
-        <dt className="text-ink-500">Subtotal</dt>
-        <dd className="tabular-nums text-ink-900">{rupiah(subtotal)}</dd>
+        <dt className="text-tinta-500">Subtotal</dt>
+        <dd className="tabular-nums text-tinta-900">{rupiah(subtotal)}</dd>
       </div>
       <div className="flex justify-between">
-        <dt className="text-ink-500">Biaya layanan</dt>
-        <dd className="tabular-nums text-ink-900">{rupiah(layanan)}</dd>
+        <dt className="text-tinta-500">Biaya layanan</dt>
+        <dd className="tabular-nums text-tinta-900">{rupiah(layanan)}</dd>
       </div>
       <div className="flex justify-between">
-        <dt className="text-ink-500">Pajak</dt>
-        <dd className="tabular-nums text-ink-900">{rupiah(pajak)}</dd>
+        <dt className="text-tinta-500">Pajak</dt>
+        <dd className="tabular-nums text-tinta-900">{rupiah(pajak)}</dd>
       </div>
-      <div className="flex justify-between border-t border-ink-900/10 pt-1">
-        <dt className="font-bold text-ink-900">Total</dt>
-        <dd className="font-extrabold tabular-nums text-ink-900">{rupiah(total)}</dd>
+      <div className="flex justify-between border-t border-bersih-200 pt-1">
+        <dt className="font-bold text-tinta-900">Total</dt>
+        <dd className="font-extrabold tabular-nums text-tinta-900">{rupiah(total)}</dd>
       </div>
     </dl>
   );
@@ -394,53 +394,53 @@ function DialogMenu({
   const sah = nama.trim().length > 0 && angka > 0;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink-900/50 p-4">
-      <div className="w-full max-w-md rounded-xl bg-cream-50 p-4 shadow-2xl">
-        <h3 className="text-[1rem] font-extrabold text-ink-900">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-tinta-900/50 p-4">
+      <div className="w-full max-w-md rounded-[0.875rem] bg-bersih-0 p-4 shadow-2xl">
+        <h3 className="text-[1.0625rem] font-extrabold text-tinta-900">
           {menu ? "Ubah menu" : "Menu baru"}
         </h3>
 
-        <label className="mt-3 block text-[0.6875rem] font-bold uppercase tracking-wider text-ink-500">
+        <label className="mt-3 block text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
           Nama
         </label>
         <input
           value={nama}
           onChange={(e) => setNama(e.target.value)}
           maxLength={80}
-          className="mt-1 h-11 w-full rounded-lg border border-ink-900/15 bg-cream-100 px-3 text-[0.8125rem] text-ink-900 outline-none focus:border-forest-700"
+          className="mt-1 h-11 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[0.9375rem] text-tinta-900 outline-none focus:border-forest-700"
         />
 
-        <label className="mt-2.5 block text-[0.6875rem] font-bold uppercase tracking-wider text-ink-500">
+        <label className="mt-2.5 block text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
           Deskripsi satu baris
         </label>
         <input
           value={deskripsi}
           onChange={(e) => setDeskripsi(e.target.value)}
           maxLength={240}
-          className="mt-1 h-11 w-full rounded-lg border border-ink-900/15 bg-cream-100 px-3 text-[0.8125rem] text-ink-900 outline-none focus:border-forest-700"
+          className="mt-1 h-11 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[0.9375rem] text-tinta-900 outline-none focus:border-forest-700"
         />
 
         <div className="mt-2.5 grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-[0.6875rem] font-bold uppercase tracking-wider text-ink-500">
+            <label className="block text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
               Harga
             </label>
             <input
               value={harga}
               onChange={(e) => setHarga(e.target.value.replace(/\D/g, ""))}
               inputMode="numeric"
-              className="mt-1 h-11 w-full rounded-lg border border-ink-900/15 bg-cream-100 px-3 text-[0.8125rem] font-bold tabular-nums text-ink-900 outline-none focus:border-forest-700"
+              className="mt-1 h-11 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[0.9375rem] font-bold tabular-nums text-tinta-900 outline-none focus:border-forest-700"
             />
-            <p className="mt-0.5 text-[0.625rem] text-ink-500">{rupiah(angka)}</p>
+            <p className="mt-0.5 text-[0.6875rem] text-tinta-500">{rupiah(angka)}</p>
           </div>
           <div>
-            <label className="block text-[0.6875rem] font-bold uppercase tracking-wider text-ink-500">
+            <label className="block text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
               Kategori
             </label>
             <select
               value={kategoriId}
               onChange={(e) => setKategoriId(e.target.value)}
-              className="mt-1 h-11 w-full rounded-lg border border-ink-900/15 bg-cream-100 px-2 text-[0.8125rem] text-ink-900 outline-none focus:border-forest-700"
+              className="mt-1 h-11 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-2 text-[0.9375rem] text-tinta-900 outline-none focus:border-forest-700"
             >
               {kategori.map((k) => (
                 <option key={k.id} value={k.id}>
@@ -455,7 +455,7 @@ function DialogMenu({
           <button
             type="button"
             onClick={onTutup}
-            className="h-11 flex-1 rounded-lg border border-ink-900/15 text-[0.8125rem] font-bold text-ink-700"
+            className="h-11 flex-1 rounded-[0.625rem] border border-bersih-200 text-[0.9375rem] font-bold text-tinta-700"
           >
             Batal
           </button>
@@ -470,7 +470,7 @@ function DialogMenu({
                 kategori_id: kategoriId ? Number(kategoriId) : null,
               })
             }
-            className="h-11 flex-1 rounded-lg bg-forest-900 text-[0.8125rem] font-bold text-cream-50 disabled:opacity-40"
+            className="h-11 flex-1 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-bold text-bersih-0 disabled:opacity-40"
           >
             {sibuk ? "Menyimpan…" : "Simpan"}
           </button>

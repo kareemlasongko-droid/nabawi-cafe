@@ -32,7 +32,7 @@ export function Kerangka({
   className?: string;
 }) {
   return (
-    <div className="min-h-dvh bg-cream-200 text-ink-900">
+    <div className="min-h-dvh bg-bersih-50 text-tinta-900">
       <div
         className={[
           "mx-auto min-h-dvh w-full",
@@ -65,19 +65,19 @@ export function BilahStaf({
   demo?: boolean;
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-ink-900/10 bg-cream-50/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/92 backdrop-blur-md">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
         <div className="min-w-0 flex-1">
-          <h1 className="text-[0.9375rem] font-extrabold tracking-tight text-ink-900 sm:text-base">
+          <h1 className="text-[0.9375rem] font-extrabold tracking-tight text-tinta-900 sm:text-base">
             {judul}
           </h1>
           {keterangan && (
-            <p className="mt-0.5 text-[0.6875rem] leading-tight text-ink-500">{keterangan}</p>
+            <p className="mt-0.5 text-[0.6875rem] leading-tight text-tinta-500">{keterangan}</p>
           )}
         </div>
         {demo && (
           <span
-            className="shrink-0 rounded-full bg-clay-600/12 px-2.5 py-1 text-[0.625rem] font-bold text-clay-700"
+            className="shrink-0 rounded-full bg-tanah-100 px-2.5 py-1 text-[0.6875rem] font-bold text-clay-800"
             title="Kunci server database belum dipasang, jadi data tidak disimpan permanen."
           >
             Mode demo
@@ -96,7 +96,7 @@ export function BilahStaf({
  */
 export function PitaDemo({ pesan }: { pesan?: string }) {
   return (
-    <div className="border-b border-clay-600/20 bg-clay-600/8 px-4 py-2 sm:px-6">
+    <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
       <p className="text-[0.6875rem] leading-snug text-clay-800">
         <strong className="font-bold">Mode demo.</strong>{" "}
         {pesan ??

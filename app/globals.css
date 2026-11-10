@@ -84,8 +84,35 @@
   --color-bersih-300: #d9d7d4;    /* garis lebih tegas */
 
   --color-tinta-900: #16130f;     /* judul, harga — 16.3:1 di putih */
+  --color-tinta-800: #2e2822;     /* permukaan gelap terangkat — 1.27:1 dari tinta-900,
+                                       hampir menyamai kontras tiket lama (1.20:1) */
   --color-tinta-700: #4a443f;     /* teks isi */
   --color-tinta-500: #6f665c;     /* teks pendukung — 5.6:1 di putih, 4.9:1 di isian */
+
+  /* Teks di atas permukaan gelap (portal dapur). Nilainya bukan abu-abu
+     netral: diberi sedikit kehangatan supaya senada dengan tinta, bukan
+     kebiruan seperti slate bawaan Tailwind. */
+  --color-gelap-isi: #f5f3f0;     /* teks utama — 15.1:1 di tinta-800 */
+  --color-gelap-redup: #b9b2a8;   /* teks kedua — 7.96:1 */
+  --color-gelap-samar: #a49c92;   /* teks ketiga — 5.6:1 di tinta-800, 6.0:1 di tinta-900 */
+
+  /* Oranye versi terang: dipakai sebagai TEKS/badge di latar gelap.
+     #c9500a tidak terbaca di tinta-900, jadi di layar gelap memakai
+     nada yang lebih terang — bukan menebalkan huruf. */
+  --color-aksi-terang: #ff9a4d;   /* 7.95:1 di tinta-800 */
+
+  /* Oranye lebih pekat untuk TEKS di latar terang. aksi-500 (#c9500a)
+     hanya 3.98:1 di bersih-100 — gagal sebagai teks, aman sebagai latar
+     tombol. Jadi tombol memakai aksi-500, sedangkan label teks oranye
+     (mis. "belum dibayar") memakai aksi-700. */
+  --color-aksi-700: #9c3b06;      /* 6.90:1 di putih, 6.06:1 di bersih-100 */
+
+  /* Dua warna status di portal staf. Bukan merah/hijau bawaan Tailwind:
+     keduanya ditarik ke arah terracotta & hijau hutan yang sudah dipakai
+     merek, dicampur putih. Hasilnya tetap lolos AA sebagai teks:
+     clay-800 di tanah-100 = 7.99:1, forest-700 di daun-100 = 6.73:1. */
+  --color-tanah-100: #fbeee7;     /* latar "perlu perhatian" */
+  --color-daun-100: #e8eee7;      /* latar "siap / tersedia" */
 
   /* Tinta teks */
   --color-ink-900: #2d264b; /* judul & tagline (diminta) */

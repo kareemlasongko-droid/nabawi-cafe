@@ -1,0 +1,116 @@
+# Desain portal staf — palet B
+
+Catatan ini menjelaskan **apa yang berubah, mengapa, dan angka apa yang dipakai**.
+Tujuannya bukan dokumentasi gaya, tetapi supaya perubahan berikutnya tidak
+membalikkan keputusan yang sudah dihitung.
+
+## Ruang lingkup
+
+| Portal | Latar | Palet |
+|---|---|---|
+| Pelanggan (`/order`) | terang | B — putih bersih (`bersih-*`, `tinta-*`, `aksi-*`) |
+| Kasir (`/order/kasir`) | terang | B |
+| Pelayan (`/order/pelayan`) | terang | B |
+| Admin (`/order/admin`) | terang | B |
+| Dapur (`/order/dapur`) | **gelap** | tinta gelap (`tinta-900/800`, `gelap-*`, `aksi-terang`) |
+
+Dapur tetap gelap dengan sengaja. Layar dapur menyala sepanjang hari di area
+yang tidak selalu terang; latar gelap mengurangi silau dan membuat nomor meja
+jadi hal paling terang di layar. Itu keputusan yang sudah ada sejak awal dan
+tidak dibatalkan oleh perubahan warna.
+
+## Satu skala huruf
+
+Sebelum: tujuh ukuran berbeda antarportal (9–15 px), ditambah ukuran lain lagi
+di portal pelanggan. Sekarang satu skala untuk keenam berkas:
+
+| Ukuran | Dipakai untuk |
+|---|---|
+| 11 px | label kecil, satuan, kode pesanan |
+| 13 px | teks pendukung, keterangan |
+| 15 px | teks isi, tombol |
+| 17 px | judul bagian, nama menu |
+| 18–19 px | kepala halaman |
+| 30 px | nominal pembayaran (paling besar, memang harus) |
+
+## Satu sistem bentuk
+
+- **Kartu 14 px** (`rounded-[0.875rem]`): panel, tabel, baris daftar.
+- **Kontrol 10 px** (`rounded-[0.625rem]`): tombol, isian, kartu meja.
+- **Pil penuh**: chip status, lencana hitungan.
+
+Garis tepi kelabu dihapus dari kartu. Pemisah permukaan memakai bayangan ganda
+tipis di portal terang:
+
+```
+shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)]
+```
+
+Garis **tetap** dipakai di tiga tempat, karena di sana bayangan tidak bekerja:
+1. pemisah baris di dalam kartu (tabel, daftar item),
+2. isian dan tombol bergaris (batas kontrol harus jelas saat difokus),
+3. struk kertas — garis putus-putus adalah bahasanya, bukan hiasan.
+
+## Warna dan kontras
+
+Semua pasangan teks/latar dihitung, bukan dikira-kira. Nilai minimum yang
+dipakai adalah 4.5:1 (WCAG AA untuk teks normal).
+
+| Pasangan | Rasio |
+|---|---|
+| `tinta-900` di `bersih-0` | 18.5:1 |
+| `tinta-700` di `bersih-0` | 9.6:1 |
+| `tinta-500` di `bersih-0` | 5.6:1 |
+| `tinta-500` di `bersih-100` | 4.9:1 |
+| putih di `tinta-900` | 18.5:1 |
+| putih di `aksi-500` | 4.5:1 |
+| `aksi-700` di `bersih-100` (label oranye) | 6.1:1 |
+| `clay-800` di `tanah-100` (chip bahaya) | 8.0:1 |
+| `forest-700` di `daun-100` (chip siap) | 6.7:1 |
+| `gelap-isi` di `tinta-800` (dapur) | 13.1:1 |
+| `gelap-samar` di `tinta-800` (dapur) | 5.4:1 |
+
+Tiga warna **tidak boleh** dipakai sebagai teks, hanya sebagai latar:
+
+| Warna | Kenapa |
+|---|---|
+| `aksi-500` `#c9500a` | 3.98:1 di `bersih-100` — gagal sebagai teks |
+| `accent-500` `#ff7c32` | 2.57:1 dengan teks putih — gagal parah |
+| `tinta-500` `#8a8078` (nilai lama) | 3.86:1 — sudah diganti `#6f665c` |
+
+## Tiga kesalahan yang ditemukan saat pengukuran
+
+Dicatat supaya tidak terulang:
+
+1. **Sapuan warna massal membuat isian kehilangan garis tepi.** Pola
+   `border border-<garis>` diganti bayangan tanpa pandang bulu, sehingga
+   `<input>` dan `<select>` di dialog pembayaran dan admin ikut jadi "kartu
+   tanpa tepi". Diperbaiki dengan mengembalikan garis pada 17 elemen kontrol.
+2. **Kartu dapur jadi lebih samar daripada desain lama.** `tinta-800` versi
+   pertama (`#221d17`) hanya 1.11:1 dari latar, sedangkan tiket lama 1.20:1 —
+   artinya "pembaruan" justru menurunkan keterbacaan. Diganti `#2e2822`
+   (1.27:1).
+3. **Teks ketiga di dapur gagal AA** setelah permukaan dinaikkan (4.15:1).
+   `gelap-samar` dinaikkan ke `#a49c92` → 5.4:1.
+
+## Yang sengaja TIDAK dilakukan
+
+- Tidak ada gradien, bayangan tebal, animasi denyut, atau blob blur.
+- Tidak ada emoji sebagai ikon — semua ikon adalah SVG di `Ikon.tsx`.
+- Tidak ada warna status baru yang generik (merah/hijau Tailwind). Dua tint
+  status (`tanah-100`, `daun-100`) ditarik ke arah terracotta dan hijau hutan
+  yang sudah menjadi warna merek.
+
+## Uji
+
+```bash
+npm start                            # terminal lain
+node scripts/uji/regresi.mjs         # alur order ujung ke ujung
+node scripts/uji/pilihan.mjs         # pilihan sambal/saus/rasa
+```
+
+Hasil terakhir: **22/22** dan **11/11**.
+
+Skrip uji disimpan di `scripts/uji/` — bukan di `/tmp` — karena sandbox kerja
+pernah ter-reset dan skrip uji di `/tmp` ikut hilang. Saat itu terjadi, "uji
+hijau" berubah jadi asumsi.

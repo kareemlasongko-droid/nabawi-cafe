@@ -247,7 +247,7 @@ export function PortalKasir() {
   const habis = useMemo(() => menu.filter((m) => !m.tersedia), [menu]);
 
   return (
-    <div className="min-h-dvh bg-cream-200">
+    <div className="min-h-dvh bg-bersih-50">
       <BilahStaf
         judul="Kasir"
         keterangan={
@@ -264,10 +264,10 @@ export function PortalKasir() {
               type="button"
               onClick={() => setSuara((s) => !s)}
               className={[
-                "flex h-10 items-center gap-2 rounded-lg border px-3 text-[0.75rem] font-bold",
+                "flex h-10 items-center gap-2 rounded-[0.625rem] border px-3 text-[0.8125rem] font-bold",
                 suara
-                  ? "border-forest-700/30 bg-forest-900/8 text-forest-900"
-                  : "border-ink-900/15 bg-cream-100 text-ink-500",
+                  ? "border-forest-700/40 bg-daun-100 text-forest-700"
+                  : "border-bersih-200 bg-bersih-100 text-tinta-500",
               ].join(" ")}
             >
               <IkonBel className="size-4" />
@@ -276,7 +276,7 @@ export function PortalKasir() {
             <button
               type="button"
               onClick={muat}
-              className="h-10 rounded-lg border border-ink-900/15 px-3 text-[0.75rem] font-bold text-ink-700"
+              className="h-10 rounded-[0.625rem] border border-bersih-200 px-3 text-[0.8125rem] font-bold text-tinta-700"
             >
               Muat ulang
             </button>
@@ -285,8 +285,8 @@ export function PortalKasir() {
       />
 
       {galat && (
-        <div className="border-b border-clay-600/25 bg-clay-600/10 px-4 py-2 sm:px-6">
-          <p className="text-[0.75rem] font-semibold text-clay-800">{galat}</p>
+        <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
+          <p className="text-[0.8125rem] font-semibold text-clay-800">{galat}</p>
         </div>
       )}
 
@@ -295,22 +295,22 @@ export function PortalKasir() {
         <section aria-labelledby="antrean">
           <h2
             id="antrean"
-            className="mb-2 flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-ink-500"
+            className="mb-2 flex items-center gap-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
           >
             Menunggu konfirmasi
             {antrean.length > 0 && (
-              <span className="rounded-full bg-clay-600 px-2 py-0.5 text-[0.6875rem] font-bold text-cream-50">
+              <span className="rounded-full bg-clay-700 px-2 py-0.5 text-[0.6875rem] font-bold text-bersih-0">
                 {antrean.length}
               </span>
             )}
           </h2>
 
           {antrean.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-ink-900/15 bg-cream-100 px-4 py-8 text-center">
-              <p className="text-[0.8125rem] font-semibold text-ink-500">
+            <div className="rounded-[0.875rem] border border-dashed border-bersih-200 bg-bersih-100 px-4 py-8 text-center">
+              <p className="text-[0.9375rem] font-semibold text-tinta-500">
                 Tidak ada pesanan baru.
               </p>
-              <p className="mt-1 text-[0.75rem] text-ink-500/80">
+              <p className="mt-1 text-[0.8125rem] text-tinta-500">
                 Pesanan dari QR meja akan muncul di sini disertai bunyi.
               </p>
             </div>
@@ -319,35 +319,35 @@ export function PortalKasir() {
               {antrean.map((p) => (
                 <li
                   key={p.id}
-                  className="overflow-hidden rounded-xl border-2 border-clay-600/35 bg-cream-50 shadow-[0_2px_10px_rgba(45,38,75,0.06)]"
+                  className="overflow-hidden rounded-[0.875rem] border-2 border-clay-700/40 bg-bersih-0 shadow-[0_2px_10px_rgba(45,38,75,0.06)]"
                 >
-                  <div className="flex items-start gap-3 border-b border-ink-900/8 bg-clay-600/8 px-3.5 py-2.5">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-ink-900 text-[1rem] font-extrabold text-cream-50">
+                  <div className="flex items-start gap-3 border-b border-bersih-200 bg-tanah-100 px-3.5 py-2.5">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-[1.0625rem] font-extrabold text-bersih-0">
                       {p.meja_nomor}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[0.8125rem] font-extrabold text-ink-900">
+                      <p className="text-[0.9375rem] font-extrabold text-tinta-900">
                         Meja {p.meja_nomor}
                         {p.nama_pemesan ? ` · ${p.nama_pemesan}` : ""}
                       </p>
-                      <p className="flex items-center gap-1 text-[0.6875rem] text-ink-500">
+                      <p className="flex items-center gap-1 text-[0.6875rem] text-tinta-500">
                         <IkonJam className="size-3" />
                         {sejak(p.created_at)} · {p.total_item} item · {p.nomor}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[1rem] font-extrabold tabular-nums text-ink-900">
+                    <span className="shrink-0 text-[1.0625rem] font-extrabold tabular-nums text-tinta-900">
                       {rupiah(p.items.reduce((n, i) => n + i.harga_satuan * i.jumlah, 0))}
                     </span>
                   </div>
 
-                  <ul className="divide-y divide-ink-900/6 px-3.5 py-1">
+                  <ul className="divide-y divide-bersih-200 px-3.5 py-1">
                     {p.items.map((i) => (
                       <li key={i.id} className="flex items-start gap-2 py-1.5">
-                        <span className="w-6 shrink-0 text-[0.8125rem] font-extrabold tabular-nums text-ink-900">
+                        <span className="w-6 shrink-0 text-[0.9375rem] font-extrabold tabular-nums text-tinta-900">
                           {i.jumlah}×
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[0.8125rem] font-semibold leading-tight text-ink-900">
+                          <p className="text-[0.9375rem] font-semibold leading-tight text-tinta-900">
                             {i.nama_saat_pesan}
                           </p>
                           {Array.isArray(i.pilihan) && i.pilihan.length > 0 && (
@@ -361,19 +361,19 @@ export function PortalKasir() {
                             </p>
                           )}
                         </div>
-                        <span className="shrink-0 text-[0.75rem] tabular-nums text-ink-500">
+                        <span className="shrink-0 text-[0.8125rem] tabular-nums text-tinta-500">
                           {rupiah(i.harga_satuan * i.jumlah)}
                         </span>
                       </li>
                     ))}
                   </ul>
 
-                  <div className="flex gap-2 border-t border-ink-900/8 p-2.5">
+                  <div className="flex gap-2 border-t border-bersih-200 p-2.5">
                     <button
                       type="button"
                       disabled={sedang}
                       onClick={() => ubah(p.id, "diterima")}
-                      className="flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-forest-900 text-[0.8125rem] font-extrabold text-cream-50 transition active:scale-[0.99] disabled:opacity-50"
+                      className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 transition active:scale-[0.99] disabled:opacity-50"
                     >
                       <IkonCentang className="size-4" />
                       Terima
@@ -382,7 +382,7 @@ export function PortalKasir() {
                       type="button"
                       disabled={sedang}
                       onClick={() => setAlasanTolak({ id: p.id, buka: true })}
-                      className="flex h-12 items-center justify-center gap-2 rounded-lg border border-clay-600/40 px-4 text-[0.8125rem] font-bold text-clay-700 transition active:scale-[0.99]"
+                      className="flex h-12 items-center justify-center gap-2 rounded-[0.625rem] border border-clay-700/40 px-4 text-[0.9375rem] font-bold text-clay-700 transition active:scale-[0.99]"
                     >
                       <IkonSilang className="size-4" />
                       Tolak
@@ -393,7 +393,7 @@ export function PortalKasir() {
                       langsung, bukan modal — supaya tidak menutupi antrean
                       berikutnya yang mungkin perlu dilihat bersamaan. */}
                   {alasanTolak.buka && alasanTolak.id === p.id && (
-                    <div className="border-t border-clay-600/25 bg-clay-600/6 p-2.5">
+                    <div className="border-t border-clay-700/25 bg-tanah-100 p-2.5">
                       <p className="mb-1.5 text-[0.6875rem] font-bold uppercase tracking-wider text-clay-800">
                         Alasan penolakan
                       </p>
@@ -406,7 +406,7 @@ export function PortalKasir() {
                               ubah(p.id, "ditolak", a);
                               setAlasanTolak({ id: 0, buka: false });
                             }}
-                            className="h-10 rounded-lg bg-cream-50 px-3 text-[0.75rem] font-bold text-clay-800 ring-1 ring-clay-600/25"
+                            className="h-10 rounded-[0.625rem] bg-bersih-0 px-3 text-[0.8125rem] font-bold text-clay-800 ring-1 ring-clay-700/30"
                           >
                             {a}
                           </button>
@@ -414,7 +414,7 @@ export function PortalKasir() {
                         <button
                           type="button"
                           onClick={() => setAlasanTolak({ id: 0, buka: false })}
-                          className="h-10 rounded-lg px-3 text-[0.75rem] font-semibold text-ink-500"
+                          className="h-10 rounded-[0.625rem] px-3 text-[0.8125rem] font-semibold text-tinta-500"
                         >
                           Batal
                         </button>
@@ -429,23 +429,23 @@ export function PortalKasir() {
           {/* ── Pesanan berjalan ── */}
           {diproses.length > 0 && (
             <>
-              <h2 className="mb-2 mt-5 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-ink-500">
+              <h2 className="mb-2 mt-5 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500">
                 Berjalan di dapur
               </h2>
               <ul className="space-y-1.5">
                 {diproses.map((p) => (
                   <li
                     key={p.id}
-                    className="flex items-center gap-3 rounded-lg border border-ink-900/10 bg-cream-50 px-3 py-2"
+                    className="flex items-center gap-3 rounded-[0.625rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0 px-3 py-2"
                   >
-                    <span className="grid size-8 shrink-0 place-items-center rounded-md bg-forest-900/10 text-[0.8125rem] font-extrabold text-forest-900">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-[0.5rem] bg-daun-100 text-[0.9375rem] font-extrabold text-forest-700">
                       {p.meja_nomor}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[0.75rem] text-ink-700">
+                    <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-tinta-700">
                       {p.items.map((i) => `${i.jumlah}× ${i.nama_saat_pesan}`).join(", ")}
                     </span>
                     <StatusKecil status={p.status} />
-                    <span className="shrink-0 text-[0.6875rem] text-ink-500">
+                    <span className="shrink-0 text-[0.6875rem] text-tinta-500">
                       {sejak(p.created_at)}
                     </span>
                   </li>
@@ -459,7 +459,7 @@ export function PortalKasir() {
         <section aria-labelledby="meja">
           <h2
             id="meja"
-            className="mb-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-ink-500"
+            className="mb-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
           >
             Meja
           </h2>
@@ -467,26 +467,26 @@ export function PortalKasir() {
           {/* Panggilan meja ditaruh DI ATAS denah: pelanggan yang memanggil
               sedang menunggu, sedangkan denah bisa dilihat kapan saja. */}
           {(data?.panggilan.length ?? 0) > 0 && (
-            <div className="mb-3 rounded-xl border border-clay-600/30 bg-clay-600/8 p-2.5">
+            <div className="mb-3 rounded-[0.875rem] border border-clay-700/30 bg-tanah-100 p-2.5">
               <p className="mb-1.5 text-[0.6875rem] font-bold uppercase tracking-wider text-clay-800">
                 Panggilan menunggu
               </p>
               <ul className="space-y-1.5">
                 {data!.panggilan.map((g) => (
-                  <li key={g.id} className="flex items-center gap-2 rounded-lg bg-cream-50 px-2.5 py-1.5">
+                  <li key={g.id} className="flex items-center gap-2 rounded-[0.625rem] bg-bersih-0 px-2.5 py-1.5">
                     {g.jenis === "bill" ? (
                       <IkonBill className="size-4 shrink-0 text-clay-700" />
                     ) : (
                       <IkonBel className="size-4 shrink-0 text-clay-700" />
                     )}
-                    <span className="flex-1 text-[0.75rem] font-bold text-ink-900">
+                    <span className="flex-1 text-[0.8125rem] font-bold text-tinta-900">
                       Meja {g.meja_nomor} · {g.jenis === "bill" ? "minta bill" : "panggil pelayan"}
                     </span>
-                    <span className="text-[0.6875rem] text-ink-500">{sejak(g.dibuat_at)}</span>
+                    <span className="text-[0.6875rem] text-tinta-500">{sejak(g.dibuat_at)}</span>
                     <button
                       type="button"
                       onClick={() => tanganiPanggilan(g.id)}
-                      className="h-8 rounded-md bg-forest-900 px-2.5 text-[0.6875rem] font-bold text-cream-50"
+                      className="h-8 rounded-[0.5rem] bg-tinta-900 px-2.5 text-[0.6875rem] font-bold text-bersih-0"
                     >
                       Sudah
                     </button>
@@ -506,19 +506,19 @@ export function PortalKasir() {
                     type="button"
                     onClick={() => setMejaPilih(aktif ? null : m.nomor)}
                     className={[
-                      "relative flex h-[4.25rem] w-full flex-col items-center justify-center rounded-lg border-2 transition",
+                      "relative flex h-[4.25rem] w-full flex-col items-center justify-center rounded-[0.625rem] border-2 transition",
                       aktif
-                        ? "border-ink-900 bg-ink-900 text-cream-50"
+                        ? "border-tinta-900 bg-tinta-900 text-bersih-0 shadow-[0_8px_20px_-12px_rgba(22,19,15,0.7)]"
                         : adaIsi
-                          ? "border-forest-700/40 bg-forest-900/8 text-ink-900"
-                          : "border-ink-900/10 bg-cream-50 text-ink-500",
+                          ? "border-transparent bg-daun-100 text-tinta-900"
+                          : "border-transparent bg-bersih-0 text-tinta-500 shadow-[0_1px_2px_rgba(22,19,15,0.05)]",
                     ].join(" ")}
                   >
-                    <span className="text-[1.0625rem] font-extrabold leading-none">{m.nomor}</span>
+                    <span className="text-[1.125rem] font-extrabold leading-none">{m.nomor}</span>
                     <span
                       className={[
-                        "mt-1 text-[0.5625rem] font-bold uppercase tracking-wide",
-                        aktif ? "text-cream-100/80" : "",
+                        "mt-1 text-[0.6875rem] font-bold uppercase tracking-wide",
+                        aktif ? "text-bersih-0/70" : "",
                       ].join(" ")}
                     >
                       {m.status === "kosong"
@@ -543,8 +543,8 @@ export function PortalKasir() {
                     {m.tagihan && m.status !== "kosong" && (
                       <span
                         className={[
-                          "mt-1 rounded px-0.5 text-[0.5625rem] font-bold leading-tight tabular-nums",
-                          aktif ? "text-cream-100/70" : "text-ink-500",
+                          "mt-1 rounded px-0.5 text-[0.6875rem] font-bold leading-tight tabular-nums",
+                          aktif ? "text-bersih-0/70" : "text-tinta-500",
                         ].join(" ")}
                       >
                         {rupiah(m.tagihan.total)}
@@ -563,22 +563,22 @@ export function PortalKasir() {
             hanya butuh sekejap — panel yang selalu terbuka akan mendorong
             denah meja ke bawah, padahal denah yang dipakai terus-menerus.
           */}
-          <div className="mt-3 rounded-xl border border-ink-900/12 bg-cream-50">
+          <div className="mt-3 rounded-[0.875rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0">
             <button
               type="button"
               onClick={() => setMenuHabisBuka((b) => !b)}
               aria-expanded={menuHabisBuka}
               className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
             >
-              <span className="flex-1 text-[0.75rem] font-extrabold text-ink-900">
+              <span className="flex-1 text-[0.8125rem] font-extrabold text-tinta-900">
                 Ketersediaan menu
               </span>
-              <span className="text-[0.6875rem] font-semibold text-ink-500">
+              <span className="text-[0.6875rem] font-semibold text-tinta-500">
                 {habis.length} habis
               </span>
               <span
                 className={[
-                  "text-ink-500 transition-transform",
+                  "text-tinta-500 transition-transform",
                   menuHabisBuka ? "rotate-180" : "",
                 ].join(" ")}
                 aria-hidden="true"
@@ -591,21 +591,21 @@ export function PortalKasir() {
                 tengah baris dan kasir harus menggulir untuk mencari menu
                 yang sedang ia cari. 14 menu muat tanpa gulir. */}
             {menuHabisBuka && (
-              <ul className="grid border-t border-ink-900/10 sm:grid-cols-2">
+              <ul className="grid border-t border-bersih-200 sm:grid-cols-2">
                 {menu.length === 0 ? (
-                  <li className="px-3 py-3 text-[0.75rem] text-ink-500">
+                  <li className="px-3 py-3 text-[0.8125rem] text-tinta-500">
                     Menu tidak terbaca dari database.
                   </li>
                 ) : (
                   menu.map((m) => (
                     <li
                       key={m.id}
-                      className="flex min-w-0 items-center gap-2 border-b border-ink-900/8 px-3 py-1.5 sm:odd:border-r"
+                      className="flex min-w-0 items-center gap-2 border-b border-bersih-200 px-3 py-1.5 sm:odd:border-r"
                     >
                       <span
                         className={[
-                          "min-w-0 flex-1 truncate text-[0.75rem]",
-                          m.tersedia ? "text-ink-900" : "text-ink-500 line-through",
+                          "min-w-0 flex-1 truncate text-[0.8125rem]",
+                          m.tersedia ? "text-tinta-900" : "text-tinta-500 line-through",
                         ].join(" ")}
                       >
                         {m.nama}
@@ -622,10 +622,10 @@ export function PortalKasir() {
                         onClick={() => setTersedia(m.id, !m.tersedia)}
                         disabled={menuSibuk === m.id}
                         className={[
-                          "flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[0.625rem] font-bold transition disabled:opacity-50",
+                          "flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[0.6875rem] font-bold transition disabled:opacity-50",
                           m.tersedia
-                            ? "bg-cream-200 text-ink-500"
-                            : "bg-clay-600 text-cream-50",
+                            ? "bg-bersih-50 text-tinta-500"
+                            : "bg-clay-700 text-bersih-0",
                         ].join(" ")}
                       >
                         {m.tersedia ? "Ada" : "Habis"}
@@ -639,16 +639,16 @@ export function PortalKasir() {
 
           {/* ── Detail tagihan meja terpilih ── */}
           {mejaTerpilih && (
-            <div className="mt-3 rounded-xl border border-ink-900/12 bg-cream-50 p-3">
+            <div className="mt-3 rounded-[0.875rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0 p-3">
               <div className="flex items-center gap-2">
-                <IkonMeja className="size-4 text-ink-500" />
-                <p className="flex-1 text-[0.875rem] font-extrabold text-ink-900">
+                <IkonMeja className="size-4 text-tinta-500" />
+                <p className="flex-1 text-[0.9375rem] font-extrabold text-tinta-900">
                   Meja {mejaTerpilih.nomor} · {mejaTerpilih.area}
                 </p>
                 <button
                   type="button"
                   onClick={() => setMejaPilih(null)}
-                  className="text-[0.6875rem] font-semibold text-ink-500"
+                  className="text-[0.6875rem] font-semibold text-tinta-500"
                 >
                   Tutup
                 </button>
@@ -662,7 +662,7 @@ export function PortalKasir() {
                   }
                 />
               ) : (
-                <p className="mt-2 text-[0.75rem] text-ink-500">
+                <p className="mt-2 text-[0.8125rem] text-tinta-500">
                   Belum ada tagihan terbuka untuk meja ini.
                 </p>
               )}
@@ -693,7 +693,7 @@ export function PortalKasir() {
       {struk && <Struk data={struk} onTutup={() => setStruk(null)} />}
 
       {data?.demo && (
-        <div className="border-t border-clay-600/20 bg-clay-600/8 px-4 py-2 sm:px-6">
+        <div className="border-t border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
           <p className="text-[0.6875rem] text-clay-800">
             <strong>Mode demo.</strong> Data pesanan tidak tersimpan permanen. Pasang
             SUPABASE_SERVICE_KEY di Vercel agar pesanan sungguhan tersimpan.
@@ -706,13 +706,13 @@ export function PortalKasir() {
 
 function StatusKecil({ status }: { status: string }) {
   const peta: Record<string, { t: string; c: string }> = {
-    diterima: { t: "Diterima", c: "bg-forest-900/12 text-forest-900" },
-    diproses: { t: "Diproses", c: "bg-clay-600/15 text-clay-800" },
-    siap: { t: "Siap", c: "bg-mint-600/18 text-mint-700" },
+    diterima: { t: "Diterima", c: "bg-daun-100 text-forest-700" },
+    diproses: { t: "Diproses", c: "bg-tanah-100 text-clay-800" },
+    siap: { t: "Siap", c: "bg-daun-100 text-forest-700" },
   };
-  const s = peta[status] ?? { t: status, c: "bg-ink-900/10 text-ink-700" };
+  const s = peta[status] ?? { t: status, c: "bg-bersih-100 text-tinta-700" };
   return (
-    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.625rem] font-bold ${s.c}`}>
+    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.6875rem] font-bold ${s.c}`}>
       {s.t}
     </span>
   );
@@ -721,17 +721,17 @@ function StatusKecil({ status }: { status: string }) {
 function RincianTagihan({ tagihan, onBayar }: { tagihan: Tagihan; onBayar: () => void }) {
   return (
     <>
-      <dl className="mt-2 space-y-1 text-[0.75rem]">
+      <dl className="mt-2 space-y-1 text-[0.8125rem]">
         <Baris k="Subtotal" v={rupiah(tagihan.subtotal)} />
         <Baris k="Biaya layanan" v={rupiah(tagihan.layanan)} />
         <Baris k="Pajak" v={rupiah(tagihan.pajak)} />
         {tagihan.pembulatan !== 0 && <Baris k="Pembulatan" v={rupiah(tagihan.pembulatan)} />}
       </dl>
-      <div className="mt-2 flex items-end justify-between border-t border-ink-900/10 pt-2">
-        <span className="text-[0.75rem] font-bold uppercase tracking-wider text-ink-500">
+      <div className="mt-2 flex items-end justify-between border-t border-bersih-200 pt-2">
+        <span className="text-[0.8125rem] font-bold uppercase tracking-wider text-tinta-500">
           Total
         </span>
-        <span className="text-[1.25rem] font-extrabold tabular-nums leading-none text-ink-900">
+        <span className="text-[1.125rem] font-extrabold tabular-nums leading-none text-tinta-900">
           {rupiah(tagihan.total)}
         </span>
       </div>
@@ -739,7 +739,7 @@ function RincianTagihan({ tagihan, onBayar }: { tagihan: Tagihan; onBayar: () =>
         type="button"
         onClick={onBayar}
         disabled={tagihan.total <= 0}
-        className="mt-2.5 h-12 w-full rounded-lg bg-forest-900 text-[0.8125rem] font-extrabold text-cream-50 disabled:opacity-40"
+        className="mt-2.5 h-12 w-full rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 disabled:opacity-40"
       >
         Terima pembayaran
       </button>
@@ -750,8 +750,8 @@ function RincianTagihan({ tagihan, onBayar }: { tagihan: Tagihan; onBayar: () =>
 function Baris({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between">
-      <dt className="text-ink-500">{k}</dt>
-      <dd className="font-semibold tabular-nums text-ink-900">{v}</dd>
+      <dt className="text-tinta-500">{k}</dt>
+      <dd className="font-semibold tabular-nums text-tinta-900">{v}</dd>
     </div>
   );
 }
@@ -823,34 +823,34 @@ function DialogBayar({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink-900/50 p-4">
-      <div className="w-full max-w-md rounded-xl bg-cream-50 p-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-tinta-900/50 p-4">
+      <div className="w-full max-w-md rounded-[0.875rem] bg-bersih-0 p-4 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-[1rem] font-extrabold text-ink-900">Pembayaran meja {meja}</h3>
-            <p className="text-[0.75rem] text-ink-500">Pembayaran dilakukan setelah makan.</p>
+            <h3 className="text-[1.0625rem] font-extrabold text-tinta-900">Pembayaran meja {meja}</h3>
+            <p className="text-[0.8125rem] text-tinta-500">Pembayaran dilakukan setelah makan.</p>
           </div>
           <button
             type="button"
             onClick={onTutup}
-            className="grid size-9 shrink-0 place-items-center rounded-lg border border-ink-900/15 text-ink-700"
+            className="grid size-9 shrink-0 place-items-center rounded-[0.625rem] border border-bersih-200 text-tinta-700"
             aria-label="Tutup"
           >
             <IkonSilang className="size-4" />
           </button>
         </div>
 
-        <div className="mt-3 rounded-lg bg-cream-100 p-3">
-          <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-ink-500">
+        <div className="mt-3 rounded-[0.625rem] bg-bersih-100 p-3">
+          <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
             Total tagihan
           </p>
-          <p className="text-[1.75rem] font-extrabold tabular-nums leading-none text-ink-900">
+          <p className="text-[1.875rem] font-extrabold tabular-nums leading-none text-tinta-900">
             {rupiah(tagihan.total)}
           </p>
         </div>
 
         <div className="mt-3">
-          <p className="mb-1.5 text-[0.6875rem] font-bold uppercase tracking-wider text-ink-500">
+          <p className="mb-1.5 text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
             Metode
           </p>
           <div className="grid grid-cols-3 gap-1.5">
@@ -866,10 +866,10 @@ function DialogBayar({
                 type="button"
                 onClick={() => setMetode(v)}
                 className={[
-                  "h-11 rounded-lg text-[0.75rem] font-bold transition",
+                  "h-11 rounded-[0.625rem] text-[0.8125rem] font-bold transition",
                   metode === v
-                    ? "bg-ink-900 text-cream-50"
-                    : "border border-ink-900/15 bg-cream-100 text-ink-700",
+                    ? "bg-tinta-900 text-bersih-0"
+                    : "border border-bersih-200 bg-bersih-100 text-tinta-700",
                 ].join(" ")}
               >
                 {t}
@@ -881,14 +881,14 @@ function DialogBayar({
         {metode === "tunai" && (
           <>
             <div className="mt-3">
-              <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wider text-ink-500">
+              <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
                 Uang diterima
               </label>
               <input
                 value={diterima}
                 onChange={(e) => setDiterima(e.target.value.replace(/\D/g, ""))}
                 inputMode="numeric"
-                className="h-12 w-full rounded-lg border border-ink-900/15 bg-cream-100 px-3 text-[1.0625rem] font-extrabold tabular-nums text-ink-900 outline-none focus:border-forest-700"
+                className="h-12 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[1.125rem] font-extrabold tabular-nums text-tinta-900 outline-none focus:border-forest-700"
               />
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {cepat.map((v) => (
@@ -896,7 +896,7 @@ function DialogBayar({
                     key={v}
                     type="button"
                     onClick={() => setDiterima(String(v))}
-                    className="h-9 rounded-md border border-ink-900/15 bg-cream-100 px-2.5 text-[0.6875rem] font-bold tabular-nums text-ink-700"
+                    className="h-9 rounded-[0.5rem] border border-bersih-200 bg-bersih-100 px-2.5 text-[0.6875rem] font-bold tabular-nums text-tinta-700"
                   >
                     {v === tagihan.total ? "Uang pas" : rupiah(v)}
                   </button>
@@ -904,9 +904,9 @@ function DialogBayar({
               </div>
             </div>
 
-            <div className="mt-2 flex items-center justify-between rounded-lg bg-forest-900/8 px-3 py-2">
-              <span className="text-[0.75rem] font-bold text-ink-700">Kembalian</span>
-              <span className="text-[1rem] font-extrabold tabular-nums text-forest-900">
+            <div className="mt-2 flex items-center justify-between rounded-[0.625rem] bg-daun-100 px-3 py-2">
+              <span className="text-[0.8125rem] font-bold text-tinta-700">Kembalian</span>
+              <span className="text-[1.0625rem] font-extrabold tabular-nums text-forest-700">
                 {rupiah(kembalian)}
               </span>
             </div>
@@ -914,18 +914,18 @@ function DialogBayar({
         )}
 
         <div className="mt-3">
-          <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wider text-ink-500">
+          <label className="mb-1.5 block text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
             Nama kasir
           </label>
           <input
             value={kasir}
             onChange={(e) => setKasir(e.target.value.slice(0, 40))}
-            className="h-10 w-full rounded-lg border border-ink-900/15 bg-cream-100 px-3 text-[0.75rem] text-ink-900 outline-none focus:border-forest-700"
+            className="h-10 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[0.8125rem] text-tinta-900 outline-none focus:border-forest-700"
           />
         </div>
 
         {galat && (
-          <p className="mt-2 rounded-lg bg-clay-600/12 px-3 py-2 text-[0.75rem] font-semibold text-clay-800">
+          <p className="mt-2 rounded-[0.625rem] bg-clay-700/12 px-3 py-2 text-[0.8125rem] font-semibold text-clay-800">
             {galat}
           </p>
         )}
@@ -934,7 +934,7 @@ function DialogBayar({
           type="button"
           onClick={kirim}
           disabled={!cukup || proses}
-          className="mt-3 h-12 w-full rounded-lg bg-forest-900 text-[0.8125rem] font-extrabold text-cream-50 disabled:opacity-40"
+          className="mt-3 h-12 w-full rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 disabled:opacity-40"
         >
           {proses ? "Menyimpan…" : cukup ? `Bayar ${rupiah(tagihan.total)}` : "Nominal kurang"}
         </button>
@@ -957,23 +957,23 @@ function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink-900/50 p-4">
-      <div className="w-full max-w-xs rounded-xl bg-cream-50 p-4 shadow-2xl">
-        <div className="border-b border-dashed border-ink-900/25 pb-2 text-center">
-          <p className="text-[0.8125rem] font-extrabold text-ink-900">Nabawi Cafe &amp; Resto</p>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-tinta-900/50 p-4">
+      <div className="w-full max-w-xs rounded-[0.875rem] bg-bersih-0 p-4 shadow-2xl">
+        <div className="border-b border-dashed border-bersih-200 pb-2 text-center">
+          <p className="text-[0.9375rem] font-extrabold text-tinta-900">Nabawi Cafe &amp; Resto</p>
           {/*
             Alamat wajib ada di struk (PRD bagian 11). Sebelumnya baris ini
             berisi teks pemasaran "berkonsep Maroko · riverside view" — tidak
             berguna bagi tamu yang membawa pulang struk dan ingin tahu ini
             tagihan tempat mana.
           */}
-          <p className="text-[0.625rem] leading-tight text-ink-500">{ALAMAT_STRUK}</p>
+          <p className="text-[0.6875rem] leading-tight text-tinta-500">{ALAMAT_STRUK}</p>
         </div>
 
-        <div className="mt-2 space-y-0.5 font-mono text-[0.6875rem] text-ink-700">
+        <div className="mt-2 space-y-0.5 font-mono text-[0.6875rem] text-tinta-700">
           <div className="flex justify-between">
             <span>Meja</span>
-            <span className="font-bold text-ink-900">{data.meja}</span>
+            <span className="font-bold text-tinta-900">{data.meja}</span>
           </div>
           <div className="flex justify-between">
             <span>Waktu</span>
@@ -985,7 +985,7 @@ function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
           </div>
         </div>
 
-        <div className="my-2 border-t border-dashed border-ink-900/25" />
+        <div className="my-2 border-t border-dashed border-bersih-200" />
 
         {/*
           Daftar item (PRD bagian 11): nama, jumlah, harga satuan, harga
@@ -995,15 +995,15 @@ function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
         */}
         <ul className="space-y-1 font-mono text-[0.6875rem]">
           {data.items.length === 0 ? (
-            <li className="text-ink-500">Tidak ada item tercatat.</li>
+            <li className="text-tinta-500">Tidak ada item tercatat.</li>
           ) : (
             data.items.map((i) => (
               <li key={`${i.nama}-${i.harga_satuan}-${(i.pilihan ?? []).map((p) => p.nama).sort().join(",")}`}>
                 <div className="flex justify-between gap-2">
-                  <span className="min-w-0 flex-1 break-words text-ink-900">
+                  <span className="min-w-0 flex-1 break-words text-tinta-900">
                     {i.jumlah}× {i.nama}
                   </span>
-                  <span className="shrink-0 tabular-nums text-ink-900">
+                  <span className="shrink-0 tabular-nums text-tinta-900">
                     {rupiah(i.harga_baris)}
                   </span>
                 </div>
@@ -1013,7 +1013,7 @@ function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
                   dan kasir tidak punya dasar untuk membela dapur.
                 */}
                 {Array.isArray(i.pilihan) && i.pilihan.length > 0 && (
-                  <div className="pl-3 text-[0.625rem] font-bold uppercase tracking-wide text-ink-700">
+                  <div className="pl-3 text-[0.6875rem] font-bold uppercase tracking-wide text-tinta-700">
                     {i.pilihan.map((p) => p.nama).join(" · ")}
                   </div>
                 )}
@@ -1023,7 +1023,7 @@ function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
                   hanya menambah baris yang harus dibaca.
                 */}
                 {i.jumlah > 1 && (
-                  <div className="pl-3 text-[0.625rem] text-ink-500">
+                  <div className="pl-3 text-[0.6875rem] text-tinta-500">
                     @ {rupiah(i.harga_satuan)}
                   </div>
                 )}
@@ -1032,60 +1032,60 @@ function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
           )}
         </ul>
 
-        <div className="my-2 border-t border-dashed border-ink-900/25" />
+        <div className="my-2 border-t border-dashed border-bersih-200" />
 
         <dl className="space-y-1 font-mono text-[0.6875rem]">
           <div className="flex justify-between">
-            <dt className="text-ink-500">Subtotal</dt>
-            <dd className="tabular-nums text-ink-900">{rupiah(data.tagihan.subtotal)}</dd>
+            <dt className="text-tinta-500">Subtotal</dt>
+            <dd className="tabular-nums text-tinta-900">{rupiah(data.tagihan.subtotal)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">
+            <dt className="text-tinta-500">
               Biaya layanan
               {data.layananPersen > 0 ? ` ${data.layananPersen}%` : ""}
             </dt>
-            <dd className="tabular-nums text-ink-900">{rupiah(data.tagihan.layanan)}</dd>
+            <dd className="tabular-nums text-tinta-900">{rupiah(data.tagihan.layanan)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">
+            <dt className="text-tinta-500">
               Pajak{data.pajakPersen > 0 ? ` ${data.pajakPersen}%` : ""}
             </dt>
-            <dd className="tabular-nums text-ink-900">{rupiah(data.tagihan.pajak)}</dd>
+            <dd className="tabular-nums text-tinta-900">{rupiah(data.tagihan.pajak)}</dd>
           </div>
           {data.tagihan.pembulatan !== 0 && (
             <div className="flex justify-between">
-              <dt className="text-ink-500">Pembulatan</dt>
-              <dd className="tabular-nums text-ink-900">{rupiah(data.tagihan.pembulatan)}</dd>
+              <dt className="text-tinta-500">Pembulatan</dt>
+              <dd className="tabular-nums text-tinta-900">{rupiah(data.tagihan.pembulatan)}</dd>
             </div>
           )}
-          <div className="flex justify-between border-t border-ink-900/20 pt-1">
-            <dt className="font-bold text-ink-900">TOTAL</dt>
-            <dd className="text-[0.875rem] font-extrabold tabular-nums text-ink-900">
+          <div className="flex justify-between border-t border-bersih-200 pt-1">
+            <dt className="font-bold text-tinta-900">TOTAL</dt>
+            <dd className="text-[0.9375rem] font-extrabold tabular-nums text-tinta-900">
               {rupiah(data.tagihan.total)}
             </dd>
           </div>
         </dl>
 
-        <div className="my-2 border-t border-dashed border-ink-900/25" />
+        <div className="my-2 border-t border-dashed border-bersih-200" />
 
         <dl className="space-y-1 font-mono text-[0.6875rem]">
           <div className="flex justify-between">
-            <dt className="text-ink-500">Bayar</dt>
-            <dd className="tabular-nums text-ink-900">{labelMetode[data.metode]}</dd>
+            <dt className="text-tinta-500">Bayar</dt>
+            <dd className="tabular-nums text-tinta-900">{labelMetode[data.metode]}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Diterima</dt>
-            <dd className="tabular-nums text-ink-900">{rupiah(data.diterima)}</dd>
+            <dt className="text-tinta-500">Diterima</dt>
+            <dd className="tabular-nums text-tinta-900">{rupiah(data.diterima)}</dd>
           </div>
           {data.kembalian > 0 && (
             <div className="flex justify-between">
-              <dt className="text-ink-500">Kembalian</dt>
-              <dd className="tabular-nums text-ink-900">{rupiah(data.kembalian)}</dd>
+              <dt className="text-tinta-500">Kembalian</dt>
+              <dd className="tabular-nums text-tinta-900">{rupiah(data.kembalian)}</dd>
             </div>
           )}
         </dl>
 
-        <p className="mt-3 border-t border-dashed border-ink-900/25 pt-2 text-center text-[0.625rem] text-ink-500">
+        <p className="mt-3 border-t border-dashed border-bersih-200 pt-2 text-center text-[0.6875rem] text-tinta-500">
           Terima kasih. Meja sudah ditutup.
         </p>
 
@@ -1093,14 +1093,14 @@ function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
           <button
             type="button"
             onClick={() => window.print()}
-            className="h-10 flex-1 rounded-lg border border-ink-900/15 text-[0.75rem] font-bold text-ink-900"
+            className="h-10 flex-1 rounded-[0.625rem] border border-bersih-200 text-[0.8125rem] font-bold text-tinta-900"
           >
             Cetak
           </button>
           <button
             type="button"
             onClick={onTutup}
-            className="h-10 flex-1 rounded-lg bg-ink-900 text-[0.75rem] font-bold text-cream-50"
+            className="h-10 flex-1 rounded-[0.625rem] bg-tinta-900 text-[0.8125rem] font-bold text-bersih-0"
           >
             Selesai
           </button>
