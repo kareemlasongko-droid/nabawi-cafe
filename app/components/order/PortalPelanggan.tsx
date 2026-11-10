@@ -406,14 +406,14 @@ export function PortalPelanggan({
   );
 
   return (
-    <div className="min-h-dvh bg-cream-200">
+    <div className="min-h-dvh bg-bersih-50">
       {/* ── Kepala: nomor meja adalah informasi terpenting di layar ini ──
           Kalau salah meja, seluruh pesanan salah antar. Karena itu nomor
           meja ditaruh paling atas, besar, dan area-nya ikut disebut. */}
-      <header className="sticky top-0 z-30 border-b border-ink-900/10 bg-cream-50/95 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/95 backdrop-blur">
         <div className="mx-auto flex max-w-[45rem] items-center gap-3 px-4 py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-forest-900 text-cream-50">
+            <span className="grid size-11 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-bersih-0">
               <span className="text-[1.0625rem] font-extrabold leading-none">{mejaNomor}</span>
             </span>
             {/*
@@ -432,10 +432,10 @@ export function PortalPelanggan({
               memastikan ia membuka meja yang benar.
             */}
             <div className="min-w-0">
-              <p className="truncate text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-ink-500">
+              <p className="truncate text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-tinta-500">
                 Meja {mejaNomor}
               </p>
-              <p className="truncate text-[0.9375rem] font-extrabold capitalize leading-tight text-ink-900">
+              <p className="truncate text-[0.9375rem] font-extrabold capitalize leading-tight text-tinta-900">
                 {mejaArea}
               </p>
             </div>
@@ -445,7 +445,7 @@ export function PortalPelanggan({
             <button
               type="button"
               onClick={() => panggil("pelayan")}
-              className="flex h-11 items-center gap-1.5 rounded-xl border border-ink-900/15 px-2.5 text-[0.75rem] font-bold text-ink-900 transition active:scale-[0.97]"
+              className="flex h-11 items-center gap-1.5 rounded-[0.625rem] border border-bersih-300 px-2.5 text-[0.8125rem] font-semibold text-tinta-900 transition active:scale-[0.97] active:bg-bersih-100"
               title="Panggil pelayan ke meja"
             >
               <IkonBel className="size-4" />
@@ -454,7 +454,7 @@ export function PortalPelanggan({
             <button
               type="button"
               onClick={() => panggil("bill")}
-              className="flex h-11 items-center gap-1.5 rounded-xl bg-forest-900 px-3 text-[0.75rem] font-bold text-cream-50 transition active:scale-[0.97]"
+              className="flex h-11 items-center gap-1.5 rounded-[0.625rem] bg-aksi-500 px-3 text-[0.8125rem] font-bold text-bersih-0 transition active:scale-[0.97] active:bg-aksi-600"
             >
               <IkonBill className="size-4" />
               Minta bill
@@ -466,14 +466,14 @@ export function PortalPelanggan({
             memilih menu — bukan setelah menekan Kirim (P-12). */}
         {!bukaSekarang && (
           <div className="border-t border-clay-600/20 bg-clay-600/10 px-4 py-2">
-            <p className="mx-auto max-w-[45rem] text-[0.75rem] font-semibold leading-snug text-clay-800">
+            <p className="mx-auto max-w-[45rem] text-[0.8125rem] font-semibold leading-snug text-clay-800">
               {alasanTutup} Pesanan belum bisa dikirim.
             </p>
           </div>
         )}
         {demo && (
-          <div className="border-t border-ink-900/10 bg-ink-900/5 px-4 py-1.5">
-            <p className="mx-auto max-w-[45rem] text-[0.6875rem] leading-snug text-ink-500">
+          <div className="border-t border-bersih-200 bg-bersih-100 px-4 py-1.5">
+            <p className="mx-auto max-w-[45rem] text-[0.6875rem] leading-snug text-tinta-500">
               Mode demo: pesanan tidak tersimpan permanen.
             </p>
           </div>
@@ -509,7 +509,7 @@ export function PortalPelanggan({
             Pelanggan yang belum memesan tidak melihat bagian ini sama sekali. */}
         {pesananSaya.length > 0 && (
           <section className="mt-4" aria-live="polite">
-            <h2 className="mb-2 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-ink-500">
+            <h2 className="mb-2 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-tinta-500">
               Pesanan Anda
             </h2>
             <div className="space-y-2">
@@ -520,19 +520,19 @@ export function PortalPelanggan({
                   <div
                     key={p.id}
                     className={[
-                      "rounded-xl border px-3 py-2.5",
+                      "rounded-[0.625rem] border px-3 py-2.5",
                       selesai
-                        ? "border-ink-900/10 bg-cream-100"
-                        : "border-forest-700/30 bg-forest-900/[0.06]",
+                        ? "border-bersih-200 bg-bersih-100"
+                        : "border-forest-700/30 bg-tinta-900/[0.06]",
                     ].join(" ")}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-[0.8125rem] font-extrabold text-ink-900">{l.judul}</p>
-                      <span className="shrink-0 font-mono text-[0.6875rem] text-ink-500">
+                      <p className="text-[0.8125rem] font-extrabold text-tinta-900">{l.judul}</p>
+                      <span className="shrink-0 font-mono text-[0.6875rem] text-tinta-500">
                         {p.nomor}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-[0.75rem] leading-snug text-ink-500">
+                    <p className="mt-0.5 text-[0.8125rem] leading-snug text-tinta-500">
                       {l.detail} · {p.total_item} item
                     </p>
                   </div>
@@ -546,14 +546,14 @@ export function PortalPelanggan({
             Kategori dibuat baris yang bisa digeser horizontal, bukan grid
             kartu: pelanggan memakai satu tangan, dan baris di bawah ibu jari
             lebih mudah dijangkau daripada grid dua kolom di tengah layar. */}
-        <div className="sticky top-[4.25rem] z-20 -mx-4 mt-4 bg-cream-200/95 px-4 py-2 backdrop-blur">
-          <label className="flex h-11 items-center gap-2 rounded-xl border border-ink-900/15 bg-cream-50 px-3">
-            <IkonCari className="size-4 shrink-0 text-ink-500" />
+        <div className="sticky top-[4.25rem] z-20 -mx-4 mt-4 bg-bersih-50/95 px-4 py-2 backdrop-blur">
+          <label className="flex h-11 items-center gap-2 rounded-[0.625rem] border border-bersih-200 bg-bersih-0 px-3">
+            <IkonCari className="size-4 shrink-0 text-tinta-500" />
             <input
               value={cari}
               onChange={(e) => setCari(e.target.value)}
               placeholder="Cari menu"
-              className="w-full bg-transparent text-[0.8125rem] text-ink-900 outline-none placeholder:text-ink-500/70"
+              className="w-full bg-transparent text-[0.8125rem] text-tinta-900 outline-none placeholder:text-tinta-500/70"
               inputMode="search"
             />
             {cari && (
@@ -561,7 +561,7 @@ export function PortalPelanggan({
                 type="button"
                 onClick={() => setCari("")}
                 aria-label="Hapus pencarian"
-                className="grid size-6 place-items-center rounded-full bg-ink-900/10 text-ink-700"
+                className="grid size-6 place-items-center rounded-full bg-bersih-200 text-tinta-700"
               >
                 <IkonKurang className="size-3" />
               </button>
@@ -587,7 +587,7 @@ export function PortalPelanggan({
               mengira hanya kategori yang terlihat saja yang ada. */}
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-cream-200 to-transparent"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-bersih-50 to-transparent"
           />
           </div>
         </div>
@@ -598,13 +598,13 @@ export function PortalPelanggan({
           if (isi.length === 0) return null;
           return (
             <section key={k.id} className="mt-5">
-              <h2 className="mb-2 flex items-baseline gap-2 text-[0.9375rem] font-extrabold text-ink-900">
+              <h2 className="mb-2 flex items-baseline gap-2 text-[0.9375rem] font-extrabold text-tinta-900">
                 {k.nama}
-                <span className="text-[0.6875rem] font-semibold text-ink-500">
+                <span className="text-[0.6875rem] font-semibold text-tinta-500">
                   {isi.length} menu
                 </span>
               </h2>
-              <ul className="divide-y divide-ink-900/8 overflow-hidden rounded-2xl border border-ink-900/10 bg-cream-50">
+              <ul className="divide-y divide-bersih-100 overflow-hidden rounded-[0.875rem] bg-bersih-0 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.16)]">
                 {isi.map((m) => {
                   const opsi = opsiDari(m);
                   /*
@@ -624,7 +624,7 @@ export function PortalPelanggan({
                       {/* Foto kecil 64px. Bukan hiasan: pelanggan memilih
                           dengan mata, dan sebagian nama menu Maroko tidak
                           dikenal. Ukuran dijaga kecil supaya hemat sinyal. */}
-                      <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-cream-300">
+                      <div className="relative size-16 shrink-0 overflow-hidden rounded-[0.875rem] bg-bersih-100">
                         {m.foto_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -634,31 +634,31 @@ export function PortalPelanggan({
                             className="size-full object-cover"
                           />
                         ) : (
-                          <span className="grid size-full place-items-center text-[0.625rem] font-bold uppercase tracking-wider text-ink-500">
+                          <span className="grid size-full place-items-center text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
                             {m.nama.slice(0, 2)}
                           </span>
                         )}
                         {habis && (
-                          <span className="absolute inset-0 grid place-items-center bg-ink-900/55 text-[0.5625rem] font-bold uppercase tracking-wider text-cream-50">
+                          <span className="absolute inset-0 grid place-items-center bg-tinta-900/60 text-[0.6875rem] font-bold uppercase tracking-wider text-bersih-0">
                             Habis
                           </span>
                         )}
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-[0.875rem] font-extrabold leading-tight text-ink-900">
+                        <p className="text-[0.9375rem] font-extrabold leading-tight text-tinta-900">
                           {m.nama}
                         </p>
                         {/* Deskripsi satu baris (PRD P-03). Dua baris membuat
                             satu layar hanya memuat 4 menu, padahal pelanggan
                             perlu melihat lebih banyak untuk memutuskan. */}
-                        <p className="mt-0.5 line-clamp-2 text-[0.75rem] leading-snug text-ink-500">
+                        <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-snug text-tinta-500">
                           {m.deskripsi}
                         </p>
-                        <p className="mt-1 text-[0.8125rem] font-bold text-ink-900">
+                        <p className="mt-1 text-[0.8125rem] font-bold text-tinta-900">
                           {rupiah(m.harga)}
                           {opsi.some((p) => p.tambah > 0) && (
-                            <span className="ml-1 text-[0.625rem] font-semibold text-ink-500">
+                            <span className="ml-1 text-[0.6875rem] font-semibold text-tinta-500">
                               + pilihan
                             </span>
                           )}
@@ -666,27 +666,27 @@ export function PortalPelanggan({
                       </div>
 
                       {habis ? (
-                        <span className="shrink-0 self-center text-[0.6875rem] font-semibold text-ink-500">
+                        <span className="shrink-0 self-center text-[0.6875rem] font-semibold text-tinta-500">
                           Habis
                         </span>
                       ) : diKeranjang ? (
-                        <div className="flex shrink-0 items-center gap-1 self-center rounded-lg border border-ink-900/15 bg-cream-100 p-0.5">
+                        <div className="flex shrink-0 items-center gap-1 self-center rounded-[0.625rem] border border-bersih-200 bg-bersih-100 p-0.5">
                           <button
                             type="button"
                             onClick={() => ubahJumlah(kunciPertama, -1)}
                             aria-label={`Kurangi ${m.nama}`}
-                            className="grid size-9 place-items-center rounded-md text-ink-900 transition active:bg-cream-300"
+                            className="grid size-9 place-items-center rounded-[0.625rem] text-tinta-900 transition active:bg-bersih-200"
                           >
                             <IkonKurang />
                           </button>
-                          <span className="min-w-5 text-center text-[0.8125rem] font-extrabold text-ink-900">
+                          <span className="min-w-5 text-center text-[0.8125rem] font-extrabold text-tinta-900">
                             {diKeranjang.jumlah}
                           </span>
                           <button
                             type="button"
                             onClick={() => ubahJumlah(kunciPertama, 1)}
                             aria-label={`Tambah ${m.nama}`}
-                            className="grid size-9 place-items-center rounded-md text-ink-900 transition active:bg-cream-300"
+                            className="grid size-9 place-items-center rounded-[0.625rem] text-tinta-900 transition active:bg-bersih-200"
                           >
                             <IkonTambah />
                           </button>
@@ -701,7 +701,7 @@ export function PortalPelanggan({
                               ? `Pilih ${m.nama}`
                               : `Tambah ${m.nama} ke keranjang`
                           }
-                          className="grid size-11 shrink-0 self-center place-items-center rounded-xl bg-forest-900 text-cream-50 transition active:scale-95 disabled:opacity-40"
+                          className="grid size-11 shrink-0 self-center place-items-center rounded-[0.625rem] bg-tinta-900 text-bersih-0 transition active:scale-95 disabled:opacity-40"
                         >
                           {opsi.length > 0 ? (
                             <span className="px-2 text-[0.6875rem] font-bold">Pilih</span>
@@ -719,15 +719,15 @@ export function PortalPelanggan({
         })}
 
         {daftar.length === 0 && (
-          <p className="mt-10 text-center text-[0.8125rem] text-ink-500">
+          <p className="mt-10 text-center text-[0.8125rem] text-tinta-500">
             Tidak ada menu yang cocok dengan &ldquo;{cari}&rdquo;.
           </p>
         )}
 
         {/* ── Catatan tambahan: jam buka & info, diletakkan di akhir
              supaya tidak menghalangi menu. */}
-        <footer className="mt-8 border-t border-ink-900/10 pt-4">
-          <p className="text-[0.6875rem] leading-relaxed text-ink-500">
+        <footer className="mt-8 border-t border-bersih-200 pt-4">
+          <p className="text-[0.6875rem] leading-relaxed text-tinta-500">
             Buka setiap hari {jamHariIni}. Pembayaran di kasir setelah makan.
             Harga belum termasuk pajak dan biaya layanan.
           </p>
@@ -739,21 +739,21 @@ export function PortalPelanggan({
           untuk iPhone berponi. Satu tombol besar: seluruh bilah adalah tombol
           buka keranjang, jadi tidak ada ketukan meleset. */}
       {totalItem > 0 && !bukaKeranjang && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-900/10 bg-cream-50/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-bersih-200 bg-bersih-0/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
           <div className="mx-auto max-w-[45rem]">
             <button
               type="button"
               onClick={() => setBukaKeranjang(true)}
-              className="flex h-14 w-full items-center gap-3 rounded-xl bg-forest-900 px-4 text-cream-50 transition active:scale-[0.99]"
+              className="flex h-14 w-full items-center gap-3 rounded-[0.625rem] bg-tinta-900 px-4 text-bersih-0 shadow-[0_8px_24px_-12px_rgba(22,19,15,0.6)] transition active:scale-[0.99]"
             >
-              <span className="grid size-9 place-items-center rounded-lg bg-cream-50/15">
+              <span className="grid size-9 place-items-center rounded-[0.625rem] bg-bersih-0/15">
                 <IkonKeranjang className="size-4.5" />
               </span>
               <span className="flex-1 text-left">
                 <span className="block text-[0.8125rem] font-extrabold leading-tight">
                   Lihat keranjang · {totalItem} item
                 </span>
-                <span className="block text-[0.6875rem] leading-tight text-cream-100/80">
+                <span className="block text-[0.6875rem] leading-tight text-bersih-200">
                   {rupiah(rincian.total)} termasuk pajak
                 </span>
               </span>
@@ -770,19 +770,19 @@ export function PortalPelanggan({
           menerima pesanan tanpa saus — persis masalah yang diperbaiki di
           sini. Muncul sebagai lembar bawah supaya jangkauan ibu jari. */}
       {pilihUntuk && (
-        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-ink-900/45">
+        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-tinta-900/40">
           <button
             type="button"
             aria-label="Tutup pilihan"
             onClick={() => setPilihUntuk(null)}
             className="flex-1"
           />
-          <div className="rounded-t-2xl bg-cream-50 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
+          <div className="rounded-t-[1.25rem] bg-bersih-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
             <div className="mx-auto max-w-[45rem]">
-              <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-ink-500">
+              <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-tinta-500">
                 Pilih salah satu
               </p>
-              <h2 className="mt-1 text-[1rem] font-extrabold text-ink-900">{pilihUntuk.nama}</h2>
+              <h2 className="mt-1 text-[1rem] font-extrabold text-tinta-900">{pilihUntuk.nama}</h2>
               <div className="mt-3 space-y-2">
                 {opsiDari(pilihUntuk).map((p) => (
                   <button
@@ -792,10 +792,10 @@ export function PortalPelanggan({
                       tambah(pilihUntuk, [p]);
                       setPilihUntuk(null);
                     }}
-                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-ink-900/15 bg-cream-100 px-3 py-3 text-left transition active:bg-cream-200"
+                    className="flex w-full items-center justify-between gap-3 rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 py-3 text-left transition active:bg-bersih-50"
                   >
-                    <span className="text-[0.875rem] font-bold text-ink-900">{p.nama}</span>
-                    <span className="shrink-0 text-[0.75rem] font-semibold text-ink-700">
+                    <span className="text-[0.9375rem] font-bold text-tinta-900">{p.nama}</span>
+                    <span className="shrink-0 text-[0.8125rem] font-semibold text-tinta-700">
                       {p.tambah > 0 ? `+${rupiah(p.tambah)}` : "Gratis"}
                     </span>
                   </button>
@@ -804,7 +804,7 @@ export function PortalPelanggan({
               <button
                 type="button"
                 onClick={() => setPilihUntuk(null)}
-                className="mt-3 h-11 w-full rounded-xl border border-ink-900/15 text-[0.8125rem] font-bold text-ink-700 active:bg-cream-100"
+                className="mt-3 h-11 w-full rounded-[0.625rem] border border-bersih-200 text-[0.8125rem] font-bold text-tinta-700 active:bg-bersih-100"
               >
                 Batal
               </button>
@@ -815,36 +815,36 @@ export function PortalPelanggan({
 
       {/* ── Lembar keranjang ── */}
       {bukaKeranjang && (
-        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-ink-900/45">
+        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-tinta-900/40">
           <button
             type="button"
             aria-label="Tutup keranjang"
             onClick={() => setBukaKeranjang(false)}
             className="flex-1"
           />
-          <div className="max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-cream-50 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(20,35,26,0.28)]">
-            <div className="sticky top-0 flex items-center gap-2 border-b border-ink-900/10 bg-cream-50 px-4 py-3">
+          <div className="max-h-[88dvh] overflow-y-auto rounded-t-[1.25rem] bg-bersih-0 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(22,19,15,0.24)]">
+            <div className="sticky top-0 flex items-center gap-2 border-b border-bersih-200 bg-bersih-0 px-4 py-3">
               <button
                 type="button"
                 onClick={() => setBukaKeranjang(false)}
-                className="grid size-9 place-items-center rounded-lg border border-ink-900/15 text-ink-900"
+                className="grid size-9 place-items-center rounded-[0.625rem] border border-bersih-200 text-tinta-900"
                 aria-label="Kembali ke menu"
               >
                 <IkonKiri />
               </button>
-              <h2 className="flex-1 text-[0.9375rem] font-extrabold text-ink-900">Keranjang</h2>
-              <span className="text-[0.6875rem] font-semibold text-ink-500">
+              <h2 className="flex-1 text-[0.9375rem] font-extrabold text-tinta-900">Keranjang</h2>
+              <span className="text-[0.6875rem] font-semibold text-tinta-500">
                 Meja {mejaNomor}
               </span>
             </div>
 
             <div className="px-4">
               {keranjang.length === 0 ? (
-                <p className="py-10 text-center text-[0.8125rem] text-ink-500">
+                <p className="py-10 text-center text-[0.8125rem] text-tinta-500">
                   Keranjang kosong. Pilih menu dulu.
                 </p>
               ) : (
-                <ul className="divide-y divide-ink-900/8">
+                <ul className="divide-y divide-bersih-100">
                   {keranjang.map((b) => {
                     /*
                       Harga satuan sudah termasuk tambahan pilihan. Menampilkan
@@ -857,26 +857,26 @@ export function PortalPelanggan({
                     <li key={kunci} className="py-3">
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[0.875rem] font-bold text-ink-900">{b.menu.nama}</p>
+                          <p className="text-[0.9375rem] font-bold text-tinta-900">{b.menu.nama}</p>
                           {b.pilihan.length > 0 && (
-                            <p className="mt-0.5 text-[0.75rem] font-semibold text-clay-700">
+                            <p className="mt-0.5 text-[0.8125rem] font-semibold text-clay-700">
                               {b.pilihan
                                 .map((p) => (p.tambah > 0 ? `${p.nama} (+${rupiah(p.tambah)})` : p.nama))
                                 .join(", ")}
                             </p>
                           )}
-                          <p className="text-[0.75rem] text-ink-500">
+                          <p className="text-[0.8125rem] text-tinta-500">
                             {rupiah(satuan)} × {b.jumlah} ={" "}
-                            <span className="font-bold text-ink-900">
+                            <span className="font-bold text-tinta-900">
                               {rupiah(satuan * b.jumlah)}
                             </span>
                           </p>
                         </div>
-                        <div className="flex items-center gap-1 rounded-lg border border-ink-900/15 p-0.5">
+                        <div className="flex items-center gap-1 rounded-[0.625rem] border border-bersih-200 p-0.5">
                           <button
                             type="button"
                             onClick={() => ubahJumlah(kunci, -1)}
-                            className="grid size-8 place-items-center rounded-md active:bg-cream-200"
+                            className="grid size-8 place-items-center rounded-[0.625rem] active:bg-bersih-50"
                             aria-label={`Kurangi ${b.menu.nama}`}
                           >
                             <IkonKurang className="size-3.5" />
@@ -887,7 +887,7 @@ export function PortalPelanggan({
                           <button
                             type="button"
                             onClick={() => ubahJumlah(kunci, 1)}
-                            className="grid size-8 place-items-center rounded-md active:bg-cream-200"
+                            className="grid size-8 place-items-center rounded-[0.625rem] active:bg-bersih-50"
                             aria-label={`Tambah ${b.menu.nama}`}
                           >
                             <IkonTambah className="size-3.5" />
@@ -897,7 +897,7 @@ export function PortalPelanggan({
                           type="button"
                           onClick={() => hapus(kunci)}
                           aria-label={`Hapus ${b.menu.nama}`}
-                          className="grid size-8 place-items-center rounded-md text-clay-700 active:bg-clay-600/10"
+                          className="grid size-8 place-items-center rounded-[0.625rem] text-clay-700 active:bg-clay-600/10"
                         >
                           <IkonHapus className="size-4" />
                         </button>
@@ -918,7 +918,7 @@ export function PortalPelanggan({
                         }
                         placeholder="Catatan (mis. tanpa sambal)"
                         maxLength={200}
-                        className="mt-2 h-9 w-full rounded-lg border border-ink-900/12 bg-cream-100 px-2.5 text-[0.75rem] text-ink-900 outline-none placeholder:text-ink-500/70 focus:border-forest-700"
+                        className="mt-2 h-9 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-2.5 text-[0.8125rem] text-tinta-900 outline-none placeholder:text-tinta-500/70 focus:border-forest-700"
                       />
                     </li>
                     );
@@ -931,7 +931,7 @@ export function PortalPelanggan({
                   benar — tetapi tidak diwajibkan (PRD bagian 4). */}
               {keranjang.length > 0 && (
                 <div className="mt-4">
-                  <label className="block text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-ink-500">
+                  <label className="block text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-tinta-500">
                     Nama pemesan (opsional)
                   </label>
                   <input
@@ -939,9 +939,9 @@ export function PortalPelanggan({
                     onChange={(e) => setNama(e.target.value)}
                     maxLength={40}
                     placeholder="Mis. Rani"
-                    className="mt-1 h-11 w-full rounded-xl border border-ink-900/15 bg-cream-100 px-3 text-[0.8125rem] text-ink-900 outline-none placeholder:text-ink-500/70 focus:border-forest-700"
+                    className="mt-1 h-11 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[0.8125rem] text-tinta-900 outline-none placeholder:text-tinta-500/70 focus:border-forest-700"
                   />
-                  <p className="mt-1 text-[0.6875rem] text-ink-500">
+                  <p className="mt-1 text-[0.6875rem] text-tinta-500">
                     Supaya pelayan tahu pesanan ini untuk siapa kalau satu meja dipesan bergantian.
                   </p>
                 </div>
@@ -951,31 +951,31 @@ export function PortalPelanggan({
                   terpisah, bukan dilipat ke harga, karena pelanggan berhak
                   tahu ke mana uangnya pergi sebelum membayar di kasir. */}
               {keranjang.length > 0 && (
-                <dl className="mt-4 space-y-1.5 rounded-xl bg-cream-100 p-3 text-[0.75rem]">
+                <dl className="mt-4 space-y-1.5 rounded-[0.625rem] bg-bersih-100 p-3 text-[0.8125rem]">
                   <div className="flex justify-between">
-                    <dt className="text-ink-500">Subtotal</dt>
-                    <dd className="font-semibold text-ink-900">{rupiah(rincian.subtotal)}</dd>
+                    <dt className="text-tinta-500">Subtotal</dt>
+                    <dd className="font-semibold text-tinta-900">{rupiah(rincian.subtotal)}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-ink-500">Biaya layanan</dt>
-                    <dd className="font-semibold text-ink-900">{rupiah(rincian.layanan)}</dd>
+                    <dt className="text-tinta-500">Biaya layanan</dt>
+                    <dd className="font-semibold text-tinta-900">{rupiah(rincian.layanan)}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-ink-500">Pajak {aturan.pajakPersen}%</dt>
-                    <dd className="font-semibold text-ink-900">{rupiah(rincian.pajak)}</dd>
+                    <dt className="text-tinta-500">Pajak {aturan.pajakPersen}%</dt>
+                    <dd className="font-semibold text-tinta-900">{rupiah(rincian.pajak)}</dd>
                   </div>
                   {rincian.pembulatan !== 0 && (
                     <div className="flex justify-between">
-                      <dt className="text-ink-500">Pembulatan</dt>
-                      <dd className="font-semibold text-ink-900">
+                      <dt className="text-tinta-500">Pembulatan</dt>
+                      <dd className="font-semibold text-tinta-900">
                         {rincian.pembulatan > 0 ? "+" : ""}
                         {rupiah(rincian.pembulatan)}
                       </dd>
                     </div>
                   )}
-                  <div className="flex justify-between border-t border-ink-900/10 pt-1.5">
-                    <dt className="font-extrabold text-ink-900">Perkiraan total</dt>
-                    <dd className="text-[0.875rem] font-extrabold text-ink-900">
+                  <div className="flex justify-between border-t border-bersih-200 pt-1.5">
+                    <dt className="font-extrabold text-tinta-900">Perkiraan total</dt>
+                    <dd className="text-[0.9375rem] font-extrabold text-tinta-900">
                       {rupiah(rincian.total)}
                     </dd>
                   </div>
@@ -986,9 +986,9 @@ export function PortalPelanggan({
                 <div
                   ref={refGalat}
                   role="alert"
-                  className="mt-3 rounded-xl border border-clay-600/30 bg-clay-600/10 p-3"
+                  className="mt-3 rounded-[0.625rem] border border-clay-600/30 bg-clay-600/10 p-3"
                 >
-                  <p className="text-[0.75rem] font-semibold leading-snug text-clay-800">
+                  <p className="text-[0.8125rem] font-semibold leading-snug text-clay-800">
                     {pesanGalat}
                   </p>
                 </div>
@@ -998,12 +998,12 @@ export function PortalPelanggan({
                 type="button"
                 onClick={kirim}
                 disabled={keranjang.length === 0 || mengirim || !bukaSekarang}
-                className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-forest-900 text-[0.875rem] font-extrabold text-cream-50 transition active:scale-[0.99] disabled:opacity-45"
+                className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 transition active:scale-[0.99] disabled:opacity-45"
               >
                 {mengirim ? "Mengirim…" : keranjang.length === 0 ? "Keranjang kosong" : "Kirim Pesanan"}
                 {!mengirim && keranjang.length > 0 && <IkonKanan />}
               </button>
-              <p className="mt-2 pb-1 text-center text-[0.6875rem] text-ink-500">
+              <p className="mt-2 pb-1 text-center text-[0.6875rem] text-tinta-500">
                 Bayar di kasir setelah makan. Bisa tambah pesanan kapan saja.
               </p>
             </div>
@@ -1016,7 +1016,7 @@ export function PortalPelanggan({
       {panggilanTerkirim && (
         <div
           role="status"
-          className="fixed inset-x-0 bottom-24 z-40 mx-auto w-fit rounded-full bg-ink-900 px-4 py-2 text-[0.75rem] font-bold text-cream-50 shadow-lg"
+          className="fixed inset-x-0 bottom-24 z-40 mx-auto w-fit rounded-full bg-tinta-900 px-4 py-2 text-[0.8125rem] font-semibold text-bersih-0 shadow-lg"
         >
           <span className="inline-flex items-center gap-2">
             <IkonCentang className="size-4" />
@@ -1042,10 +1042,10 @@ function FilterAktif({
       type="button"
       onClick={onClick}
       className={[
-        "shrink-0 rounded-full px-3 py-1.5 text-[0.75rem] font-bold transition",
+        "shrink-0 rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold transition",
         aktif
-          ? "bg-ink-900 text-cream-50"
-          : "border border-ink-900/15 bg-cream-50 text-ink-700 active:bg-cream-100",
+          ? "bg-tinta-900 text-bersih-0"
+          : "border border-bersih-200 bg-bersih-0 text-tinta-700 active:bg-bersih-100",
       ].join(" ")}
     >
       {children}

@@ -56,6 +56,37 @@
   --color-mint-600: #4f9b45;
   --color-mint-700: #3e7c37;
 
+
+  /* ───────────────────────────────────────────────────────────────
+     Palet B — "bersih": dipakai portal pelanggan.
+
+     Kenapa dipisah dari palet lama: portal staf (kasir/dapur/pelayan)
+     memakai palet krem/hutan dan tidak boleh ikut berubah. Dengan token
+     sendiri, perubahan di sini tidak merembes ke layar dapur yang sudah
+     disetel untuk silau.
+
+     Prinsipnya: netral hampir tanpa warna (putih → abu sangat muda →
+     tinta hitam-hangat), lalu SATU warna aksen. Bukan lima keluarga warna.
+     Hijau hutan tetap dipakai sebagai aksen kedua untuk status berhasil,
+     karena itu warna merek yang sudah dikenali.
+     ─────────────────────────────────────────────────────────────── */
+  /* Oranye untuk tombol: #ff7c32 TIDAK bisa dipakai dengan teks putih
+     (2.57:1, gagal). Dua pilihan aman: teks gelap di oranye terang
+     (7.21:1), atau oranye pekat dengan teks putih (4.53:1). Di sini dipakai
+     yang kedua supaya tombol tetap terasa "oranye berani" seperti beranda. */
+  --color-aksi-500: #c9500a;
+  --color-aksi-600: #b34508;
+
+  --color-bersih-0: #ffffff;      /* kartu, permukaan terangkat */
+  --color-bersih-50: #fafafa;     /* latar halaman */
+  --color-bersih-100: #f1f0ee;    /* isian tenang, kubus ikon */
+  --color-bersih-200: #e6e6e6;    /* garis tipis */
+  --color-bersih-300: #d9d7d4;    /* garis lebih tegas */
+
+  --color-tinta-900: #16130f;     /* judul, harga — 16.3:1 di putih */
+  --color-tinta-700: #4a443f;     /* teks isi */
+  --color-tinta-500: #6f665c;     /* teks pendukung — 5.6:1 di putih, 4.9:1 di isian */
+
   /* Tinta teks */
   --color-ink-900: #2d264b; /* judul & tagline (diminta) */
   --color-ink-700: #4f4337;
