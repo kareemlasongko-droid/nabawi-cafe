@@ -180,13 +180,20 @@ export function PortalAdmin({
             ? `${menu.length} menu · ${menu.filter((m) => m.tersedia).length} tersedia`
             : "Hanya-baca: kunci server database belum dipasang")
         }
+        ringkasan={{ layar: "Admin", keteranganPonsel: `${menu.length}` }}
         kanan={
           <div className="flex gap-1.5">
+            {/*
+              Tab di kepala memakai label PENDEK di ponsel. "Pajak & layanan"
+              butuh 99px, sedangkan "Pajak" hanya 31px — dan kepala admin
+              harus memuat identitas + dua tab dalam 336px. Di tablet
+              labelnya kembali penuh.
+            */}
             <button
               type="button"
               onClick={() => setTab("menu")}
               className={[
-                "h-10 rounded-[0.625rem] px-3 text-[0.8125rem] font-bold",
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
                 tab === "menu" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
               ].join(" ")}
             >
@@ -196,11 +203,12 @@ export function PortalAdmin({
               type="button"
               onClick={() => setTab("biaya")}
               className={[
-                "h-10 rounded-[0.625rem] px-3 text-[0.8125rem] font-bold",
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
                 tab === "biaya" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
               ].join(" ")}
             >
-              Pajak &amp; layanan
+              <span className="sm:hidden">Pajak</span>
+              <span className="hidden sm:inline">Pajak &amp; layanan</span>
             </button>
           </div>
         }

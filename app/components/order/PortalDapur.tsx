@@ -29,7 +29,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { menitTunggu, sejak } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
-import { IkonBel, IkonKanan, IkonKembali, IkonSegar } from "./IkonDapur";
+import { TombolKepala } from "./TombolKepala";
+import { IkonBel, IkonHabis, IkonKanan, IkonKembali, IkonSegar } from "./IkonDapur";
+import { IkonMuatUlang, IkonSuara, IkonMatikanSuara } from "./Ikon";
 import { LogoNabawi } from "./LogoNabawi";
 
 type Item = {
@@ -165,62 +167,74 @@ export function PortalDapur() {
        Ini kebalikan dari portal pelanggan, dan disengaja. */
     <div className="min-h-dvh bg-tinta-900 text-gelap-isi">
       <header className="sticky top-0 z-30 border-b border-tinta-700/60 bg-tinta-900/95 backdrop-blur">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 sm:px-6">
-          {/*
-            Logo versi terang: kepala dapur berlatar gelap, jadi nama kafe
-            memakai gelap-isi dan keterangannya gelap-samar. Menyalin warna
-            dari portal kasir (tinta-900 di atas tinta-900) akan membuat
-            nama kafe tak terbaca — persis kegagalan yang dicegah oleh
-            prop `tema` di komponen logo.
-          */}
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        {/*
+          DUA KELOMPOK, SATU BARIS: identitas kiri, alat kanan.
+
+          Dapur adalah kepala paling padat — tiga tombol di kanan. Di ponsel
+          360px tombolnya menyusut jadi ikon (labelnya tetap ada untuk
+          pembaca layar) dan "Menu habis" memakai ikon piring supaya angka
+          jumlahnya tetap bisa dibaca tanpa label. `flex-nowrap` di sini
+          bukan pilihan gaya: baris kedua berarti satu tiket lebih sedikit
+          yang terlihat di papan.
+        */}
+        <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-2 px-2 py-2.5 sm:gap-3 sm:px-6">
+          {/* ── KIRI: identitas kafe ── */}
+          <div className="flex min-w-0 items-center">
+            {/*
+              Logo versi terang: kepala dapur berlatar gelap, jadi nama kafe
+              memakai gelap-isi dan keterangannya gelap-samar. Menyalin warna
+              dari portal kasir (tinta-900 di atas tinta-900) akan membuat
+              nama kafe tak terbaca — persis kegagalan yang dicegah oleh
+              prop `tema` di komponen logo.
+            */}
             <LogoNabawi
               tema="gelap"
               ukuran={30}
-              sebaris
-              keterangan={galat || `${baru.length} tiket baru · ${(tiket ?? []).length} total`}
+              layar={
+                <>
+                  <span className="sm:hidden">Dapur</span>
+                  <span className="hidden sm:inline">Dapur &amp; Bar</span>
+                </>
+              }
+              keterangan={galat || `${baru.length} baru · ${(tiket ?? []).length} tiket`}
+              keteranganPonsel={galat ? "!" : `${baru.length}`}
             />
-            <span aria-hidden="true" className="h-6 w-px shrink-0 bg-tinta-700" />
-            <h1 className="min-w-0 shrink-0 truncate text-[1.0625rem] font-extrabold tracking-tight text-gelap-isi">
-              Dapur &amp; Bar
-            </h1>
           </div>
-          <button
-            type="button"
-            onClick={() => setSuara((s) => !s)}
-            className={[
-              "flex h-10 items-center gap-2 rounded-[0.625rem] border px-3 text-[0.8125rem] font-bold",
-              suara
-                ? "border-forest-700 bg-daun-100 text-tinta-900"
-                : "border-tinta-700 text-gelap-samar",
-            ].join(" ")}
-          >
-            <IkonBel className="size-4" />
-            {suara ? "Bunyi aktif" : "Bunyi mati"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMenuBuka((b) => !b)}
-            aria-expanded={menuBuka}
-            className={[
-              "flex h-10 items-center gap-2 rounded-[0.625rem] border px-3 text-[0.8125rem] font-bold",
-              habis.length > 0
-                ? "border-clay-700/60 bg-clay-800 text-gelap-isi"
-                : "border-tinta-700 text-gelap-redup",
-            ].join(" ")}
-          >
-            Menu habis
-            <span className="rounded-full bg-gelap-isi/10 px-1.5 text-[0.6875rem] tabular-nums">
-              {habis.length}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={muat}
-            className="h-10 rounded-[0.625rem] border border-tinta-700 px-3 text-[0.8125rem] font-bold text-gelap-redup"
-          >
-            Muat ulang
-          </button>
+
+          {/* ── KANAN: alat dapur ── */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <TombolKepala
+              tema="gelap"
+              onClick={() => setSuara((s) => !s)}
+              aktif={suara}
+              ikon={suara ? <IkonSuara className="size-4" /> : <IkonMatikanSuara className="size-4" />}
+              label={suara ? "Bunyi aktif" : "Bunyi mati"}
+            />
+            <TombolKepala
+              tema="gelap"
+              onClick={() => setMenuBuka((b) => !b)}
+              expanded={menuBuka}
+              judul="Tandai bahan habis"
+              className={habis.length > 0 ? "border-clay-700/60 bg-clay-800 text-gelap-isi" : ""}
+              ikon={<IkonHabis className="size-4" />}
+              label="Habis"
+            >
+              {/*
+                Angka jumlah selalu tampil, termasuk di ponsel: ia satu-satunya
+                hal yang memberi tahu dapur bahwa ada bahan yang sedang kosong
+                tanpa membuka panelnya.
+              */}
+              <span className="rounded-full bg-gelap-isi/10 px-1.5 text-[0.6875rem] tabular-nums">
+                {habis.length}
+              </span>
+            </TombolKepala>
+            <TombolKepala
+              tema="gelap"
+              onClick={muat}
+              ikon={<IkonMuatUlang className="size-4" />}
+              label="Muat ulang"
+            />
+          </div>
         </div>
       </header>
 

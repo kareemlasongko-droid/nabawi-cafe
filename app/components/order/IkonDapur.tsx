@@ -76,3 +76,17 @@ export function IkonMeja({ className = "size-4" }: P) {
     </svg>
   );
 }
+
+/**
+ * Piring dengan satu garis miring: "bahan habis".
+ * Versi 16px dari IkonSegar supaya kepala dapur tetap punya penanda
+ * ketersediaan saat label tombolnya disembunyikan di ponsel.
+ */
+export function IkonHabis({ className = "size-4" }: P) {
+  return (
+    <svg {...garis} className={className}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M8.5 8.5l7 7" />
+    </svg>
+  );
+}

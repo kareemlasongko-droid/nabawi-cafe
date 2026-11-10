@@ -32,7 +32,18 @@ import {
   type Panggilan,
 } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
-import { IkonCentang, IkonSilang, IkonBel, IkonBill, IkonJam, IkonMeja } from "./Ikon";
+import { TombolKepala } from "./TombolKepala";
+import {
+  IkonCentang,
+  IkonSilang,
+  IkonBel,
+  IkonBill,
+  IkonJam,
+  IkonMeja,
+  IkonMuatUlang,
+  IkonSuara,
+  IkonMatikanSuara,
+} from "./Ikon";
 
 type ItemPesanan = {
   id: number;
@@ -258,29 +269,21 @@ export function PortalKasir() {
               } panggilan`
         }
         demo={data?.demo}
+        ringkasan={{ keteranganPonsel: `${antrean.length}` }}
         kanan={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
+          <>
+            <TombolKepala
               onClick={() => setSuara((s) => !s)}
-              className={[
-                "flex h-10 items-center gap-2 rounded-[0.625rem] border px-3 text-[0.8125rem] font-bold",
-                suara
-                  ? "border-forest-700/40 bg-daun-100 text-forest-700"
-                  : "border-bersih-200 bg-bersih-100 text-tinta-500",
-              ].join(" ")}
-            >
-              <IkonBel className="size-4" />
-              {suara ? "Bunyi aktif" : "Bunyi mati"}
-            </button>
-            <button
-              type="button"
+              aktif={suara}
+              ikon={suara ? <IkonSuara className="size-4" /> : <IkonMatikanSuara className="size-4" />}
+              label={suara ? "Bunyi aktif" : "Bunyi mati"}
+            />
+            <TombolKepala
               onClick={muat}
-              className="h-10 rounded-[0.625rem] border border-bersih-200 px-3 text-[0.8125rem] font-bold text-tinta-700"
-            >
-              Muat ulang
-            </button>
-          </div>
+              ikon={<IkonMuatUlang className="size-4" />}
+              label="Muat ulang"
+            />
+          </>
         }
       />
 

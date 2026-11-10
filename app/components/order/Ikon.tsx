@@ -187,3 +187,18 @@ export function IkonSuara({ className = "size-4" }: P) {
     </svg>
   );
 }
+
+/**
+ * Panah melingkar penuh. Dipakai tombol "Muat ulang" di kepala portal.
+ * Dua panah setengah lingkaran, bukan satu panah melengkung: pada 16px
+ * bentuk lingkar penuh tetap terbaca, sedangkan busur tunggal menyatu
+ * dengan ikon bel di sebelahnya.
+ */
+export function IkonMuatUlang({ className = "size-4" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+      <path d="M20 4v5h-5" />
+    </svg>
+  );
+}

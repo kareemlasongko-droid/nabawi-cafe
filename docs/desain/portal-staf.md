@@ -93,6 +93,56 @@ Dicatat supaya tidak terulang:
 3. **Teks ketiga di dapur gagal AA** setelah permukaan dinaikkan (4.15:1).
    `gelap-samar` dinaikkan ke `#a49c92` → 5.4:1.
 
+## Kepala portal: satu baris, dua kelompok
+
+Kelima portal memakai pola kepala yang sama: **identitas kafe menempel kiri,
+alat layar menempel kanan**, dipisah oleh `justify-between` — bukan oleh garis
+tegak, bukan oleh `flex-1` pada satu sisi.
+
+```
+(logo) Nabawi Cafe · Kasir · 0        [bunyi] [muat ulang]
+(logo) Nabawi Cafe · Pelayan · 0 siap                 [bunyi]
+(logo) Nabawi Cafe                        [meja 3] [Panggil] [Bill]
+```
+
+### Angka yang mengatur penyusutan
+
+Diukur dari metrik Plus Jakarta Sans (bobot 800 untuk nama, 400 untuk
+keterangan), bukan dikira-kira. Di ponsel 360px ruang isi hanya **336px**
+(portal dapur 344px karena padding-nya 8px).
+
+| Kepala | Di ponsel | Sisa |
+|---|---|---|
+| Kasir | identitas 178 + dua tombol ikon 70 | 80px |
+| Dapur | identitas 186 + tiga tombol ikon 116 | 34px |
+| Pelayan | identitas 235 + tombol bunyi 40 | 53px |
+| Admin | identitas 206 + dua tab 112 | 10px |
+| Pelanggan | identitas 129 + meja/Panggil/Bill 172 | 27px |
+
+Di tablet semuanya kembali penuh: "& Resto", nama layar panjang, dan keterangan
+tiga angka. Yang dipendekkan di ponsel, berurutan sesuai prioritas:
+
+1. **Label tombol** → ikon saja, dengan `aria-label` (tombol tetap 40px).
+2. **Keterangan** → satu angka (`keteranganPonsel`), mis. "0" atau "126".
+3. **"& Resto"** dan label panjang ("Dapur & Bar" → "Dapur",
+   "Pajak & layanan" → "Pajak").
+4. **Nama layar tidak pernah hilang** — ia yang membedakan tablet kasir dari
+   tablet dapur, dan hanya butuh 37–48px.
+
+Portal pelanggan memakai `ringkas`: hanya "Nabawi Cafe", tanpa keterangan,
+karena di sana ruangnya dipakai kotak meja dan dua tombol. Label "Panggil" dan
+"Bill" **tidak** disembunyikan — tamu tidak akan tahu arti ikon lonceng dan
+kertas, sedangkan pelayan/kasir sudah dilatih.
+
+### Kenapa tidak ada `flex-wrap`
+
+Kepala yang membungkus ke baris kedua menambah 40px tinggi dan, di dapur,
+berarti satu tiket lebih sedikit yang terlihat. Karena itu tidak ada
+`flex-wrap` di kepala mana pun, dan `min-w-0` dipasang di tiap tingkat flex
+supaya yang menyusut adalah teks, bukan tombol.
+
+Dijaga oleh `node scripts/uji/kepala-portal.mjs` (32 pemeriksaan).
+
 ## Yang sengaja TIDAK dilakukan
 
 - Tidak ada gradien, bayangan tebal, animasi denyut, atau blob blur.
@@ -107,9 +157,10 @@ Dicatat supaya tidak terulang:
 npm start                            # terminal lain
 node scripts/uji/regresi.mjs         # alur order ujung ke ujung
 node scripts/uji/pilihan.mjs         # pilihan sambal/saus/rasa
+node scripts/uji/kepala-portal.mjs   # tata letak kepala portal
 ```
 
-Hasil terakhir: **22/22** dan **11/11**.
+Hasil terakhir: **22/22**, **11/11**, dan **32/32**.
 
 Skrip uji disimpan di `scripts/uji/` — bukan di `/tmp` — karena sandbox kerja
 pernah ter-reset dan skrip uji di `/tmp` ikut hilang. Saat itu terjadi, "uji

@@ -26,6 +26,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sejak } from "@/app/lib/order/tipe";
 import { IkonBel, IkonBill, IkonCentang, IkonSegar, IkonMeja } from "./IkonDapur";
 import { LogoNabawi } from "./LogoNabawi";
+import { TombolKepala } from "./TombolKepala";
+import { IkonSuara, IkonMatikanSuara } from "./Ikon";
 
 type Siap = {
   id: number;
@@ -133,36 +135,30 @@ export function PortalPelayan() {
   return (
     <div className="min-h-dvh bg-bersih-50 pb-4">
       <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/92 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[34rem] items-center gap-2 px-3 py-2.5">
-          {/* Identitas + nama layar. Dua kolom ini sengaja dipisah garis:
-              "Pelayan" adalah peran, "Nabawi Cafe" adalah tempatnya. */}
-          <LogoNabawi ukuran={28} sebaris label="Nabawi Cafe & Resto" />
-          <span aria-hidden="true" className="h-6 w-px shrink-0 bg-bersih-200" />
-          <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
-            <h1 className="shrink-0 text-[1.0625rem] font-extrabold leading-none text-tinta-900">
-              Pelayan
-            </h1>
-            {/* Ringkasan tugas sejajar dengan peran, dipisah titik tengah.
-                Dua baris terpisah akan memakan 20px tinggi kepala yang di
-                HP pelayan dipakai untuk satu kartu pesanan lagi. */}
-            <p className="min-w-0 truncate text-[0.6875rem] leading-none text-tinta-500">
-              <span aria-hidden="true" className="mr-1.5 opacity-50">·</span>
-              {galat || `${urutSiap.length} siap diantar · ${panggilan.length} panggilan`}
-            </p>
+        {/*
+          SATU BARIS, DUA KELOMPOK: identitas kiri, tombol bunyi kanan.
+          "Pelayan" dan ringkasan tugasnya kini ikut di baris identitas —
+          dipisah titik tengah, bukan garis tegak dan bukan baris kedua.
+        */}
+        <div className="mx-auto flex max-w-[34rem] items-center justify-between gap-3 px-3 py-2.5">
+          <div className="flex min-w-0 items-center">
+            <LogoNabawi
+              ukuran={28}
+              layar="Pelayan"
+              keterangan={galat || `${urutSiap.length} siap diantar · ${panggilan.length} panggilan`}
+              keteranganPonsel={galat ? "!" : `${urutSiap.length} siap`}
+            />
           </div>
-          <button
-            type="button"
-            onClick={() => setSuara((s) => !s)}
-            className={[
-              "grid size-10 place-items-center rounded-[0.625rem] border",
-              suara
-                ? "border-forest-700/40 bg-daun-100 text-forest-700"
-                : "border-bersih-200 text-tinta-500",
-            ].join(" ")}
-            aria-label={suara ? "Matikan bunyi" : "Nyalakan bunyi"}
-          >
-            <IkonBel className="size-4" />
-          </button>
+          <div className="flex shrink-0 items-center">
+            <TombolKepala
+              onClick={() => setSuara((s) => !s)}
+              aktif={suara}
+              ikon={suara ? <IkonSuara className="size-4" /> : <IkonMatikanSuara className="size-4" />}
+              label="Bunyi"
+              judul={suara ? "Matikan bunyi" : "Nyalakan bunyi"}
+              className="size-10 justify-center px-0"
+            />
+          </div>
         </div>
 
         {/* Tab. Jumlah ditulis di dalam tab supaya pelayan tahu ada

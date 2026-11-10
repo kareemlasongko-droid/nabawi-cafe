@@ -428,35 +428,40 @@ export function PortalPelanggan({
           meja ditaruh paling atas, besar, dan area-nya ikut disebut. */}
       <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/95 backdrop-blur">
         {/*
-          SATU BARIS — dan isinya dipilih berdasarkan apa yang benar-benar
-          dibutuhkan tamu, bukan apa yang ingin ditampilkan pemilik.
+          SATU BARIS, DUA KELOMPOK: identitas kafe menempel kiri, meja +
+          tombol menempel kanan. Nomor meja pindah ke kanan karena di situlah
+          ibu jari berada saat ponsel dipegang satu tangan — dan tombol
+          Panggil/Bill paling sering ditekan, jadi ia ikut ke sana.
 
-          Lebarnya diukur dari metrik font aslinya, bukan dikira-kira.
-          Di layar 375px (isi 343px) sisa untuk nama hanya 131px, sedangkan
-          "Nabawi Cafe & Resto" 15px ExtraBold butuh 158px. Karena itu:
-
-          1. Tombol Panggil + Bill TIDAK boleh terpotong — itu fitur. Padding
-             dipangkas (px-2, ikon 16px) dan kotak meja mengecil 36 → 32px.
-          2. "& Resto" dan keterangan hanya muncul mulai 640px. Di ponsel
-             nama inti "Nabawi Cafe" (97px) tetap utuh, tidak jadi ellipsis
-             di tengah merek.
-          3. Area meja pindah ke atribut `title` + teks pembaca layar. Ia
-             mengulang isi kotak meja dan baru penting saat tamu ragu.
-          4. Tinggi kepala TIDAK bertambah: baris identitas lama (26px)
-             dihapus, isinya masuk ke baris ini.
+          Lebarnya dihitung dari metrik font Plus Jakarta Sans (bukan
+          dikira-kira). Di layar 360px isinya 336px:
+            kiri  : logo 20 + jarak 8 + "Nabawi Cafe" 95  = 123
+            kanan : meja 28 + Panggil 79 + Bill 51 + jarak = 174
+          Sisa 39px. Karena itu, di bawah 640px:
+            1. "& Resto" dan nama layar disembunyikan — memaksanya muat
+               berarti ellipsis di tengah merek, yang terbaca sebagai rusak.
+            2. Label "Panggil"/"Bill" tetap TAMPIL: tanpa teks, tamu tidak
+               tahu ikon lonceng dan kertas itu apa. Padding tombolnya yang
+               dipangkas, bukan artinya.
         */}
-        <div className="mx-auto flex max-w-[45rem] items-center gap-1.5 px-4 py-2.5">
-          <span
-            className="grid size-8 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-bersih-0"
-            title={`Meja ${mejaNomor} · ${mejaArea}`}
-          >
-            <span className="text-[0.9375rem] font-extrabold leading-none">{mejaNomor}</span>
-            <span className="sr-only">Meja {mejaNomor}, {mejaArea}</span>
-          </span>
+        <div className="mx-auto flex max-w-[45rem] items-center justify-between gap-3 px-3 py-2.5">
+          {/* ── KIRI: identitas kafe ── */}
+          <div className="flex min-w-0 items-center">
+            <LogoNabawi ukuran={20} ringkas label="Nabawi Cafe & Resto" />
+          </div>
 
-          <LogoNabawi ukuran={20} sebaris ringkas label="Nabawi Cafe & Resto" />
+          {/* ── KANAN: meja + tombol ── */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span
+              className="grid size-7 place-items-center rounded-[0.5rem] bg-tinta-900 text-bersih-0"
+              title={`Meja ${mejaNomor} · ${mejaArea}`}
+            >
+              <span className="text-[0.8125rem] font-extrabold leading-none">{mejaNomor}</span>
+              <span className="sr-only">
+                Meja {mejaNomor}, {mejaArea}
+              </span>
+            </span>
 
-          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={() => panggil("pelayan")}
@@ -476,7 +481,6 @@ export function PortalPelanggan({
             </button>
           </div>
         </div>
-
 
         {/* Jam buka + status. Kalau tutup, pesan ini muncul SEBELUM pelanggan
             memilih menu — bukan setelah menekan Kirim (P-12). */}

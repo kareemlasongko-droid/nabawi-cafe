@@ -59,47 +59,60 @@ export function BilahStaf({
   keterangan,
   kanan,
   demo,
+  ringkasan,
 }: {
   judul: string;
   keterangan?: string;
   kanan?: ReactNode;
   demo?: boolean;
+  /**
+   * Versi ringkas identitas untuk ponsel: nama layar yang lebih pendek
+   * ("Admin menu" → "Admin") dan satu angka status ("126").
+   *
+   * Kenapa perlu: "Admin menu" (92px) + "Nabawi Cafe" (95px) + dua tab
+   * (143px) = 330px dari 336px yang tersedia di layar 360px — tanpa sisa
+   * untuk jarak, dan langsung meluber begitu ada satu tombol lagi.
+   */
+  ringkasan?: { layar?: string; keteranganPonsel?: string };
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/92 backdrop-blur-md">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
-        {/*
-          Identitas dulu, baru nama layar. Sebelumnya kepala portal staf
-          hanya berisi "Kasir" / "Admin menu" tanpa penanda milik siapa
-          layar itu — kalau tablet kasir dan tablet dapur tertukar, tidak
-          ada yang bisa memastikannya dari layar.
-        */}
-        {/*
-          SATU BARIS, dan urutannya disengaja: identitas → garis → peran.
-          Nama layar ("Kasir") diletakkan paling kanan karena ia yang
-          membedakan tablet satu dengan lainnya; identitas kafe selalu sama
-          di semua layar, jadi tidak perlu jadi yang pertama dibaca.
+      {/*
+        DUA KELOMPOK, SATU BARIS: identitas menempel kiri, alat menempel
+        kanan. `justify-between` yang mengatur jarak — bukan `flex-1` pada
+        salah satu sisi, karena itu membuat kelompok kanan terdorong ke tepi
+        hanya kalau sisi kiri kebetulan pendek.
 
-          `min-w-0` di tiap tingkat wajib: tanpa itu, `truncate` tidak
-          bekerja di dalam flex dan nama yang panjang akan mendorong
-          tombol keluar layar, bukan terpotong.
-        */}
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          <LogoNabawi ukuran={30} sebaris keterangan={keterangan} />
-          <span aria-hidden="true" className="h-6 w-px shrink-0 bg-bersih-200" />
-          <h1 className="min-w-0 shrink-0 truncate text-[0.9375rem] font-extrabold tracking-tight text-tinta-900">
-            {judul}
-          </h1>
+        `flex-nowrap` disengaja: kepala yang membungkus ke baris kedua adalah
+        persis hal yang diminta untuk dihindari.
+      */}
+      <div className="mx-auto flex max-w-[80rem] items-center justify-between gap-3 px-3 py-2.5 sm:px-6">
+        {/* ── KIRI: identitas kafe ── */}
+        <div className="flex min-w-0 items-center">
+          <LogoNabawi
+            keterangan={keterangan}
+            layar={ringkasan?.layar ?? judul}
+            keteranganPonsel={ringkasan?.keteranganPonsel}
+            ringkas={Boolean(ringkasan)}
+          />
         </div>
-        {demo && (
-          <span
-            className="shrink-0 rounded-full bg-tanah-100 px-2.5 py-1 text-[0.6875rem] font-bold text-clay-800"
-            title="Kunci server database belum dipasang, jadi data tidak disimpan permanen."
-          >
-            Mode demo
-          </span>
-        )}
-        {kanan}
+
+        {/* ── KANAN: alat layar ── */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {/* Mode demo dipindah ke sini dari baris kedua: pita penuh selebar
+              layar dulu memakan 28px tinggi dan mendorong kepala jadi dua
+              baris di ponsel. Di sini ia jadi chip kecil yang tetap terlihat
+              tapi tidak lagi dihitung sebagai bagian kepala. */}
+          {demo && (
+            <span
+              className="hidden rounded-full bg-tanah-100 px-2.5 py-1 text-[0.6875rem] font-bold text-clay-800 sm:inline"
+              title="Kunci server database belum dipasang, jadi data tidak disimpan permanen."
+            >
+              Mode demo
+            </span>
+          )}
+          {kanan}
+        </div>
       </div>
     </header>
   );

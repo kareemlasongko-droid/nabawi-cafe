@@ -2,7 +2,7 @@
  * Identitas Nabawi Cafe untuk kepala portal order.
  *
  * KENAPA SATU KOMPONEN, BUKAN DITULIS ULANG DI TIAP PORTAL
- * Keempat portal (pelanggan, kasir, pelayan, dapur) punya kepala yang
+ * Kelima portal (pelanggan, kasir, dapur, pelayan, admin) punya kepala yang
  * berbeda bentuknya karena dipakai dengan cara berbeda. Yang harus SAMA
  * adalah identitasnya: logo, nama, ukuran, dan jarak. Kalau masing-masing
  * menyalin tiga baris JSX, salah satunya pasti akan tertinggal saat logo
@@ -18,49 +18,64 @@
  * `priority` sengaja TIDAK dipakai di sini: logo bukan elemen terbesar
  * (LCP) di portal mana pun, dan mendahulukannya akan menunda teks tiket
  * dapur yang justru dibutuhkan lebih dulu.
+ *
+ * ATURAN SATU BARIS
+ * Nama, kategori layar, dan keterangan tidak pernah bertumpuk dan tidak
+ * pernah dipisah garis vertikal. Semuanya sebaris, dipisah titik tengah
+ * yang sengaja tipis. Garis pemisah tegak dulu dipakai untuk memisahkan
+ * "identitas" dari "peran"; hasilnya justru terbaca sebagai dua kolom yang
+ * berebut tempat di ponsel — persis yang dikeluhkan.
  */
 import Image from "next/image";
+import type { ReactNode } from "react";
 
 export function LogoNabawi({
   /** "terang" untuk latar putih/krem, "gelap" untuk kepala dapur. */
   tema = "terang",
   /** Ukuran kotak logo dalam px. Teks menyesuaikan sendiri. */
-  ukuran = 36,
+  ukuran = 30,
   /**
-   * Keterangan kecil. Dengan `sebaris`, ia diletakkan SETELAH nama dalam
-   * baris yang sama (dipisah titik tengah), bukan di bawahnya.
+   * Keterangan kecil (jumlah antrean, tiket, menu). Selalu diletakkan
+   * SETELAH nama layar dalam baris yang sama, dipisah titik tengah.
    */
   keterangan,
+  /**
+   * Nama layar: "Kasir", "Dapur & Bar", "Pelayan", "Admin menu".
+   * Boleh berupa node bila labelnya perlu dipendekkan di ponsel.
+   */
+  layar,
+  /**
+   * Versi pendek `keterangan` untuk ponsel — satu angka, mis. "0" atau "12".
+   * Bila kosong, keterangan disembunyikan di ponsel pada mode `ringkas`.
+   */
+  keteranganPonsel,
   /** Sembunyikan teks, hanya logo. */
   hanyaLogo = false,
   /**
-   * Semua isi dalam satu baris.
+   * Sembunyikan "& Resto" dan keterangan di bawah 640px; hanya
+   * "Nabawi Cafe" + nama layar yang tersisa.
    *
-   * Dipakai seluruh portal order: kepala dua baris memakan ~20px ruang
-   * yang di dapur dipakai untuk satu tiket lagi, dan di portal pelanggan
-   * memaksa kepala setinggi 96px. Dengan satu baris, nama kafe dan
-   * keterangannya sejajar — bukan bertumpuk.
-   */
-  sebaris = false,
-  /**
-   * Sembunyikan keterangan di bawah 640px.
-   * Hanya dipakai kepala portal pelanggan: di sana tombol Panggil + Bill
-   * berebut ruang dengan identitas, dan keterangannya cuma mengulang angka
-   * yang sudah ada di judul bagian. Portal staf TIDAK memakai ini — angka
-   * antrean kasir adalah alasan layar itu dibuka.
+   * Dipakai kepala portal pelanggan saja. Di sana satu baris harus memuat
+   * kotak meja + identitas + dua tombol sekaligus; di 360px sisa untuk teks
+   * cuma 129px, sedangkan "Nabawi Cafe" sendiri sudah 95px. Tombol Panggil
+   * dan Bill tidak boleh terpotong — itu fitur, bukan hiasan.
    */
   ringkas = false,
   /**
-   * Keterangan dibaca pembaca layar saat `hanyaLogo` aktif. Tanpa ini,
-   * logo tanpa teks menjadi elemen tanpa nama.
+   * Nama untuk pembaca layar saat teksnya disembunyikan.
+   *
+   * Hanya dipakai bila `hanyaLogo` aktif: teks "Nabawi Cafe" yang terlihat
+   * sudah dibaca sendiri oleh pembaca layar, jadi memberi `aria-label` pada
+   * pembungkus yang sama akan mengumumkan merek dua kali.
    */
   label,
 }: {
   tema?: "terang" | "gelap";
   ukuran?: number;
   keterangan?: string;
+  layar?: ReactNode;
+  keteranganPonsel?: string;
   hanyaLogo?: boolean;
-  sebaris?: boolean;
   ringkas?: boolean;
   label?: string;
 }) {
@@ -68,7 +83,7 @@ export function LogoNabawi({
   const sub = tema === "gelap" ? "text-gelap-samar" : "text-tinta-500";
 
   return (
-    <span className="flex min-w-0 items-center gap-1.5" aria-label={label}>
+    <span className="flex min-w-0 items-center gap-2" aria-label={hanyaLogo ? label : undefined}>
       {/*
         Cincin tipis di sekitar logo: logo adalah PNG persegi dengan latar
         putih. Di kepala dapur yang gelap, sudut putihnya akan terlihat
@@ -84,41 +99,66 @@ export function LogoNabawi({
         style={{ width: ukuran, height: ukuran }}
       />
       {!hanyaLogo && (
-        <span className={`min-w-0 ${sebaris ? "flex items-baseline gap-1.5 whitespace-nowrap" : ""}`}>
+        <span className="flex min-w-0 items-baseline gap-1.5 whitespace-nowrap">
           <span
-            className={`min-w-0 truncate text-[0.9375rem] font-extrabold leading-none ${nama} ${
-              sebaris ? "" : "block"
-            }`}
+            className={`shrink-0 text-[0.9375rem] font-extrabold leading-none ${nama}`}
           >
             Nabawi Cafe{" "}
             {/*
-              "& Resto" dan keterangan hanya tampil mulai 640px.
-              Di ponsel 390px kepala portal pelanggan hanya punya 358px dan
-              tombol Panggil + Bill sudah memakan ~145px. Memaksa semuanya
-              muat berarti ellipsis di tengah merek ("Nabawi Cafe & Res…")
-              dan angka status yang terpotong ("0 pesanan menu…") — keduanya
-              terbaca sebagai kerusakan, bukan sebagai penyesuaian.
-              Yang disembunyikan pun bukan informasi hilang: jumlah antrean,
-              tiket, dan menu sudah tercetak di judul bagian dan chip tepat
-              di bawah kepala ini, dengan angka yang lebih besar. Nama inti
-              "Nabawi Cafe" tetap utuh di semua lebar.
+              "& Resto" hanya mulai 640px. Di ponsel ia memakan 59px yang
+              dibutuhkan tombol; memaksanya muat berarti "Nabawi Cafe & Res…"
+              — ellipsis di tengah merek terbaca sebagai kerusakan.
             */}
             <span className="hidden font-semibold opacity-60 sm:inline">&amp; Resto</span>
           </span>
+
+          {layar && (
+            <>
+              <span
+                aria-hidden="true"
+                className={`hidden text-[0.6875rem] leading-none opacity-40 sm:inline ${sub}`}
+              >
+                ·
+              </span>
+              {/*
+                Nama layar SELALU tampil, di lebar apa pun. Ia yang
+                membedakan tablet kasir dari tablet dapur, dan hanya butuh
+                37-48px — jauh lebih murah daripada "Nabawi Cafe" yang
+                perlu 95px. Yang mengalah di ponsel adalah keterangan.
+              */}
+              <span className={`shrink-0 text-[0.9375rem] font-extrabold leading-none ${nama}`}>
+                {layar}
+              </span>
+            </>
+          )}
+
           {keterangan && (
-            <span
-              title={keterangan}
-              className={`min-w-0 truncate text-[0.6875rem] leading-none ${sub} ${
-                sebaris ? (ringkas ? "hidden sm:block" : "") : "mt-0.5 block"
-              }`}
-            >
-              {sebaris && (
-                <span aria-hidden="true" className="mr-1.5 opacity-50">
-                  ·
-                </span>
-              )}
-              {keterangan}
-            </span>
+            <>
+              <span
+                aria-hidden="true"
+                className={`hidden text-[0.6875rem] leading-none opacity-40 sm:inline ${sub}`}
+              >
+                ·
+              </span>
+              {/*
+                Keterangan menyusut dalam dua langkah, bukan hilang sekaligus:
+                  - ponsel (<640px): satu angka saja (`keteranganPonsel`),
+                    karena tiga angka sekaligus butuh 241px di portal kasir;
+                  - tablet ke atas: kalimat penuh.
+                Di kedua lebar ia yang mengalah lebih dulu (`truncate`),
+                bukan nama kafe: jumlah pesanan sudah tercetak besar di judul
+                bagian, sedangkan merek hanya muncul di sini.
+              */}
+              <span
+                title={keterangan}
+                className={`min-w-0 truncate text-[0.6875rem] leading-none ${sub} ${
+                  ringkas ? "hidden sm:inline" : ""
+                }`}
+              >
+                <span className="sm:hidden">{keteranganPonsel ?? keterangan}</span>
+                <span className="hidden sm:inline">{keterangan}</span>
+              </span>
+            </>
           )}
         </span>
       )}
