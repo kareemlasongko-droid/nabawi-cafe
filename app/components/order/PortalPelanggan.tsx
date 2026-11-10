@@ -24,6 +24,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LogoNabawi } from "./LogoNabawi";
 import {
   ATURAN_BAWAAN,
   bacaPilihan,
@@ -426,7 +427,25 @@ export function PortalPelanggan({
           Kalau salah meja, seluruh pesanan salah antar. Karena itu nomor
           meja ditaruh paling atas, besar, dan area-nya ikut disebut. */}
       <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[45rem] items-center gap-3 px-4 py-3">
+        {/*
+          Baris identitas: logo + nama kafe, lalu nomor meja di kanan.
+
+          Meja tetap yang paling menonjol — salah meja berarti seluruh
+          pesanan salah antar — tetapi kafe harus punya wajah. Sebelumnya
+          nama kafe di kepala ini SEMPAT DIHAPUS karena terpotong jadi
+          "Nabawi Cafe …" di layar 390 px; masalahnya waktu itu teksnya
+          ditaruh di baris yang sama dengan nomor meja dan dua tombol.
+          Sekarang ia punya barisnya sendiri yang ringkas (44 px), jadi
+          tidak berebut ruang dengan tombol Panggil dan Minta bill.
+        */}
+        <div className="mx-auto flex max-w-[45rem] items-center gap-3 px-4 pt-2.5">
+          <LogoNabawi ukuran={26} label="Nabawi Cafe & Resto" />
+          <span className="ml-auto shrink-0 rounded-full bg-bersih-100 px-2 py-0.5 text-[0.6875rem] font-bold text-tinta-700">
+            Meja {mejaNomor}
+          </span>
+        </div>
+
+        <div className="mx-auto flex max-w-[45rem] items-center gap-3 px-4 py-2.5">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <span className="grid size-11 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-bersih-0">
               <span className="text-[1.0625rem] font-extrabold leading-none">{mejaNomor}</span>

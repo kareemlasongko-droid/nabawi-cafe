@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sejak } from "@/app/lib/order/tipe";
 import { IkonBel, IkonBill, IkonCentang, IkonSegar, IkonMeja } from "./IkonDapur";
+import { LogoNabawi } from "./LogoNabawi";
 
 type Siap = {
   id: number;
@@ -133,9 +134,22 @@ export function PortalPelayan() {
     <div className="min-h-dvh bg-bersih-50 pb-4">
       <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/92 backdrop-blur-md">
         <div className="mx-auto flex max-w-[34rem] items-center gap-2 px-3 py-2.5">
+          {/* Identitas + nama layar. Dua kolom ini sengaja dipisah garis:
+              "Pelayan" adalah peran, "Nabawi Cafe" adalah tempatnya. */}
+          <LogoNabawi ukuran={32} hanyaLogo label="Nabawi Cafe & Resto" />
+          <span aria-hidden="true" className="h-7 w-px shrink-0 bg-bersih-200" />
           <div className="min-w-0 flex-1">
-            <h1 className="text-[1.0625rem] font-extrabold text-tinta-900">Pelayan</h1>
-            <p className="text-[0.6875rem] text-tinta-500">
+            {/* Nama kafe di baris atas, peran di bawah. Pelayan membawa HP
+                ini sambil berjalan dan sering berpapasan dengan layar lain;
+                tiga baris pendek lebih mudah dikenali sekilas daripada
+                satu nama peran tanpa penanda tempat. */}
+            <p className="truncate text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-tinta-500">
+              Nabawi Cafe &amp; Resto
+            </p>
+            <h1 className="truncate text-[1.0625rem] font-extrabold leading-none text-tinta-900">
+              Pelayan
+            </h1>
+            <p className="mt-0.5 truncate text-[0.6875rem] text-tinta-500">
               {galat || `${urutSiap.length} siap diantar · ${panggilan.length} panggilan`}
             </p>
           </div>

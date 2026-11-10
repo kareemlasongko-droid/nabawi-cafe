@@ -21,6 +21,7 @@
  */
 
 import type { ReactNode } from "react";
+import { LogoNabawi } from "./LogoNabawi";
 
 export function Kerangka({
   children,
@@ -67,13 +68,18 @@ export function BilahStaf({
   return (
     <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/92 backdrop-blur-md">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-[0.9375rem] font-extrabold tracking-tight text-tinta-900 sm:text-base">
+        {/*
+          Identitas dulu, baru nama layar. Sebelumnya kepala portal staf
+          hanya berisi "Kasir" / "Admin menu" tanpa penanda milik siapa
+          layar itu — kalau tablet kasir dan tablet dapur tertukar, tidak
+          ada yang bisa memastikannya dari layar.
+        */}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <LogoNabawi ukuran={34} keterangan={keterangan} />
+          <span aria-hidden="true" className="h-8 w-px shrink-0 bg-bersih-200" />
+          <h1 className="min-w-0 truncate text-[0.9375rem] font-extrabold tracking-tight text-tinta-900 sm:text-base">
             {judul}
           </h1>
-          {keterangan && (
-            <p className="mt-0.5 text-[0.6875rem] leading-tight text-tinta-500">{keterangan}</p>
-          )}
         </div>
         {demo && (
           <span

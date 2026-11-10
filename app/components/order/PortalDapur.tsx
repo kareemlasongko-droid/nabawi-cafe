@@ -30,6 +30,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { menitTunggu, sejak } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
 import { IkonBel, IkonKanan, IkonKembali, IkonSegar } from "./IkonDapur";
+import { LogoNabawi } from "./LogoNabawi";
 
 type Item = {
   id: number;
@@ -165,11 +166,23 @@ export function PortalDapur() {
     <div className="min-h-dvh bg-tinta-900 text-gelap-isi">
       <header className="sticky top-0 z-30 border-b border-tinta-700/60 bg-tinta-900/95 backdrop-blur">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 sm:px-6">
-          <div className="flex-1">
-            <h1 className="text-[1.0625rem] font-extrabold tracking-tight text-gelap-isi">Dapur &amp; Bar</h1>
-            <p className="text-[0.6875rem] text-gelap-samar">
-              {galat || `${baru.length} tiket baru · ${(tiket ?? []).length} total`}
-            </p>
+          {/*
+            Logo versi terang: kepala dapur berlatar gelap, jadi nama kafe
+            memakai gelap-isi dan keterangannya gelap-samar. Menyalin warna
+            dari portal kasir (tinta-900 di atas tinta-900) akan membuat
+            nama kafe tak terbaca — persis kegagalan yang dicegah oleh
+            prop `tema` di komponen logo.
+          */}
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <LogoNabawi
+              tema="gelap"
+              ukuran={34}
+              keterangan={galat || `${baru.length} tiket baru · ${(tiket ?? []).length} total`}
+            />
+            <span aria-hidden="true" className="h-8 w-px shrink-0 bg-tinta-700" />
+            <h1 className="min-w-0 truncate text-[1.0625rem] font-extrabold tracking-tight text-gelap-isi">
+              Dapur &amp; Bar
+            </h1>
           </div>
           <button
             type="button"
