@@ -488,10 +488,14 @@ export function PortalPelanggan({
                 "Meja" ditulis, bukan hanya angkanya: tanpa kata itu, "3"
                 hanyalah angka tanpa satuan — tamu yang baru duduk tidak
                 tahu apakah itu nomor meja, nomor pesanan, atau jumlah item.
-                Warnanya diredupkan dan bobotnya diturunkan supaya yang
-                dibaca pertama tetap angkanya.
+
+                Warnanya SAMA dengan angka (mewarisi `text-bersih-0` dari
+                kotak). Sebelumnya diredupkan ke 70%, dan hasilnya justru
+                terbaca sebagai dua informasi berbeda dalam satu kotak —
+                padahal "Meja 3" adalah satu hal. Yang membedakan sekarang
+                hanya bobot huruf: angka tebal, kata biasa.
               */}
-              <span className="text-bersih-0/70">Meja</span>
+              <span>Meja</span>
               <span className="font-bold tabular-nums">{mejaNomor}</span>
               <span className="sr-only">, area {mejaArea}</span>
             </span>

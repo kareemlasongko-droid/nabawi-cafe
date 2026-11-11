@@ -106,11 +106,12 @@ async function main() {
       !kepalaPelanggan.includes("text-[1.0625rem] font-extrabold"),
   );
   // "Meja" harus tertulis: angka tanpa satuan tidak berarti apa pun bagi tamu.
+  // Warnanya harus mewarisi warna kotak — "Meja" yang diredupkan terbaca
+  // sebagai informasi berbeda, padahal "Meja 3" adalah satu hal.
   cek(
-    "pelanggan: kotak meja menulis kata \"Meja\" sebelum angka",
-    /<span class="[^"]*text-bersih-0\/70"[^>]*>Meja<\/span>\s*<span class="[^"]*tabular-nums"[^>]*>/.test(
-      kepalaPelanggan,
-    ),
+    "pelanggan: kotak meja menulis \"Meja\" sebelum angka",
+    /<span>Meja<\/span>\s*<span class="[^"]*tabular-nums"[^>]*>/.test(kepalaPelanggan) &&
+      !kepalaPelanggan.includes("text-bersih-0/70"),
   );
   const tinggiTombol = [...kepalaPelanggan.matchAll(/<button[^>]*class="[^"]*h-10/g)];
   cek("pelanggan: dua tombol setinggi 40px", tinggiTombol.length === 2);

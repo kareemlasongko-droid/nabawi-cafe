@@ -148,11 +148,15 @@ sebagai hiasan. Bedanya dengan tombol hanya pada warna: latar `tinta-900`
 penuh, tanpa `hover`/`active`, karena nomor meja tidak bisa ditekan.
 
 Isinya **"Meja 3"**, bukan "3". Angka tanpa satuan tidak berarti apa pun bagi
-tamu yang baru duduk — bisa dibaca nomor pesanan atau jumlah item. Kata
-"Meja" diredupkan (`text-bersih-0/70`) dan bobotnya diturunkan supaya yang
-dibaca pertama tetap angkanya. Area meja tetap hanya di `title` + teks
-pembaca layar (`sr-only`), karena ia mengulang isi kotak dan panjangnya
-(seperti "teras lantai 2") akan mendorong tombol keluar layar.
+tamu yang baru duduk — bisa dibaca nomor pesanan atau jumlah item.
+
+Warna "Meja" dan angka **sama** (`text-bersih-0`, diwarisi dari kotak).
+Versi pertama meredupkan "Meja" ke 70% untuk menonjolkan angka; hasilnya
+terbaca sebagai dua informasi berbeda dalam satu kotak, padahal "Meja 3"
+adalah satu hal. Yang membedakan sekarang hanya bobot huruf: angka `font-bold`,
+"Meja" biasa. Area meja tetap hanya di `title` + teks pembaca layar
+(`sr-only`), karena ia mengulang isi kotak dan panjangnya (seperti "teras
+lantai 2") akan mendorong tombol keluar layar.
 
 Kotak ini kini **78px** (dari 44px). Di 360px sisa ruang tinggal 10px, jadi
 dua penyesuaian ikut: jarak antar kelompok 12 → 8px, dan ikon di dalam tombol
