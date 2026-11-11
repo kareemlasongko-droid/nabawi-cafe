@@ -134,6 +134,14 @@ async function main() {
   const setelahPelayan = pelayanHtml.slice(pelayanHtml.indexOf("</header>"), pelayanHtml.indexOf("</header>") + 2000);
   cek("pelayan: tab tidak di dalam kepala", !kepalaPelayan.includes("Siap diantar"));
   cek("pelayan: tab ada tepat setelah kepala", setelahPelayan.includes("Siap diantar"));
+  // Tab harus memakai grid yang SAMA dengan isi di bawahnya, tanpa panel
+  // pembungkus: dulu ia dibungkus div bergaris selebar layar sehingga
+  // tepinya lebih lebar dari kartu — terbaca sebagai kepala kedua.
+  cek(
+    "pelayan: tab tanpa wadah, segaris dengan kartu di bawahnya",
+    /<\/header><div class="mx-auto flex max-w-\[34rem\] gap-1\.5 px-3/.test(pelayanHtml) &&
+      pelayanHtml.includes('<main class="mx-auto max-w-[34rem] px-3'),
+  );
   cek(
     "pelayan: tombol bunyi hanya ikon (tanpa label teks)",
     !/>Bunyi</.test(kepalaPelayan),

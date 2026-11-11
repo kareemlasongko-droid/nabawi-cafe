@@ -175,38 +175,34 @@ export function PortalPelayan() {
       </header>
 
       {/*
-        Tab "Siap diantar" / "Panggilan" di LUAR <header>: ia bagian dari
-        isi halaman, bukan dari bilah identitas.
+        Tab "Siap diantar" / "Panggilan": TANPA wadah.
 
-        Dulu ia tinggal di dalam kepala, sehingga bilah atas setinggi 88px
-        dan tetap menutupi kartu pesanan pertama saat digulir. Sekarang
-        kepala boleh tetap setinggi 61px, dan tab mengalir bersama isi.
+        Sebelumnya ia dibungkus panel putih bergaris selebar layar. Wadah
+        itu membuat tab terlihat seperti kepala kedua — dan karena latarnya
+        putih sementara halaman ini bersih-50, tepinya menggambar satu balok
+        yang lebih lebar dari kartu di bawahnya.
 
-        Tidak dibuat `sticky` sendiri: angka pekerjaan sudah tercetak di
-        kepala ("2 siap diantar · 1 panggilan"), jadi tidak ada informasi
-        yang hilang saat tab tergulir. Menempelkannya butuh satu lapisan
-        sticky lagi di bawah kepala, dan itu memakan 56px layar ponsel
-        untuk sesuatu yang sudah terbaca di atas.
+        Sekarang tab duduk langsung di latar halaman dengan grid yang sama
+        seperti kartu: `max-w-[34rem]` + `px-3`. Tepi kiri tab pertama dan
+        tepi kiri kartu di bawahnya berada di satu garis.
       */}
-      <div className="border-b border-bersih-200 bg-bersih-0">
-        <div className="mx-auto flex max-w-[34rem] gap-1.5 px-3 py-2">
-          <Tab
-            aktif={tab === "antar"}
-            onClick={() => setTab("antar")}
-            jumlah={urutSiap.length}
-            ikon={<IkonSegar className="size-4" />}
-          >
-            Siap diantar
-          </Tab>
-          <Tab
-            aktif={tab === "panggilan"}
-            onClick={() => setTab("panggilan")}
-            jumlah={panggilan.length}
-            ikon={<IkonBel className="size-4" />}
-          >
-            Panggilan
-          </Tab>
-        </div>
+      <div className="mx-auto flex max-w-[34rem] gap-1.5 px-3 pt-3">
+        <Tab
+          aktif={tab === "antar"}
+          onClick={() => setTab("antar")}
+          jumlah={urutSiap.length}
+          ikon={<IkonSegar className="size-4" />}
+        >
+          Siap diantar
+        </Tab>
+        <Tab
+          aktif={tab === "panggilan"}
+          onClick={() => setTab("panggilan")}
+          jumlah={panggilan.length}
+          ikon={<IkonBel className="size-4" />}
+        >
+          Panggilan
+        </Tab>
       </div>
 
       <main className="mx-auto max-w-[34rem] px-3 pt-3">
