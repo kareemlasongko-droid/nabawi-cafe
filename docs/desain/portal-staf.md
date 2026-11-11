@@ -117,7 +117,7 @@ keterangan), bukan dikira-kira. Di ponsel 360px ruang isi hanya **336px**
 | Dapur | identitas 186 + tiga tombol ikon 116 | 34px |
 | Pelayan | identitas 235 + tombol bunyi 40 | 53px |
 | Admin | identitas 206 + dua tab 112 | 10px |
-| Pelanggan | identitas 131 + meja/Panggil/Bill 170 | 35px |
+| Pelanggan | identitas 131 + meja/Panggil/Bill 166 | 31px |
 
 Di tablet semuanya kembali penuh: "& Resto", nama layar panjang, dan keterangan
 tiga angka. Yang dipendekkan di ponsel, berurutan sesuai prioritas:
@@ -140,6 +140,16 @@ Logo (28px), kotak meja, dan kedua tombol sama-sama **40px**. Tiga tinggi
 berbeda di satu garis — 20/28/40 — terbaca sebagai elemen yang kebetulan
 berdekatan, bukan satu bilah. Logo tetap 28px agar cincinnya tajam; yang
 setinggi 40px adalah kotak pembungkusnya (`setinggiKontrol`).
+
+Kotak meja juga memakai **bentuk yang sama** dengan tombol: ikon 16px + angka
+13px, `px-2`, `gap-1`. Kotak 40x40 berisi angka 17px adalah satu-satunya
+elemen tanpa ikon dan satu-satunya yang hurufnya lebih besar — ia terbaca
+sebagai hiasan. Bedanya dengan tombol hanya pada warna: latar `tinta-900`
+penuh, tanpa `hover`/`active`, karena nomor meja tidak bisa ditekan.
+
+Angka meja ditandai `aria-hidden` dan diganti satu label utuh
+("Meja 3, area teras"), supaya pembaca layar tidak mengumumkan angkanya dua
+kali.
 
 Konsekuensinya lebar bertambah 32px, jadi dua penyesuaian ikut masuk: ikon di
 dalam tombol hanya muncul mulai **390px** (di bawah itu label teks saja), dan

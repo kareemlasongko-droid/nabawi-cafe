@@ -91,9 +91,19 @@ async function main() {
     kepalaPelanggan.includes("flex h-10 shrink-0 items-center") &&
       kepalaPelanggan.includes("width:28px;height:28px"),
   );
+  // Kotak meja harus BERBENTUK SAMA dengan tombol: ikon + huruf 13px,
+  // padding px-2, tinggi 40px. Kotak 40x40 berisi angka 17px adalah bentuk
+  // lama — satu-satunya elemen tanpa ikon, jadi terbaca bukan satu bilah.
   cek(
-    "pelanggan: kotak meja 40x40",
-    kepalaPelanggan.includes("grid size-10"),
+    "pelanggan: kotak meja setinggi kontrol dan berikon",
+    /<span[^>]*(?:class="[^"]*flex h-10[^"]*items-center[^"]*gap-1[^"]*px-2[^"]*"[^>]*title="Meja|title="Meja[^>]*class="[^"]*flex h-10[^"]*items-center)/.test(
+      kepalaPelanggan,
+    ),
+  );
+  cek(
+    "pelanggan: angka meja memakai ukuran huruf tombol (13px)",
+    kepalaPelanggan.includes("text-[0.8125rem] font-bold text-bersih-0") &&
+      !kepalaPelanggan.includes("text-[1.0625rem] font-extrabold"),
   );
   const tinggiTombol = [...kepalaPelanggan.matchAll(/<button[^>]*class="[^"]*h-10/g)];
   cek("pelanggan: dua tombol setinggi 40px", tinggiTombol.length === 2);

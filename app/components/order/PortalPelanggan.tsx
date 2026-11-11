@@ -41,6 +41,7 @@ import {
   IkonHapus,
   IkonBel,
   IkonBill,
+  IkonMeja,
   IkonKanan,
   IkonCentang,
   IkonKiri,
@@ -466,17 +467,26 @@ export function PortalPelanggan({
           {/* ── KANAN: meja + tombol ── */}
           <div className="flex shrink-0 items-center gap-1.5">
             {/*
-              Kotak meja setinggi tombol (40px) dan selebar tinggi itu juga:
-              ia bukan tombol, jadi tidak boleh terlihat seperti tombol —
-              latar tinta penuh yang membedakannya.
+              Kotak meja sekarang BERBENTUK SAMA dengan tombol di sebelahnya:
+              ikon 16px + angka 13px, padding px-2, tinggi h-10. Sebelumnya ia
+              kotak 40x40 berisi angka 17px — satu-satunya elemen tanpa ikon
+              dan satu-satunya dengan huruf lebih besar, sehingga terbaca
+              sebagai hiasan, bukan bagian dari bilah.
+
+              Ia tetap BUKAN tombol: latar tinta penuh (aksi-500 dipakai
+              tombol Bill) dan tidak ada `hover`/`active`, karena nomor meja
+              memang tidak bisa ditekan.
             */}
             <span
-              className="grid size-10 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-bersih-0"
+              className="flex h-10 shrink-0 items-center gap-1 rounded-[0.625rem] bg-tinta-900 px-2 text-[0.8125rem] font-bold text-bersih-0"
               title={`Meja ${mejaNomor} · ${mejaArea}`}
             >
-              <span className="text-[1.0625rem] font-extrabold leading-none">{mejaNomor}</span>
+              <IkonMeja className="size-4 shrink-0" />
+              <span aria-hidden="true" className="tabular-nums">
+                {mejaNomor}
+              </span>
               <span className="sr-only">
-                Meja {mejaNomor}, {mejaArea}
+                Meja {mejaNomor}, area {mejaArea}
               </span>
             </span>
 
