@@ -23,6 +23,7 @@ export function TombolKepala({
   judul,
   expanded,
   className = "",
+  hanyaIkon = false,
   children,
 }: {
   onClick: () => void;
@@ -36,6 +37,15 @@ export function TombolKepala({
   judul?: string;
   expanded?: boolean;
   className?: string;
+  /**
+   * Sembunyikan label di SEMUA lebar, bukan hanya di ponsel.
+   * Dipakai tombol bunyi di kepala pelayan: ia satu-satunya tombol di sana,
+   * jadi label tidak perlu disembunyikan karena sempit — ia disembunyikan
+   * karena tombol 40px berikon lebih jelas daripada tombol 100px berlabel
+   * "Bunyi" yang tidak menambah arti. Nama untuk pembaca layar tetap dari
+   * `judul`.
+   */
+  hanyaIkon?: boolean;
   /** Isi tambahan setelah label, mis. angka jumlah menu habis. */
   children?: ReactNode;
 }) {
@@ -69,7 +79,9 @@ export function TombolKepala({
         admin), label dibiarkan tampil — tombol tanpa isi tidak bisa ditekan
         dengan yakin.
       */}
-      <span className={ikon ? "hidden sm:inline" : undefined}>{label}</span>
+      {hanyaIkon ? null : (
+        <span className={ikon ? "hidden sm:inline" : undefined}>{label}</span>
+      )}
       {children}
     </button>
   );

@@ -101,9 +101,21 @@ tegak, bukan oleh `flex-1` pada satu sisi.
 
 ```
 (logo) Nabawi Cafe · Kasir · 0        [bunyi] [muat ulang]
-(logo) Nabawi Cafe · Pelayan · 0 siap                 [bunyi]
+(logo) Nabawi Cafe · Pelayan · 0 siap                        [bunyi]
 (logo) Nabawi Cafe                        [meja 3] [Panggil] [Bill]
 ```
+
+Di portal pelayan, tab **"Siap diantar" / "Panggilan" berdiri di luar
+`<header>`**, menempel di bawahnya. Dulu keduanya di dalam kepala sehingga
+bilah atas setinggi 88px dan tetap menutupi kartu pesanan pertama saat
+digulir. Sekarang kepala 61px berisi identitas + satu tombol bunyi berikon.
+
+Tombol bunyi pelayan **hanya ikon di semua lebar** (`hanyaIkon`): ia
+satu-satunya tombol di sana, jadi label tidak perlu disembunyikan karena
+sesak — ia disembunyikan karena label "Bunyi" tidak menambah arti pada tombol
+40px, sedangkan `aria-label` "Matikan bunyi"/"Nyalakan bunyi" justru lebih
+menjelaskan. Tab tidak dibuat `sticky` sendiri: angkanya sudah tercetak di
+kepala, jadi tidak ada informasi yang hilang saat tergulir.
 
 ### Angka yang mengatur penyusutan
 

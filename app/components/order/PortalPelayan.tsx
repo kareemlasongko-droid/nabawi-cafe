@@ -136,9 +136,11 @@ export function PortalPelayan() {
     <div className="min-h-dvh bg-bersih-50 pb-4">
       <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/92 backdrop-blur-md">
         {/*
-          SATU BARIS, DUA KELOMPOK: identitas kiri, tombol bunyi kanan.
-          "Pelayan" dan ringkasan tugasnya kini ikut di baris identitas —
-          dipisah titik tengah, bukan garis tegak dan bukan baris kedua.
+          SATU BARIS: identitas kiri, satu tombol ikon kanan. Tab
+          "Siap diantar"/"Panggilan" sudah pindah ke bawah kepala (di luar
+          <header>) supaya kepala benar-benar satu baris tipis — dulu tab
+          di dalam kepala membuat bilah atas setinggi 88px dan menutupi
+          kartu pesanan pertama saat digulir.
         */}
         <div className="mx-auto flex max-w-[34rem] items-center justify-between gap-3 px-3 py-2.5">
           <div className="flex min-w-0 items-center">
@@ -150,20 +152,44 @@ export function PortalPelayan() {
             />
           </div>
           <div className="flex shrink-0 items-center">
+            {/*
+              HANYA IKON, di semua lebar. Ini satu-satunya tombol di kepala
+              pelayan, jadi tidak ada label yang perlu disembunyikan di
+              ponsel — dan label "Bunyi" yang ikut tampil di tablet membuat
+              tombol 40px ini selebar ~100px tanpa menambah arti. Nama
+              tombolnya tetap ada untuk pembaca layar lewat `judul`
+              ("Matikan bunyi"/"Nyalakan bunyi"), yang lebih menjelaskan
+              daripada label "Bunyi" itu sendiri.
+            */}
             <TombolKepala
               onClick={() => setSuara((s) => !s)}
               aktif={suara}
               ikon={suara ? <IkonSuara className="size-4" /> : <IkonMatikanSuara className="size-4" />}
               label="Bunyi"
               judul={suara ? "Matikan bunyi" : "Nyalakan bunyi"}
+              hanyaIkon
               className="size-10 justify-center px-0"
             />
           </div>
         </div>
+      </header>
 
-        {/* Tab. Jumlah ditulis di dalam tab supaya pelayan tahu ada
-            pekerjaan di tab lain tanpa harus membukanya. */}
-        <div className="mx-auto flex max-w-[34rem] gap-1.5 px-3 pb-2">
+      {/*
+        Tab "Siap diantar" / "Panggilan" di LUAR <header>: ia bagian dari
+        isi halaman, bukan dari bilah identitas.
+
+        Dulu ia tinggal di dalam kepala, sehingga bilah atas setinggi 88px
+        dan tetap menutupi kartu pesanan pertama saat digulir. Sekarang
+        kepala boleh tetap setinggi 61px, dan tab mengalir bersama isi.
+
+        Tidak dibuat `sticky` sendiri: angka pekerjaan sudah tercetak di
+        kepala ("2 siap diantar · 1 panggilan"), jadi tidak ada informasi
+        yang hilang saat tab tergulir. Menempelkannya butuh satu lapisan
+        sticky lagi di bawah kepala, dan itu memakan 56px layar ponsel
+        untuk sesuatu yang sudah terbaca di atas.
+      */}
+      <div className="border-b border-bersih-200 bg-bersih-0">
+        <div className="mx-auto flex max-w-[34rem] gap-1.5 px-3 py-2">
           <Tab
             aktif={tab === "antar"}
             onClick={() => setTab("antar")}
@@ -181,7 +207,7 @@ export function PortalPelayan() {
             Panggilan
           </Tab>
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-[34rem] px-3 pt-3">
         {tab === "antar" && (

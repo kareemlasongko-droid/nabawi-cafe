@@ -122,6 +122,27 @@ async function main() {
       kepalaPelanggan.indexOf("Panggil") < kepalaPelanggan.indexOf("Bill"),
   );
 
+
+  // Kepala pelayan harus benar-benar hanya identitas + satu tombol ikon.
+  // Tab "Siap diantar"/"Panggilan" pernah tinggal di dalamnya dan membuat
+  // bilah atas setinggi 88px yang menutupi kartu pertama saat digulir.
+  const pelayanHtml = await (await fetch(BASE + "/order/pelayan")).text();
+  const kepalaPelayan = pelayanHtml.slice(
+    pelayanHtml.indexOf("<header"),
+    pelayanHtml.indexOf("</header>"),
+  );
+  const setelahPelayan = pelayanHtml.slice(pelayanHtml.indexOf("</header>"), pelayanHtml.indexOf("</header>") + 2000);
+  cek("pelayan: tab tidak di dalam kepala", !kepalaPelayan.includes("Siap diantar"));
+  cek("pelayan: tab ada tepat setelah kepala", setelahPelayan.includes("Siap diantar"));
+  cek(
+    "pelayan: tombol bunyi hanya ikon (tanpa label teks)",
+    !/>Bunyi</.test(kepalaPelayan),
+  );
+  cek(
+    "pelayan: tombol bunyi tetap bernama untuk pembaca layar",
+    /<button[^>]*aria-label="(Matikan|Nyalakan) bunyi"/.test(kepalaPelayan),
+  );
+
   console.log(`\n═══ ${lulus} lulus, ${gagal} gagal ═══`);
   if (gagal > 0) {
     console.log("Yang gagal: " + kegagalan.join(", "));
