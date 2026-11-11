@@ -7,6 +7,7 @@
  */
 import { NextResponse } from "next/server";
 import { ambilPesananAktif } from "@/app/lib/order/data";
+import { bacaPilihan } from "@/app/lib/order/aturan";
 import { db, PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
 import { demoAmbilPesanan, demoItemPesanan, demoMeja, demoPanggilanSemua } from "@/app/lib/order/demo";
 import type { Panggilan } from "@/app/lib/order/tipe";
@@ -29,6 +30,7 @@ export async function GET() {
           id: i.id,
           nama_saat_pesan: i.nama_saat_pesan,
           jumlah: i.jumlah,
+          pilihan: i.pilihan ?? [],
         })),
       }));
     const panggilan = demoPanggilanSemua()
@@ -63,6 +65,9 @@ export async function GET() {
         id: i.id,
         nama_saat_pesan: i.nama_saat_pesan,
         jumlah: i.jumlah,
+        // Pelayan perlu tahu saus/rasa saat mengantar: salah hidangan di
+        // meja berarti hidangan kembali ke dapur.
+        pilihan: bacaPilihan(i.pilihan),
       })),
     }));
 

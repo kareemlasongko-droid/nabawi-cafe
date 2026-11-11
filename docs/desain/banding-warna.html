@@ -1,0 +1,164 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#e9e9e9;padding:28px}
+  .panggung{display:flex;gap:22px;justify-content:center;flex-wrap:wrap}
+  .bingkai{width:300px}
+  .label{font:600 12px/1.4 system-ui;text-transform:uppercase;letter-spacing:.09em;color:#666;margin-bottom:9px;text-align:center}
+  .hp{border-radius:26px;overflow:hidden;height:520px;display:flex;flex-direction:column;
+      box-shadow:0 14px 34px -14px rgba(0,0,0,.4)}
+  .atas{padding:14px 14px 10px}
+  .merek{font:800 15px/1.2 inherit;letter-spacing:-.02em}
+  .sub{font:500 10.5px/1.35 inherit;margin-top:2px}
+  .chipbar{display:flex;gap:5px;margin-top:11px;overflow:hidden}
+  .chip{font:700 9.5px/1 inherit;padding:6px 9px;border-radius:999px;white-space:nowrap}
+  .isi{flex:1;overflow:hidden;padding:0 14px}
+  .baris{display:flex;gap:9px;padding:9px 0;align-items:center}
+  .kubus{width:38px;height:38px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;
+         font:800 10px/1 inherit;opacity:.85}
+  .nm{font:700 11.5px/1.25 inherit}
+  .ds{font:500 9.5px/1.3 inherit;margin-top:1px}
+  .hrg{font:800 11px/1 inherit;margin-top:3px}
+  .plus{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+        font:800 14px/1 inherit;flex-shrink:0}
+  .bawah{padding:10px 14px 14px}
+  .cta{height:38px;border-radius:11px;display:grid;place-items:center;font:800 11.5px/1 inherit}
+  .ket{margin-top:9px;font:500 9.5px/1.4 system-ui;color:#666;text-align:center}
+
+  /* ───── A: SEKARANG (krem hangat, garis gelap) ───── */
+  .a .hp{background:#f3e4c8}
+  .a .atas{background:#fffdf8;border-bottom:1px solid rgba(45,38,75,.12)}
+  .a .merek{color:#2d264b}.a .sub{color:#7b6d5e}
+  .a .chip{border:1px solid rgba(45,38,75,.15);background:#fffdf8;color:#4f4337}
+  .a .chip.on{background:#2d264b;color:#fffdf8;border-color:#2d264b}
+  .a .isi{background:#f3e4c8}
+  .a .baris{border-bottom:1px solid rgba(45,38,75,.08)}
+  .a .kubus{background:#e8d3ae;color:#4f4337}
+  .a .nm{color:#2d264b}.a .ds{color:#7b6d5e}.a .hrg{color:#2d264b}
+  .a .plus{background:#1b3325;color:#fffdf8}
+  .a .bawah{background:#fffdf8;border-top:1px solid rgba(45,38,75,.12)}
+  .a .cta{background:#1b3325;color:#fffdf8}
+
+  /* ───── B: PUTIH BERSIH (modern, kartu terangkat) ───── */
+  .b .hp{background:#ffffff}
+  .b .atas{background:#ffffff;border-bottom:1px solid #eee}
+  .b .merek{color:#16130f}.b .sub{color:#8a8078}
+  .b .chip{border:1px solid #e6e6e6;background:#fff;color:#5a5450}
+  .b .chip.on{background:#16130f;color:#fff;border-color:#16130f}
+  .b .isi{background:#fafafa}
+  .b .kartu{background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.05),0 6px 16px -10px rgba(0,0,0,.16);
+            margin-top:8px;padding:0 10px}
+  .b .baris{border-bottom:1px solid #f2f2f2}
+  .b .baris:last-child{border:0}
+  .b .kubus{background:#f1f0ee;color:#8a8078}
+  .b .nm{color:#16130f}.b .ds{color:#8a8078}.b .hrg{color:#16130f;font-weight:700}
+  .b .plus{background:#16130f;color:#fff}
+  .b .bawah{background:#fff;border-top:1px solid #eee}
+  .b .cta{background:#ff7c32;color:#fff}
+
+  /* ───── C: KARTU HANGAT BERNAS (tekstur kafe, diperbaiki) ───── */
+  .c .hp{background:#fdf8f0}
+  .c .atas{background:#fdf8f0}
+  .c .merek{color:#241d18}.c .sub{color:#6b5d52}
+  .c .chip{border:1px solid #ece3d4;background:#fff;color:#6b5d52}
+  .c .chip.on{background:#b4502c;color:#fff;border-color:#b4502c}
+  .c .isi{background:#fdf8f0}
+  .c .kartu{background:#fff;border:1px solid #ece3d4;border-radius:12px;padding:0 10px;
+            box-shadow:0 1px 0 #ece3d4;margin-top:8px}
+  .c .baris{border-bottom:1px solid #f4eee5}
+  .c .baris:last-child{border:0}
+  .c .kubus{background:#f7efe3;color:#b4502c}
+  .c .nm{color:#241d18}.c .ds{color:#6b5d52}.c .hrg{color:#241d18}
+  .c .plus{background:#2f5a3c;color:#fff}
+  .c .bawah{background:#fdf8f0}
+  .c .cta{background:#b4502c;color:#fff}
+</style></head><body>
+<div class="panggung">
+
+ <!-- A -->
+ <div class="bingkai a">
+  <div class="label">A · Sekarang</div>
+  <div class="hp">
+   <div class="atas">
+    <div class="merek">Nabawi Cafe</div>
+    <div class="sub">Meja 5 · Taman</div>
+    <div class="chipbar">
+      <span class="chip on">Semua</span><span class="chip">Makanan Utama</span><span class="chip">Kopi</span>
+    </div>
+   </div>
+   <div class="isi">
+    <div class="baris"><div class="kubus">Na</div>
+      <div style="flex:1"><div class="nm">Nasi Goreng Kebuli</div><div class="ds">Rempah, telur, ayam</div><div class="hrg">Rp40.000</div></div>
+      <div class="plus">+</div></div>
+    <div class="baris"><div class="kubus">Wa</div>
+      <div style="flex:1"><div class="nm">Wagyu Meltique</div><div class="ds">Saus mushroom, BBQ</div><div class="hrg">Rp130.000</div></div>
+      <div class="plus">+</div></div>
+    <div class="baris"><div class="kubus">Ri</div>
+      <div style="flex:1"><div class="nm">Rice Bowl Chicken</div><div class="ds">4 pilihan sambal</div><div class="hrg">Rp50.000</div></div>
+      <div class="plus">+</div></div>
+   </div>
+   <div class="bawah"><div class="cta">Lihat keranjang · 3 item</div></div>
+  </div>
+  <div class="ket">Krem tua · garis gelap · banyak kotak</div>
+ </div>
+
+ <!-- B -->
+ <div class="bingkai b">
+  <div class="label">B · Putih bersih</div>
+  <div class="hp">
+   <div class="atas">
+    <div class="merek">Nabawi Cafe</div>
+    <div class="sub">Meja 5 · Taman</div>
+    <div class="chipbar">
+      <span class="chip on">Semua</span><span class="chip">Makanan Utama</span><span class="chip">Kopi</span>
+    </div>
+   </div>
+   <div class="isi">
+    <div class="kartu">
+     <div class="baris"><div class="kubus">Na</div>
+       <div style="flex:1"><div class="nm">Nasi Goreng Kebuli</div><div class="ds">Rempah, telur, ayam</div><div class="hrg">Rp40.000</div></div>
+       <div class="plus">+</div></div>
+     <div class="baris"><div class="kubus">Wa</div>
+       <div style="flex:1"><div class="nm">Wagyu Meltique</div><div class="ds">Saus mushroom, BBQ</div><div class="hrg">Rp130.000</div></div>
+       <div class="plus">+</div></div>
+     <div class="baris"><div class="kubus">Ri</div>
+       <div style="flex:1"><div class="nm">Rice Bowl Chicken</div><div class="ds">4 pilihan sambal</div><div class="hrg">Rp50.000</div></div>
+       <div class="plus">+</div></div>
+    </div>
+   </div>
+   <div class="bawah"><div class="cta">Lihat keranjang · 3 item</div></div>
+  </div>
+  <div class="ket">Putih · kartu terangkat · oranye berani</div>
+ </div>
+
+ <!-- C -->
+ <div class="bingkai c">
+  <div class="label">C · Hangat bernas</div>
+  <div class="hp">
+   <div class="atas">
+    <div class="merek">Nabawi Cafe</div>
+    <div class="sub">Meja 5 · Taman</div>
+    <div class="chipbar">
+      <span class="chip on">Semua</span><span class="chip">Makanan Utama</span><span class="chip">Kopi</span>
+    </div>
+   </div>
+   <div class="isi">
+    <div class="kartu">
+     <div class="baris"><div class="kubus">Na</div>
+       <div style="flex:1"><div class="nm">Nasi Goreng Kebuli</div><div class="ds">Rempah, telur, ayam</div><div class="hrg">Rp40.000</div></div>
+       <div class="plus">+</div></div>
+     <div class="baris"><div class="kubus">Wa</div>
+       <div style="flex:1"><div class="nm">Wagyu Meltique</div><div class="ds">Saus mushroom, BBQ</div><div class="hrg">Rp130.000</div></div>
+       <div class="plus">+</div></div>
+     <div class="baris"><div class="kubus">Ri</div>
+       <div style="flex:1"><div class="nm">Rice Bowl Chicken</div><div class="ds">4 pilihan sambal</div><div class="hrg">Rp50.000</div></div>
+       <div class="plus">+</div></div>
+    </div>
+   </div>
+   <div class="bawah"><div class="cta">Lihat keranjang · 3 item</div></div>
+  </div>
+  <div class="ket">Gading · terracotta · tepi krem lembut</div>
+ </div>
+
+</div>
+</body></html>

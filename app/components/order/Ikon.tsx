@@ -54,6 +54,37 @@ export function IkonCari({ className = "size-4" }: P) {
   );
 }
 
+/**
+ * Kaca pembesar dengan silang: tombol "bersihkan pencarian".
+ *
+ * Dibuat terpisah, bukan memakai IkonSilang, karena di dalam kolom isian
+ * ukuran dan ketebalannya perlu lebih kecil — silang 16px terlihat seperti
+ * tombol hapus seluruh halaman.
+ */
+export function IkonCariHapus({ className = "size-4" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <circle cx="10" cy="10" r="6" />
+      <path d="m14.5 14.5 3.5 3.5M7.5 7.5l5 5M12.5 7.5l-5 5" />
+    </svg>
+  );
+}
+
+/**
+ * Bintang — lencana "Rekomendasi".
+ *
+ * Digambar sebagai bintang lima sudut bergaris, bukan bintang penuh: di
+ * daftar menu lencana ini berbagi ruang dengan nama menu, dan bentuk
+ * berisi terlihat seperti tombol. Garis 1.6px sama dengan ikon lain.
+ */
+export function IkonBintang({ className = "size-4" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <path d="M12 4.2l2.45 4.96 5.47.8-3.96 3.86.94 5.45L12 16.7l-4.9 2.57.94-5.45-3.96-3.86 5.47-.8z" />
+    </svg>
+  );
+}
+
 export function IkonKeranjang({ className = "size-5" }: P) {
   return (
     <svg {...dasar} className={className}>
@@ -153,6 +184,21 @@ export function IkonSuara({ className = "size-4" }: P) {
     <svg {...dasar} className={className}>
       <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" />
       <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" />
+    </svg>
+  );
+}
+
+/**
+ * Panah melingkar penuh. Dipakai tombol "Muat ulang" di kepala portal.
+ * Dua panah setengah lingkaran, bukan satu panah melengkung: pada 16px
+ * bentuk lingkar penuh tetap terbaca, sedangkan busur tunggal menyatu
+ * dengan ikon bel di sebelahnya.
+ */
+export function IkonMuatUlang({ className = "size-4" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+      <path d="M20 4v5h-5" />
     </svg>
   );
 }

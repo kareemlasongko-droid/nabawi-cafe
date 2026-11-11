@@ -29,13 +29,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { menitTunggu, sejak } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
-import { IkonBel, IkonKanan, IkonKembali, IkonSegar } from "./IkonDapur";
+import { TombolKepala } from "./TombolKepala";
+import { IkonBel, IkonHabis, IkonKanan, IkonKembali, IkonSegar } from "./IkonDapur";
+import { IkonMuatUlang, IkonSuara, IkonMatikanSuara } from "./Ikon";
+import { LogoNabawi } from "./LogoNabawi";
 
 type Item = {
   id: number;
   nama_saat_pesan: string;
   jumlah: number;
   catatan: string | null;
+  pilihan?: { nama: string; tambah: number }[] | null;
 };
 
 type MenuRingkas = { id: number; nama: string; tersedia: boolean };
@@ -161,51 +165,76 @@ export function PortalDapur() {
        teduh dan dinyalakan sepanjang hari; latar gelap dengan teks krem
        mengurangi silau dan menjaga tiket tetap jadi fokus paling terang.
        Ini kebalikan dari portal pelanggan, dan disengaja. */
-    <div className="min-h-dvh bg-forest-950 text-cream-100">
-      <header className="sticky top-0 z-30 border-b border-cream-100/10 bg-forest-950/95 backdrop-blur">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 sm:px-6">
-          <div className="flex-1">
-            <h1 className="text-[1rem] font-extrabold tracking-tight text-cream-50">Dapur &amp; Bar</h1>
-            <p className="text-[0.6875rem] text-cream-100/60">
-              {galat || `${baru.length} tiket baru · ${(tiket ?? []).length} total`}
-            </p>
+    <div className="min-h-dvh bg-tinta-900 text-gelap-isi">
+      <header className="sticky top-0 z-30 border-b border-tinta-700/60 bg-tinta-900/95 backdrop-blur">
+        {/*
+          DUA KELOMPOK, SATU BARIS: identitas kiri, alat kanan.
+
+          Dapur adalah kepala paling padat — tiga tombol di kanan. Di ponsel
+          360px tombolnya menyusut jadi ikon (labelnya tetap ada untuk
+          pembaca layar) dan "Menu habis" memakai ikon piring supaya angka
+          jumlahnya tetap bisa dibaca tanpa label. `flex-nowrap` di sini
+          bukan pilihan gaya: baris kedua berarti satu tiket lebih sedikit
+          yang terlihat di papan.
+        */}
+        <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-2 px-2 py-2.5 sm:gap-3 sm:px-6">
+          {/* ── KIRI: identitas kafe ── */}
+          <div className="flex min-w-0 items-center">
+            {/*
+              Logo versi terang: kepala dapur berlatar gelap, jadi nama kafe
+              memakai gelap-isi dan keterangannya gelap-samar. Menyalin warna
+              dari portal kasir (tinta-900 di atas tinta-900) akan membuat
+              nama kafe tak terbaca — persis kegagalan yang dicegah oleh
+              prop `tema` di komponen logo.
+            */}
+            <LogoNabawi
+              tema="gelap"
+              ukuran={30}
+              layar={
+                <>
+                  <span className="sm:hidden">Dapur</span>
+                  <span className="hidden sm:inline">Dapur &amp; Bar</span>
+                </>
+              }
+              keterangan={galat || `${baru.length} baru · ${(tiket ?? []).length} tiket`}
+              keteranganPonsel={galat ? "!" : `${baru.length}`}
+            />
           </div>
-          <button
-            type="button"
-            onClick={() => setSuara((s) => !s)}
-            className={[
-              "flex h-10 items-center gap-2 rounded-lg border px-3 text-[0.75rem] font-bold",
-              suara
-                ? "border-mint-600/40 bg-mint-600/15 text-mint-100"
-                : "border-cream-100/20 text-cream-100/60",
-            ].join(" ")}
-          >
-            <IkonBel className="size-4" />
-            {suara ? "Bunyi aktif" : "Bunyi mati"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMenuBuka((b) => !b)}
-            aria-expanded={menuBuka}
-            className={[
-              "flex h-10 items-center gap-2 rounded-lg border px-3 text-[0.75rem] font-bold",
-              habis.length > 0
-                ? "border-clay-600/60 bg-clay-800/70 text-cream-50"
-                : "border-cream-100/20 text-cream-100/80",
-            ].join(" ")}
-          >
-            Menu habis
-            <span className="rounded-full bg-cream-100/15 px-1.5 text-[0.6875rem] tabular-nums">
-              {habis.length}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={muat}
-            className="h-10 rounded-lg border border-cream-100/20 px-3 text-[0.75rem] font-bold text-cream-100/80"
-          >
-            Muat ulang
-          </button>
+
+          {/* ── KANAN: alat dapur ── */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <TombolKepala
+              tema="gelap"
+              onClick={() => setSuara((s) => !s)}
+              aktif={suara}
+              ikon={suara ? <IkonSuara className="size-4" /> : <IkonMatikanSuara className="size-4" />}
+              label={suara ? "Bunyi aktif" : "Bunyi mati"}
+            />
+            <TombolKepala
+              tema="gelap"
+              onClick={() => setMenuBuka((b) => !b)}
+              expanded={menuBuka}
+              judul="Tandai bahan habis"
+              className={habis.length > 0 ? "border-clay-700/60 bg-clay-800 text-gelap-isi" : ""}
+              ikon={<IkonHabis className="size-4" />}
+              label="Habis"
+            >
+              {/*
+                Angka jumlah selalu tampil, termasuk di ponsel: ia satu-satunya
+                hal yang memberi tahu dapur bahwa ada bahan yang sedang kosong
+                tanpa membuka panelnya.
+              */}
+              <span className="rounded-full bg-gelap-isi/10 px-1.5 text-[0.6875rem] tabular-nums">
+                {habis.length}
+              </span>
+            </TombolKepala>
+            <TombolKepala
+              tema="gelap"
+              onClick={muat}
+              ikon={<IkonMuatUlang className="size-4" />}
+              label="Muat ulang"
+            />
+          </div>
         </div>
       </header>
 
@@ -217,18 +246,18 @@ export function PortalDapur() {
         apa yang sedang kosong tanpa perlu membuka panel.
       */}
       {menuBuka && (
-        <div className="border-b border-cream-100/10 bg-forest-900/60 px-3 py-2 sm:px-4">
+        <div className="border-b border-tinta-700/60 bg-tinta-800 px-3 py-2 sm:px-4">
           <div className="mb-1.5 flex items-baseline justify-between gap-3">
-            <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-cream-100/60">
+            <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-gelap-samar">
               Ketuk untuk menandai bahan habis
             </p>
-            <p className="text-[0.6875rem] text-cream-100/40">
+            <p className="text-[0.6875rem] text-gelap-samar">
               Langsung berlaku di portal pelanggan dan kasir
             </p>
           </div>
           <ul className="flex flex-wrap gap-1.5">
             {menu.length === 0 && (
-              <li className="text-[0.75rem] text-cream-100/50">Menu tidak terbaca.</li>
+              <li className="text-[0.8125rem] text-gelap-samar">Menu tidak terbaca.</li>
             )}
             {menu.map((m) => (
               <li key={m.id}>
@@ -240,10 +269,10 @@ export function PortalDapur() {
                   onClick={() => setTersedia(m.id, !m.tersedia)}
                   disabled={menuSibuk === m.id}
                   className={[
-                    "h-11 rounded-lg border px-3 text-[0.8125rem] font-bold transition disabled:opacity-50",
+                    "h-11 rounded-[0.625rem] border px-3 text-[0.9375rem] font-bold transition disabled:opacity-50",
                     m.tersedia
-                      ? "border-cream-100/20 text-cream-100/85 active:bg-cream-100/10"
-                      : "border-clay-600 bg-clay-800 text-cream-50 line-through",
+                      ? "border-tinta-700 text-gelap-redup active:bg-gelap-isi/10"
+                      : "border-clay-700 bg-clay-800 text-bersih-0 line-through",
                   ].join(" ")}
                 >
                   {m.nama}
@@ -261,23 +290,23 @@ export function PortalDapur() {
             <section
               key={kol.kunci}
               aria-labelledby={`kol-${kol.kunci}`}
-              className="min-w-0 rounded-xl border border-cream-100/10 bg-forest-900/45"
+              className="min-w-0 rounded-xl border border-tinta-700/60 bg-tinta-800"
             >
               <h2
                 id={`kol-${kol.kunci}`}
-                className="flex items-center justify-between gap-2 border-b border-cream-100/10 px-3 py-2"
+                className="flex items-center justify-between gap-2 border-b border-tinta-700/60 px-3 py-2"
               >
-                <span className="text-[0.8125rem] font-extrabold uppercase tracking-[0.14em] text-cream-100/85">
+                <span className="text-[0.9375rem] font-extrabold uppercase tracking-[0.14em] text-gelap-redup">
                   {kol.judul}
                 </span>
-                <span className="rounded-full bg-cream-100/12 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-cream-100">
+                <span className="rounded-full bg-gelap-isi/10 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-gelap-isi">
                   {isi.length}
                 </span>
               </h2>
 
               <div className="min-h-[8rem] space-y-2 p-2">
                 {isi.length === 0 && (
-                  <p className="px-2 py-6 text-center text-[0.75rem] text-cream-100/35">
+                  <p className="px-2 py-6 text-center text-[0.8125rem] text-gelap-samar">
                     Kosong
                   </p>
                 )}
@@ -286,37 +315,37 @@ export function PortalDapur() {
                   const menit = menitTunggu(t.created_at, sekarang);
                   const warna =
                     menit >= ambang.merah
-                      ? "border-clay-600 bg-clay-800/80"
+                      ? "border-clay-700 bg-clay-800"
                       : menit >= ambang.kuning
-                        ? "border-accent-500/80 bg-forest-800/70"
-                        : "border-cream-100/15 bg-forest-900";
+                        ? "border-aksi-terang/70 bg-tinta-800"
+                        : "border-tinta-700 bg-tinta-800";
 
                   return (
                     <article
                       key={t.id}
-                      className={`overflow-hidden rounded-lg border-2 ${warna} shadow-[0_2px_12px_rgba(0,0,0,0.25)]`}
+                      className={`overflow-hidden rounded-[0.625rem] border-2 ${warna} shadow-[0_2px_12px_rgba(0,0,0,0.25)]`}
                     >
                       <div className="flex items-center gap-2 px-3 pt-2.5">
                         {/* Nomor meja paling besar di tiket: itu satu-satunya
                             informasi yang dicari saat mengantar. */}
-                        <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-cream-100 text-[1.125rem] font-extrabold leading-none text-forest-950">
+                        <span className="grid size-11 shrink-0 place-items-center rounded-[0.625rem] bg-gelap-isi text-[1.125rem] font-extrabold leading-none text-tinta-900">
                           {t.meja_nomor}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[0.8125rem] font-bold text-cream-50">
+                          <p className="truncate text-[0.9375rem] font-bold text-gelap-isi">
                             {t.nama_pemesan || "Tanpa nama"}
                           </p>
-                          <p className="font-mono text-[0.625rem] text-cream-100/55">{t.nomor}</p>
+                          <p className="font-mono text-[0.6875rem] text-gelap-samar">{t.nomor}</p>
                         </div>
                         {/* Waktu tunggu: angka SELALU ada, warna hanya penguat. */}
                         <span
                           className={[
-                            "shrink-0 rounded-md px-2 py-1 text-[0.75rem] font-extrabold tabular-nums",
+                            "shrink-0 rounded-[0.5rem] px-2 py-1 text-[0.8125rem] font-extrabold tabular-nums",
                             menit >= ambang.merah
-                              ? "bg-cream-50 text-clay-800"
+                              ? "bg-gelap-isi text-clay-800"
                               : menit >= ambang.kuning
-                                ? "bg-accent-500 text-forest-950"
-                                : "bg-cream-100/12 text-cream-100",
+                                ? "bg-aksi-terang text-tinta-900"
+                                : "bg-gelap-isi/10 text-gelap-isi",
                           ].join(" ")}
                           title={sejak(t.created_at, sekarang)}
                         >
@@ -328,18 +357,29 @@ export function PortalDapur() {
                         {t.items.map((i) => (
                           <li key={i.id}>
                             <div className="flex items-baseline gap-2">
-                              <span className="min-w-6 shrink-0 text-[1rem] font-extrabold tabular-nums leading-none text-cream-50">
+                              <span className="min-w-6 shrink-0 text-[1.0625rem] font-extrabold tabular-nums leading-none text-gelap-isi">
                                 {i.jumlah}×
                               </span>
-                              <span className="min-w-0 flex-1 text-[0.9375rem] font-bold leading-tight text-cream-100">
+                              <span className="min-w-0 flex-1 text-[1.0625rem] font-bold leading-tight text-gelap-isi">
                                 {i.nama_saat_pesan}
                               </span>
                             </div>
+                            {/*
+                              Pilihan (saus/rasa) didahulukan di atas catatan,
+                              dengan huruf besar dan kontras tinggi. Dapur harus
+                              membacanya dari dua meter; salah saus = hidangan
+                              dibuat ulang.
+                            */}
+                            {Array.isArray(i.pilihan) && i.pilihan.length > 0 && (
+                              <p className="mt-1 ml-8 rounded-[0.5rem] bg-daun-100 px-2 py-1 text-[0.9375rem] font-extrabold uppercase leading-tight tracking-wide text-forest-700">
+                                {i.pilihan.map((p) => p.nama).join(" · ")}
+                              </p>
+                            )}
                             {i.catatan && (
                               /* Catatan: tebal, latar terang, tidak dipotong.
                                  Dipotong berarti dapur bisa melewatkan
                                  "tanpa sambal" — kesalahan yang paling mahal. */
-                              <p className="mt-1 ml-8 rounded-md bg-cream-200 px-2 py-1 text-[0.8125rem] font-extrabold leading-tight text-clay-800">
+                              <p className="mt-1 ml-8 rounded-[0.5rem] bg-bersih-0 px-2 py-1 text-[0.9375rem] font-extrabold leading-tight text-clay-800">
                                 {i.catatan}
                               </p>
                             )}
@@ -350,7 +390,7 @@ export function PortalDapur() {
                       <button
                         type="button"
                         onClick={() => maju(t.id, kol.aksi)}
-                        className="mt-2.5 flex w-full items-center justify-center gap-2 border-t border-cream-100/15 bg-cream-100/8 py-3.5 text-[0.9375rem] font-extrabold uppercase tracking-wide text-cream-50 transition active:bg-cream-100/16"
+                        className="mt-2.5 flex w-full items-center justify-center gap-2 border-t border-tinta-700 bg-gelap-isi/8 py-3.5 text-[1.0625rem] font-extrabold uppercase tracking-wide text-gelap-isi transition active:bg-tinta-700/60"
                       >
                         {kol.kunci === "siap" ? <IkonSegar className="size-5" /> : null}
                         {kol.label}
@@ -365,7 +405,7 @@ export function PortalDapur() {
         })}
       </div>
 
-      <p className="px-4 pb-4 text-center text-[0.6875rem] text-cream-100/35">
+      <p className="px-4 pb-4 text-center text-[0.6875rem] text-gelap-samar">
         Warna kuning di atas {ambang.kuning} menit, merah di atas {ambang.merah} menit. Angka menit
         selalu ditampilkan agar tetap terbaca tanpa membedakan warna.
       </p>

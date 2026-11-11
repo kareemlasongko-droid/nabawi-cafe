@@ -25,6 +25,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sejak } from "@/app/lib/order/tipe";
 import { IkonBel, IkonBill, IkonCentang, IkonSegar, IkonMeja } from "./IkonDapur";
+import { LogoNabawi } from "./LogoNabawi";
+import { TombolKepala } from "./TombolKepala";
+import { IkonSuara, IkonMatikanSuara } from "./Ikon";
 
 type Siap = {
   id: number;
@@ -130,51 +133,77 @@ export function PortalPelayan() {
   );
 
   return (
-    <div className="min-h-dvh bg-cream-200 pb-4">
-      <header className="sticky top-0 z-30 border-b border-ink-900/10 bg-cream-50/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[34rem] items-center gap-2 px-3 py-2.5">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-[0.9375rem] font-extrabold text-ink-900">Pelayan</h1>
-            <p className="text-[0.6875rem] text-ink-500">
-              {galat || `${urutSiap.length} siap diantar · ${panggilan.length} panggilan`}
-            </p>
+    <div className="min-h-dvh bg-bersih-50 pb-4">
+      <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/92 backdrop-blur-md">
+        {/*
+          SATU BARIS: identitas kiri, satu tombol ikon kanan. Tab
+          "Siap diantar"/"Panggilan" sudah pindah ke bawah kepala (di luar
+          <header>) supaya kepala benar-benar satu baris tipis — dulu tab
+          di dalam kepala membuat bilah atas setinggi 88px dan menutupi
+          kartu pesanan pertama saat digulir.
+        */}
+        <div className="mx-auto flex max-w-[34rem] items-center justify-between gap-3 px-3 py-2.5">
+          <div className="flex min-w-0 items-center">
+            <LogoNabawi
+              ukuran={28}
+              layar="Pelayan"
+              keterangan={galat || `${urutSiap.length} siap diantar · ${panggilan.length} panggilan`}
+              keteranganPonsel={galat ? "!" : `${urutSiap.length} siap`}
+            />
           </div>
-          <button
-            type="button"
-            onClick={() => setSuara((s) => !s)}
-            className={[
-              "grid size-10 place-items-center rounded-lg border",
-              suara
-                ? "border-forest-700/30 bg-forest-900/10 text-forest-900"
-                : "border-ink-900/15 text-ink-500",
-            ].join(" ")}
-            aria-label={suara ? "Matikan bunyi" : "Nyalakan bunyi"}
-          >
-            <IkonBel className="size-4" />
-          </button>
-        </div>
-
-        {/* Tab. Jumlah ditulis di dalam tab supaya pelayan tahu ada
-            pekerjaan di tab lain tanpa harus membukanya. */}
-        <div className="mx-auto flex max-w-[34rem] gap-1.5 px-3 pb-2">
-          <Tab
-            aktif={tab === "antar"}
-            onClick={() => setTab("antar")}
-            jumlah={urutSiap.length}
-            ikon={<IkonSegar className="size-4" />}
-          >
-            Siap diantar
-          </Tab>
-          <Tab
-            aktif={tab === "panggilan"}
-            onClick={() => setTab("panggilan")}
-            jumlah={panggilan.length}
-            ikon={<IkonBel className="size-4" />}
-          >
-            Panggilan
-          </Tab>
+          <div className="flex shrink-0 items-center">
+            {/*
+              HANYA IKON, di semua lebar. Ini satu-satunya tombol di kepala
+              pelayan, jadi tidak ada label yang perlu disembunyikan di
+              ponsel — dan label "Bunyi" yang ikut tampil di tablet membuat
+              tombol 40px ini selebar ~100px tanpa menambah arti. Nama
+              tombolnya tetap ada untuk pembaca layar lewat `judul`
+              ("Matikan bunyi"/"Nyalakan bunyi"), yang lebih menjelaskan
+              daripada label "Bunyi" itu sendiri.
+            */}
+            <TombolKepala
+              onClick={() => setSuara((s) => !s)}
+              aktif={suara}
+              ikon={suara ? <IkonSuara className="size-4" /> : <IkonMatikanSuara className="size-4" />}
+              label="Bunyi"
+              judul={suara ? "Matikan bunyi" : "Nyalakan bunyi"}
+              hanyaIkon
+              className="size-10 justify-center px-0"
+            />
+          </div>
         </div>
       </header>
+
+      {/*
+        Tab "Siap diantar" / "Panggilan": TANPA wadah.
+
+        Sebelumnya ia dibungkus panel putih bergaris selebar layar. Wadah
+        itu membuat tab terlihat seperti kepala kedua — dan karena latarnya
+        putih sementara halaman ini bersih-50, tepinya menggambar satu balok
+        yang lebih lebar dari kartu di bawahnya.
+
+        Sekarang tab duduk langsung di latar halaman dengan grid yang sama
+        seperti kartu: `max-w-[34rem]` + `px-3`. Tepi kiri tab pertama dan
+        tepi kiri kartu di bawahnya berada di satu garis.
+      */}
+      <div className="mx-auto flex max-w-[34rem] gap-1.5 px-3 pt-3">
+        <Tab
+          aktif={tab === "antar"}
+          onClick={() => setTab("antar")}
+          jumlah={urutSiap.length}
+          ikon={<IkonSegar className="size-4" />}
+        >
+          Siap diantar
+        </Tab>
+        <Tab
+          aktif={tab === "panggilan"}
+          onClick={() => setTab("panggilan")}
+          jumlah={panggilan.length}
+          ikon={<IkonBel className="size-4" />}
+        >
+          Panggilan
+        </Tab>
+      </div>
 
       <main className="mx-auto max-w-[34rem] px-3 pt-3">
         {tab === "antar" && (
@@ -197,8 +226,8 @@ export function PortalPelayan() {
                         type="button"
                         onClick={() => sudahDiantar(p.id)}
                         className={[
-                          "flex w-full items-stretch gap-0 overflow-hidden rounded-xl border bg-cream-50 text-left transition active:scale-[0.995]",
-                          terlama ? "border-clay-600/45" : "border-ink-900/12",
+                          "flex w-full items-stretch gap-0 overflow-hidden rounded-[0.875rem] border bg-bersih-0 text-left transition active:scale-[0.995]",
+                          terlama ? "border-clay-700/45" : "border-bersih-200",
                         ].join(" ")}
                       >
                         {/* Penanda "paling lama" di kiri, bukan di atas:
@@ -206,37 +235,37 @@ export function PortalPelayan() {
                         <span
                           className={[
                             "w-1.5 shrink-0",
-                            terlama ? "bg-clay-600" : "bg-forest-900/25",
+                            terlama ? "bg-clay-700" : "bg-bersih-300",
                           ].join(" ")}
                           aria-hidden="true"
                         />
                         <span className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3">
-                          <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-forest-900 text-[1.125rem] font-extrabold leading-none text-cream-50">
+                          <span className="grid size-12 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-[1.125rem] font-extrabold leading-none text-bersih-0">
                             {p.meja_nomor}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[0.875rem] font-extrabold leading-tight text-ink-900">
+                            <span className="block text-[0.9375rem] font-extrabold leading-tight text-tinta-900">
                               Meja {p.meja_nomor}
                               {p.nama_pemesan ? ` · ${p.nama_pemesan}` : ""}
                             </span>
-                            <span className="mt-0.5 block truncate text-[0.75rem] leading-snug text-ink-500">
+                            <span className="mt-0.5 block truncate text-[0.8125rem] leading-snug text-tinta-500">
                               {p.items.map((i) => `${i.jumlah}× ${i.nama_saat_pesan}`).join(", ") ||
                                 `${p.nomor}`}
                             </span>
                             <span
                               className={[
-                                "mt-1 inline-block rounded px-1.5 py-0.5 text-[0.625rem] font-bold tabular-nums",
+                                "mt-1 inline-block rounded px-1.5 py-0.5 text-[0.6875rem] font-bold tabular-nums",
                                 terlama
-                                  ? "bg-clay-600/15 text-clay-800"
-                                  : "bg-ink-900/8 text-ink-500",
+                                  ? "bg-tanah-100 text-clay-800"
+                                  : "bg-bersih-100 text-tinta-500",
                               ].join(" ")}
                             >
                               siap {sejak(p.siap_at ?? p.created_at, sekarang)}
                             </span>
                           </span>
-                          <span className="flex shrink-0 flex-col items-center gap-1 rounded-lg bg-forest-900 px-2.5 py-2 text-cream-50">
+                          <span className="flex shrink-0 flex-col items-center gap-1 rounded-[0.625rem] bg-tinta-900 px-2.5 py-2 text-bersih-0">
                             <IkonCentang className="size-5" />
-                            <span className="text-[0.5625rem] font-extrabold uppercase leading-none">
+                            <span className="text-[0.6875rem] font-extrabold uppercase leading-none">
                               Sudah
                               <br />
                               diantar
@@ -266,14 +295,14 @@ export function PortalPelayan() {
                     <button
                       type="button"
                       onClick={() => tangani(g.id)}
-                      className="flex w-full items-center gap-3 rounded-xl border border-ink-900/12 bg-cream-50 px-3 py-3 text-left transition active:scale-[0.995]"
+                      className="flex w-full items-center gap-3 rounded-[0.875rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0 px-3 py-3 text-left transition active:scale-[0.995]"
                     >
                       <span
                         className={[
-                          "grid size-11 shrink-0 place-items-center rounded-lg",
+                          "grid size-11 shrink-0 place-items-center rounded-[0.625rem]",
                           g.jenis === "bill"
-                            ? "bg-clay-600/15 text-clay-800"
-                            : "bg-forest-900/10 text-forest-900",
+                            ? "bg-tanah-100 text-clay-800"
+                            : "bg-daun-100 text-forest-700",
                         ].join(" ")}
                       >
                         {g.jenis === "bill" ? (
@@ -283,15 +312,15 @@ export function PortalPelayan() {
                         )}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[0.875rem] font-extrabold text-ink-900">
+                        <span className="block text-[0.9375rem] font-extrabold text-tinta-900">
                           Meja {g.meja_nomor}
                         </span>
-                        <span className="block text-[0.75rem] text-ink-500">
+                        <span className="block text-[0.8125rem] text-tinta-500">
                           {g.jenis === "bill" ? "Minta bill" : "Panggil pelayan"} ·{" "}
                           {sejak(g.dibuat_at, sekarang)}
                         </span>
                       </span>
-                      <span className="flex shrink-0 items-center gap-1 rounded-lg border border-forest-700/35 px-2.5 py-2 text-[0.625rem] font-extrabold uppercase leading-tight text-forest-900">
+                      <span className="flex shrink-0 items-center gap-1 rounded-[0.625rem] border border-forest-700/40 px-2.5 py-2 text-[0.6875rem] font-extrabold uppercase leading-tight text-forest-700">
                         <IkonMeja className="size-4" />
                         Sudah
                       </span>
@@ -304,7 +333,7 @@ export function PortalPelayan() {
         )}
       </main>
 
-      <p className="mx-auto mt-4 max-w-[34rem] px-3 text-center text-[0.6875rem] leading-relaxed text-ink-500">
+      <p className="mx-auto mt-4 max-w-[34rem] px-3 text-center text-[0.6875rem] leading-relaxed text-tinta-500">
         Ketuk baris untuk menandai selesai. Semua pelayan melihat semua meja.
       </p>
     </div>
@@ -329,18 +358,18 @@ function Tab({
       type="button"
       onClick={onClick}
       className={[
-        "flex h-11 flex-1 items-center justify-center gap-2 rounded-lg text-[0.8125rem] font-bold transition",
+        "flex h-11 flex-1 items-center justify-center gap-2 rounded-[0.625rem] text-[0.9375rem] font-bold transition",
         aktif
-          ? "bg-ink-900 text-cream-50"
-          : "border border-ink-900/12 bg-cream-100 text-ink-700",
+          ? "bg-tinta-900 text-bersih-0"
+          : "border border-bersih-200 bg-bersih-100 text-tinta-700",
       ].join(" ")}
     >
       {ikon}
       {children}
       <span
         className={[
-          "rounded-full px-1.5 py-0.5 text-[0.625rem] font-extrabold tabular-nums",
-          aktif ? "bg-cream-50/20 text-cream-50" : "bg-ink-900/10 text-ink-700",
+          "rounded-full px-1.5 py-0.5 text-[0.6875rem] font-extrabold tabular-nums",
+          aktif ? "bg-bersih-0/15 text-bersih-0" : "bg-bersih-100 text-tinta-700",
           jumlah === 0 ? "opacity-50" : "",
         ].join(" ")}
       >
@@ -352,9 +381,9 @@ function Tab({
 
 function Kosong({ judul, isi }: { judul: string; isi: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-ink-900/15 bg-cream-100 px-4 py-10 text-center">
-      <p className="text-[0.8125rem] font-bold text-ink-700">{judul}</p>
-      <p className="mx-auto mt-1 max-w-[16rem] text-[0.75rem] leading-relaxed text-ink-500">{isi}</p>
+    <div className="rounded-[0.875rem] border border-dashed border-bersih-200 bg-bersih-100 px-4 py-10 text-center">
+      <p className="text-[0.9375rem] font-bold text-tinta-700">{judul}</p>
+      <p className="mx-auto mt-1 max-w-[16rem] text-[0.8125rem] leading-relaxed text-tinta-500">{isi}</p>
     </div>
   );
 }

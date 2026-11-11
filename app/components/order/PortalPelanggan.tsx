@@ -24,8 +24,15 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { hitungTagihan, type AturanBiaya, ATURAN_BAWAAN } from "@/app/lib/order/aturan";
-import { rupiah, type KategoriMenu, type Menu } from "@/app/lib/order/tipe";
+import { LogoNabawi } from "./LogoNabawi";
+import {
+  ATURAN_BAWAAN,
+  bacaPilihan,
+  hitungTagihan,
+  urutkanMenu,
+  type AturanBiaya,
+} from "@/app/lib/order/aturan";
+import { rupiah, type KategoriMenu, type Menu, type PilihanMenu } from "@/app/lib/order/tipe";
 import {
   IkonCari,
   IkonKeranjang,
@@ -34,12 +41,20 @@ import {
   IkonHapus,
   IkonBel,
   IkonBill,
+  IkonMeja,
   IkonKanan,
   IkonCentang,
   IkonKiri,
+  IkonBintang,
 } from "./Ikon";
 
-type Baris = { menu: Menu; jumlah: number; catatan: string };
+type Baris = {
+  menu: Menu;
+  jumlah: number;
+  catatan: string;
+  /** Opsi yang dipilih. Kosong bila menu ini tidak punya pilihan. */
+  pilihan: PilihanMenu[];
+};
 
 type StatusPesananPelanggan = {
   id: number;
@@ -115,6 +130,12 @@ export function PortalPelanggan({
   */
   const [daftarMenu, setDaftarMenu] = useState<Menu[]>(menu);
   const [bukaKeranjang, setBukaKeranjang] = useState(false);
+  /*
+    Menu yang sedang dipilihkan opsi (sambal/saus/rasa). null = lembar
+    tertutup. Disimpan sebagai Menu, bukan id, supaya lembar tetap benar
+    walau daftar menu diperbarui polling di tengah pemilihan.
+  */
+  const [pilihUntuk, setPilihUntuk] = useState<Menu | null>(null);
   const [nama, setNama] = useState("");
   const [mengirim, setMengirim] = useState(false);
   const [pesanGalat, setPesanGalat] = useState("");
@@ -192,14 +213,23 @@ export function PortalPelanggan({
       try {
         const res = await fetch("/api/order/menu/tersedia", { cache: "no-store" });
         if (!res.ok) return;
-        const j = (await res.json()) as { menu?: { id: number; tersedia: boolean }[] };
+        const j = (await res.json()) as {
+          menu?: { id: number; tersedia: boolean; rekomendasi?: boolean }[];
+        };
         if (!hidup || !Array.isArray(j.menu)) return;
 
-        const peta = new Map(j.menu.map((m) => [m.id, m.tersedia]));
+        const peta = new Map(j.menu.map((m) => [m.id, m]));
         setDaftarMenu((lama) =>
-          lama.map((m) => (peta.has(m.id) && peta.get(m.id) !== m.tersedia
-            ? { ...m, tersedia: peta.get(m.id)! }
-            : m))
+          lama.map((m) => {
+            const baru = peta.get(m.id);
+            if (!baru) return m;
+            const rek = baru.rekomendasi === true;
+            if (baru.tersedia === m.tersedia && rek === (m.rekomendasi === true)) return m;
+            // Mengembalikan objek baru hanya bila ada yang berubah: objek
+            // baru untuk setiap menu setiap 5 detik akan memicu render
+            // ulang seluruh daftar tanpa alasan.
+            return { ...m, tersedia: baru.tersedia, rekomendasi: rek };
+          })
         );
       } catch {
         /* koneksi putus: biarkan status lama */
@@ -225,13 +255,31 @@ export function PortalPelanggan({
   const subtotal = keranjang.reduce((n, b) => n + b.menu.harga * b.jumlah, 0);
   const rincian = useMemo(() => hitungTagihan(subtotal, aturan), [subtotal, aturan]);
 
+  /*
+    Nama kategori ikut dicari, bukan hanya nama menu.
+
+    Sejak kategori diringkas 18 -> 6, "Ayam", "Ikan", dan "Udang" tidak
+    lagi punya chip sendiri — semuanya masuk "Makanan Utama". Tanpa ini,
+    mengetik "gurame" tidak menemukan "Gurame Bakar Minang" karena nama
+    kategorinya tidak ikut dicocokkan, dan tamu kehilangan cara cepat
+    yang dulu disediakan chip.
+  */
+  const namaKategori = useMemo(() => {
+    const peta = new Map<number, string>();
+    for (const k of kategori) peta.set(k.id, k.nama.toLowerCase());
+    return peta;
+  }, [kategori]);
+
   const daftar = useMemo(() => {
     const q = cari.trim().toLowerCase();
     return daftarMenu.filter((m) => {
       if (kategoriAktif !== "semua" && m.kategori_id !== kategoriAktif) return false;
       if (!q) return true;
+      const namaK = m.kategori_id != null ? (namaKategori.get(m.kategori_id) ?? "") : "";
       return (
-        m.nama.toLowerCase().includes(q) || m.deskripsi.toLowerCase().includes(q)
+        m.nama.toLowerCase().includes(q) ||
+        m.deskripsi.toLowerCase().includes(q) ||
+        namaK.includes(q)
       );
     });
     /*
@@ -240,7 +288,7 @@ export function PortalPelanggan({
       dependensinya prop, tanda "habis" dari kasir tidak pernah muncul
       sampai halaman dimuat ulang — dan itulah yang terjadi sebelum ini.
     */
-  }, [daftarMenu, cari, kategoriAktif]);
+  }, [daftarMenu, cari, kategoriAktif, namaKategori]);
 
   const perKategori = useMemo(() => {
     const peta = new Map<number | null, Menu[]>();
@@ -249,33 +297,62 @@ export function PortalPelanggan({
       k.push(m);
       peta.set(m.kategori_id, k);
     }
+    // Rekomendasi naik ke atas DI DALAM kategorinya, bukan dipindah ke
+    // kategori lain: pelanggan yang sedang melihat "Kopi" tetap melihat
+    // kopi, hanya saja yang direkomendasikan lebih dulu.
+    for (const [kunci, isi] of peta) peta.set(kunci, urutkanMenu(isi));
     return peta;
   }, [daftar]);
 
-  function tambah(m: Menu) {
+  /**
+   * Menu ini punya pilihan yang harus ditentukan pelanggan?
+   * Dibaca lewat bacaPilihan() supaya data rusak tidak meloloskan menu
+   * berpilihan ke keranjang tanpa pilihan — server akan menolaknya dan
+   * pelanggan hanya melihat galat tanpa tahu apa yang kurang.
+   */
+  function opsiDari(m: Menu): PilihanMenu[] {
+    return bacaPilihan(m.pilihan);
+  }
+
+  /**
+   * Kunci baris keranjang: menu + pilihan.
+   *
+   * Hanya id menu TIDAK cukup. Dua Rice Bowl dengan sambal berbeda adalah
+   * dua baris terpisah dengan harga berbeda; kalau digabung berdasarkan id,
+   * salah satu rasa hilang dan tagihannya keliru.
+   */
+  function kunciBaris(menuId: number, pilihan: PilihanMenu[]): string {
+    const nama = pilihan.map((p) => p.nama).sort().join("|").toLowerCase();
+    return `${menuId}::${nama}`;
+  }
+
+  function tambah(m: Menu, pilihan: PilihanMenu[] = []) {
     if (!m.tersedia || !bukaSekarang) return;
+    const kunci = kunciBaris(m.id, pilihan);
     setKeranjang((k) => {
-      const ada = k.find((b) => b.menu.id === m.id);
+      const ada = k.find((b) => kunciBaris(b.menu.id, b.pilihan) === kunci);
       if (ada) {
         return k.map((b) =>
-          b.menu.id === m.id ? { ...b, jumlah: Math.min(20, b.jumlah + 1) } : b
+          kunciBaris(b.menu.id, b.pilihan) === kunci
+            ? { ...b, jumlah: Math.min(20, b.jumlah + 1) }
+            : b
         );
       }
-      return [...k, { menu: m, jumlah: 1, catatan: "" }];
+      return [...k, { menu: m, jumlah: 1, catatan: "", pilihan }];
     });
     setBaruSaja((n) => n + 1);
   }
 
-  function ubahJumlah(id: number, d: number) {
+  function ubahJumlah(kunci: string, d: number) {
     setKeranjang((k) =>
       k
-        .map((b) => (b.menu.id === id ? { ...b, jumlah: b.jumlah + d } : b))
+        .map((b) => (kunciBaris(b.menu.id, b.pilihan) === kunci ? { ...b, jumlah: b.jumlah + d } : b))
         .filter((b) => b.jumlah > 0)
     );
   }
 
-  function hapus(id: number) {
-    setKeranjang((k) => k.filter((b) => b.menu.id !== id));
+  function hapus(kunci: string) {
+    setKeranjang((k) => k.filter((b) => kunciBaris(b.menu.id, b.pilihan) !== kunci));
   }
 
   async function kirim() {
@@ -295,6 +372,8 @@ export function PortalPelanggan({
             menu_id: b.menu.id,
             jumlah: b.jumlah,
             catatan: b.catatan.trim() || null,
+            // Hanya NAMA opsi. Harga dihitung server dari database.
+            pilihan: b.pilihan.map((p) => p.nama),
           })),
         }),
       });
@@ -344,58 +423,99 @@ export function PortalPelanggan({
   );
 
   return (
-    <div className="min-h-dvh bg-cream-200">
+    <div className="min-h-dvh bg-bersih-50">
       {/* ── Kepala: nomor meja adalah informasi terpenting di layar ini ──
           Kalau salah meja, seluruh pesanan salah antar. Karena itu nomor
           meja ditaruh paling atas, besar, dan area-nya ikut disebut. */}
-      <header className="sticky top-0 z-30 border-b border-ink-900/10 bg-cream-50/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[45rem] items-center gap-3 px-4 py-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-forest-900 text-cream-50">
-              <span className="text-[1.0625rem] font-extrabold leading-none">{mejaNomor}</span>
-            </span>
-            {/*
-              Isi kepala HANYA yang dibutuhkan tamu: meja mana ia duduk dan
-              di area mana. Nama kafe sebelumnya ada di sini dan selalu
-              terpotong jadi "Nabawi Cafe …" di layar 390 px — teks yang
-              tidak menambah informasi tetapi memakan ruang yang dipakai
-              tombol Panggil dan Minta bill. Nama kafe tetap ada di judul
-              halaman dan struk.
-            */}
-            {/*
-              Satu baris saja. Dua tombol di kanan (Panggil, Minta bill) sudah
-              memakan ~250 px dari 390 px, jadi baris kedua PASTI terpotong.
-              Isi yang tersisa: nomor meja besar (sudah terbaca dari kotak di
-              kiri) dan nama areanya. Itu dua hal yang dibutuhkan tamu untuk
-              memastikan ia membuka meja yang benar.
-            */}
-            <div className="min-w-0">
-              <p className="truncate text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-ink-500">
-                Meja {mejaNomor}
-              </p>
-              <p className="truncate text-[0.9375rem] font-extrabold capitalize leading-tight text-ink-900">
-                {mejaArea}
-              </p>
-            </div>
+      <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/95 backdrop-blur">
+        {/*
+          SATU BARIS, DUA KELOMPOK: identitas kafe menempel kiri, meja +
+          tombol menempel kanan. Nomor meja pindah ke kanan karena di situlah
+          ibu jari berada saat ponsel dipegang satu tangan — dan tombol
+          Panggil/Bill paling sering ditekan, jadi ia ikut ke sana.
+
+          TINGGI: logo, kotak meja, dan kedua tombol sama-sama 40px (h-10).
+          Sebelumnya 20/28/40 — tiga tinggi berbeda di satu garis terbaca
+          sebagai tiga elemen yang kebetulan berdekatan, bukan satu bilah.
+
+          LEBAR dihitung dari metrik Plus Jakarta Sans, bukan dikira-kira.
+          Di layar 360px isinya 336px:
+            kiri  : logo 28 + "Nabawi Cafe" 95             = 131
+            kanan : meja 78 (ikon + "Meja 3") + Panggil 63
+                    + Bill 35 + jarak 12                   = 188
+          Ditambah jarak antar kelompok dan luar: 326px, sisa 10px.
+          Karena itu, di bawah 640px:
+            1. "& Resto" dan keterangan disembunyikan — memaksanya muat
+               berarti ellipsis di tengah merek, yang terbaca sebagai rusak.
+            2. Label "Panggil"/"Bill" tetap TAMPIL: tanpa teks, tamu tidak
+               tahu ikon lonceng dan kertas itu apa. Padding tombolnya yang
+               dipangkas, bukan artinya.
+            3. Di bawah 414px ikon di dalam tombol dilepas (labelnya tetap
+               ada). Dua ikon butuh 40px, dan di 390px itu berarti sisa 0px —
+               tidak ada cadangan sama sekali untuk huruf perangkat yang
+               diperbesar.
+        */}
+        <div className="mx-auto flex max-w-[45rem] items-center justify-between gap-2 px-3 py-2.5 sm:gap-3">
+          {/* ── KIRI: identitas kafe ── */}
+          <div className="flex min-w-0 items-center">
+            <LogoNabawi
+              ukuran={28}
+              setinggiKontrol
+              ringkas
+              label="Nabawi Cafe & Resto"
+            />
           </div>
 
+          {/* ── KANAN: meja + tombol ── */}
           <div className="flex shrink-0 items-center gap-1.5">
+            {/*
+              Kotak meja sekarang BERBENTUK SAMA dengan tombol di sebelahnya:
+              ikon 16px + angka 13px, padding px-2, tinggi h-10. Sebelumnya ia
+              kotak 40x40 berisi angka 17px — satu-satunya elemen tanpa ikon
+              dan satu-satunya dengan huruf lebih besar, sehingga terbaca
+              sebagai hiasan, bukan bagian dari bilah.
+
+              Ia tetap BUKAN tombol: latar tinta penuh (aksi-500 dipakai
+              tombol Bill) dan tidak ada `hover`/`active`, karena nomor meja
+              memang tidak bisa ditekan.
+            */}
+            <span
+              className="flex h-10 shrink-0 items-center gap-1 rounded-[0.625rem] bg-tinta-900 px-2 text-[0.8125rem] text-bersih-0"
+              title={`Meja ${mejaNomor} · ${mejaArea}`}
+            >
+              <IkonMeja className="size-4 shrink-0" />
+              {/*
+                "Meja" ditulis, bukan hanya angkanya: tanpa kata itu, "3"
+                hanyalah angka tanpa satuan — tamu yang baru duduk tidak
+                tahu apakah itu nomor meja, nomor pesanan, atau jumlah item.
+
+                Warnanya SAMA dengan angka (mewarisi `text-bersih-0` dari
+                kotak). Sebelumnya diredupkan ke 70%, dan hasilnya justru
+                terbaca sebagai dua informasi berbeda dalam satu kotak —
+                padahal "Meja 3" adalah satu hal. Yang membedakan sekarang
+                hanya bobot huruf: angka tebal, kata biasa.
+              */}
+              <span>Meja</span>
+              <span className="font-bold tabular-nums">{mejaNomor}</span>
+              <span className="sr-only">, area {mejaArea}</span>
+            </span>
+
             <button
               type="button"
               onClick={() => panggil("pelayan")}
-              className="flex h-11 items-center gap-1.5 rounded-xl border border-ink-900/15 px-2.5 text-[0.75rem] font-bold text-ink-900 transition active:scale-[0.97]"
+              className="flex h-10 items-center gap-1 rounded-[0.625rem] border border-bersih-300 px-2 text-[0.8125rem] font-semibold text-tinta-900 transition active:scale-[0.97] active:bg-bersih-100 min-[414px]:px-2.5"
               title="Panggil pelayan ke meja"
             >
-              <IkonBel className="size-4" />
+              <IkonBel className="hidden size-4 min-[414px]:block" />
               Panggil
             </button>
             <button
               type="button"
               onClick={() => panggil("bill")}
-              className="flex h-11 items-center gap-1.5 rounded-xl bg-forest-900 px-3 text-[0.75rem] font-bold text-cream-50 transition active:scale-[0.97]"
+              className="flex h-10 items-center gap-1 rounded-[0.625rem] bg-aksi-500 px-2 text-[0.8125rem] font-bold text-bersih-0 transition active:scale-[0.97] active:bg-aksi-600 min-[414px]:px-2.5"
             >
-              <IkonBill className="size-4" />
-              Minta bill
+              <IkonBill className="hidden size-4 min-[414px]:block" />
+              Bill
             </button>
           </div>
         </div>
@@ -404,28 +524,50 @@ export function PortalPelanggan({
             memilih menu — bukan setelah menekan Kirim (P-12). */}
         {!bukaSekarang && (
           <div className="border-t border-clay-600/20 bg-clay-600/10 px-4 py-2">
-            <p className="mx-auto max-w-[45rem] text-[0.75rem] font-semibold leading-snug text-clay-800">
+            <p className="mx-auto max-w-[45rem] text-[0.8125rem] font-semibold leading-snug text-clay-800">
               {alasanTutup} Pesanan belum bisa dikirim.
             </p>
           </div>
         )}
         {demo && (
-          <div className="border-t border-ink-900/10 bg-ink-900/5 px-4 py-1.5">
-            <p className="mx-auto max-w-[45rem] text-[0.6875rem] leading-snug text-ink-500">
+          <div className="border-t border-bersih-200 bg-bersih-100 px-4 py-1.5">
+            <p className="mx-auto max-w-[45rem] text-[0.6875rem] leading-snug text-tinta-500">
               Mode demo: pesanan tidak tersimpan permanen.
             </p>
           </div>
         )}
       </header>
 
-      <main className="mx-auto max-w-[45rem] px-4 pb-40">
+      {/*
+        Padding bawah MENYESUAIKAN tinggi bilah keranjang, bukan angka tetap.
+
+        Dulu pb-40 (160 px) dipatok. Bilah keranjang tingginya hanya 80 px di
+        HP biasa (pt-3 12 + tombol h-14 56 + pb 12) dan 102 px di iPhone
+        berponi. Jadi ada 80 px ruang kosong menganggur di bawah footer —
+        terasa seperti halaman terpotong, bukan selesai.
+
+        Sekarang: 80 px saat bilah TIDAK tampil (cukup untuk napas di ujung
+        halaman), dan tinggi bilah + jarak aman saat bilah tampil, supaya
+        baris terakhir footer tidak tertutup.
+
+          bilah tampil   : 5rem (80) + safe-area + 1.5rem jarak = 104 px
+          bilah tidak    : 5rem (80) saja
+      */}
+      <main
+        className={[
+          "mx-auto max-w-[45rem] px-4",
+          totalItem > 0 && !bukaKeranjang
+            ? "pb-[calc(6.5rem+env(safe-area-inset-bottom))]"
+            : "pb-20",
+        ].join(" ")}
+      >
         {/* ── Pesanan berjalan ──
             Ditaruh paling atas setelah kepala karena pertanyaan pertama
             pelanggan yang sudah memesan adalah "pesanan saya bagaimana".
             Pelanggan yang belum memesan tidak melihat bagian ini sama sekali. */}
         {pesananSaya.length > 0 && (
           <section className="mt-4" aria-live="polite">
-            <h2 className="mb-2 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-ink-500">
+            <h2 className="mb-2 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-tinta-500">
               Pesanan Anda
             </h2>
             <div className="space-y-2">
@@ -436,19 +578,19 @@ export function PortalPelanggan({
                   <div
                     key={p.id}
                     className={[
-                      "rounded-xl border px-3 py-2.5",
+                      "rounded-[0.625rem] border px-3 py-2.5",
                       selesai
-                        ? "border-ink-900/10 bg-cream-100"
-                        : "border-forest-700/30 bg-forest-900/[0.06]",
+                        ? "border-bersih-200 bg-bersih-100"
+                        : "border-forest-700/30 bg-tinta-900/[0.06]",
                     ].join(" ")}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-[0.8125rem] font-extrabold text-ink-900">{l.judul}</p>
-                      <span className="shrink-0 font-mono text-[0.6875rem] text-ink-500">
+                      <p className="text-[0.8125rem] font-extrabold text-tinta-900">{l.judul}</p>
+                      <span className="shrink-0 font-mono text-[0.6875rem] text-tinta-500">
                         {p.nomor}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-[0.75rem] leading-snug text-ink-500">
+                    <p className="mt-0.5 text-[0.8125rem] leading-snug text-tinta-500">
                       {l.detail} · {p.total_item} item
                     </p>
                   </div>
@@ -462,14 +604,23 @@ export function PortalPelanggan({
             Kategori dibuat baris yang bisa digeser horizontal, bukan grid
             kartu: pelanggan memakai satu tangan, dan baris di bawah ibu jari
             lebih mudah dijangkau daripada grid dua kolom di tengah layar. */}
-        <div className="sticky top-[4.25rem] z-20 -mx-4 mt-4 bg-cream-200/95 px-4 py-2 backdrop-blur">
-          <label className="flex h-11 items-center gap-2 rounded-xl border border-ink-900/15 bg-cream-50 px-3">
-            <IkonCari className="size-4 shrink-0 text-ink-500" />
+        {/*
+          `top-[3.75rem]` = 60px, TINGGI KEPALA YANG SEBENARNYA (py-2.5 = 20px
+          + isi tertinggi h-10 = 40px). Sebelumnya 4.25rem (68px) — sisa 8px
+          dari versi lama ketika kepala masih memuat baris identitas
+          tambahan, dan tidak pernah diperbarui setelah baris itu dihapus.
+          Akibatnya baris cari menempel 8px di bawah tepi kepala, sehingga
+          menu sempat menyelip di celah itu saat digulir.
+          Kalau tinggi kepala berubah, angka ini WAJIB ikut berubah.
+        */}
+        <div className="sticky top-[3.75rem] z-20 -mx-4 mt-4 bg-bersih-50/95 px-4 py-2 backdrop-blur">
+          <label className="flex h-11 items-center gap-2 rounded-[0.625rem] border border-bersih-200 bg-bersih-0 px-3">
+            <IkonCari className="size-4 shrink-0 text-tinta-500" />
             <input
               value={cari}
               onChange={(e) => setCari(e.target.value)}
               placeholder="Cari menu"
-              className="w-full bg-transparent text-[0.8125rem] text-ink-900 outline-none placeholder:text-ink-500/70"
+              className="w-full bg-transparent text-[0.8125rem] text-tinta-900 outline-none placeholder:text-tinta-500/70"
               inputMode="search"
             />
             {cari && (
@@ -477,7 +628,7 @@ export function PortalPelanggan({
                 type="button"
                 onClick={() => setCari("")}
                 aria-label="Hapus pencarian"
-                className="grid size-6 place-items-center rounded-full bg-ink-900/10 text-ink-700"
+                className="grid size-6 place-items-center rounded-full bg-bersih-200 text-tinta-700"
               >
                 <IkonKurang className="size-3" />
               </button>
@@ -503,7 +654,7 @@ export function PortalPelanggan({
               mengira hanya kategori yang terlihat saja yang ada. */}
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-cream-200 to-transparent"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-bersih-50 to-transparent"
           />
           </div>
         </div>
@@ -514,15 +665,23 @@ export function PortalPelanggan({
           if (isi.length === 0) return null;
           return (
             <section key={k.id} className="mt-5">
-              <h2 className="mb-2 flex items-baseline gap-2 text-[0.9375rem] font-extrabold text-ink-900">
+              <h2 className="mb-2 flex items-baseline gap-2 text-[0.9375rem] font-extrabold text-tinta-900">
                 {k.nama}
-                <span className="text-[0.6875rem] font-semibold text-ink-500">
+                <span className="text-[0.6875rem] font-semibold text-tinta-500">
                   {isi.length} menu
                 </span>
               </h2>
-              <ul className="divide-y divide-ink-900/8 overflow-hidden rounded-2xl border border-ink-900/10 bg-cream-50">
+              <ul className="divide-y divide-bersih-100 overflow-hidden rounded-[0.875rem] bg-bersih-0 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.16)]">
                 {isi.map((m) => {
+                  const opsi = opsiDari(m);
+                  /*
+                    Baris keranjang untuk menu ini. Bila menu punya pilihan,
+                    hanya baris dengan pilihan PERTAMA yang ditampilkan sebagai
+                    penghitung cepat, supaya tombol +/- tetap satu tempat.
+                    Pilihan lain diatur di dalam keranjang (bisa dihapus).
+                  */
                   const diKeranjang = keranjang.find((b) => b.menu.id === m.id);
+                  const kunciPertama = diKeranjang ? kunciBaris(diKeranjang.menu.id, diKeranjang.pilihan) : "";
                   const habis = !m.tersedia;
                   return (
                     <li
@@ -532,7 +691,7 @@ export function PortalPelanggan({
                       {/* Foto kecil 64px. Bukan hiasan: pelanggan memilih
                           dengan mata, dan sebagian nama menu Maroko tidak
                           dikenal. Ukuran dijaga kecil supaya hemat sinyal. */}
-                      <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-cream-300">
+                      <div className="relative size-16 shrink-0 overflow-hidden rounded-[0.875rem] bg-bersih-100">
                         {m.foto_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -542,54 +701,71 @@ export function PortalPelanggan({
                             className="size-full object-cover"
                           />
                         ) : (
-                          <span className="grid size-full place-items-center text-[0.625rem] font-bold uppercase tracking-wider text-ink-500">
+                          <span className="grid size-full place-items-center text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
                             {m.nama.slice(0, 2)}
                           </span>
                         )}
                         {habis && (
-                          <span className="absolute inset-0 grid place-items-center bg-ink-900/55 text-[0.5625rem] font-bold uppercase tracking-wider text-cream-50">
+                          <span className="absolute inset-0 grid place-items-center bg-tinta-900/60 text-[0.6875rem] font-bold uppercase tracking-wider text-bersih-0">
                             Habis
                           </span>
                         )}
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-[0.875rem] font-extrabold leading-tight text-ink-900">
-                          {m.nama}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="text-[0.9375rem] font-extrabold leading-tight text-tinta-900">
+                            {m.nama}
+                          </p>
+                          {/* Lencana rekomendasi. Warna tanah-100 dipakai
+                              bersama chip "habis"/"minta bill" di portal
+                              staf — satu aksen untuk "perhatikan ini",
+                              bukan warna baru tiap fitur. */}
+                          {m.rekomendasi === true && (
+                            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-tanah-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-clay-800">
+                              <IkonBintang className="size-3" />
+                              Rekomendasi
+                            </span>
+                          )}
+                        </div>
                         {/* Deskripsi satu baris (PRD P-03). Dua baris membuat
                             satu layar hanya memuat 4 menu, padahal pelanggan
                             perlu melihat lebih banyak untuk memutuskan. */}
-                        <p className="mt-0.5 line-clamp-2 text-[0.75rem] leading-snug text-ink-500">
+                        <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-snug text-tinta-500">
                           {m.deskripsi}
                         </p>
-                        <p className="mt-1 text-[0.8125rem] font-bold text-ink-900">
+                        <p className="mt-1 text-[0.8125rem] font-bold text-tinta-900">
                           {rupiah(m.harga)}
+                          {opsi.some((p) => p.tambah > 0) && (
+                            <span className="ml-1 text-[0.6875rem] font-semibold text-tinta-500">
+                              + pilihan
+                            </span>
+                          )}
                         </p>
                       </div>
 
                       {habis ? (
-                        <span className="shrink-0 self-center text-[0.6875rem] font-semibold text-ink-500">
+                        <span className="shrink-0 self-center text-[0.6875rem] font-semibold text-tinta-500">
                           Habis
                         </span>
                       ) : diKeranjang ? (
-                        <div className="flex shrink-0 items-center gap-1 self-center rounded-lg border border-ink-900/15 bg-cream-100 p-0.5">
+                        <div className="flex shrink-0 items-center gap-1 self-center rounded-[0.625rem] border border-bersih-200 bg-bersih-100 p-0.5">
                           <button
                             type="button"
-                            onClick={() => ubahJumlah(m.id, -1)}
+                            onClick={() => ubahJumlah(kunciPertama, -1)}
                             aria-label={`Kurangi ${m.nama}`}
-                            className="grid size-9 place-items-center rounded-md text-ink-900 transition active:bg-cream-300"
+                            className="grid size-9 place-items-center rounded-[0.625rem] text-tinta-900 transition active:bg-bersih-200"
                           >
                             <IkonKurang />
                           </button>
-                          <span className="min-w-5 text-center text-[0.8125rem] font-extrabold text-ink-900">
+                          <span className="min-w-5 text-center text-[0.8125rem] font-extrabold text-tinta-900">
                             {diKeranjang.jumlah}
                           </span>
                           <button
                             type="button"
-                            onClick={() => ubahJumlah(m.id, 1)}
+                            onClick={() => ubahJumlah(kunciPertama, 1)}
                             aria-label={`Tambah ${m.nama}`}
-                            className="grid size-9 place-items-center rounded-md text-ink-900 transition active:bg-cream-300"
+                            className="grid size-9 place-items-center rounded-[0.625rem] text-tinta-900 transition active:bg-bersih-200"
                           >
                             <IkonTambah />
                           </button>
@@ -597,12 +773,20 @@ export function PortalPelanggan({
                       ) : (
                         <button
                           type="button"
-                          onClick={() => tambah(m)}
+                          onClick={() => (opsi.length > 0 ? setPilihUntuk(m) : tambah(m))}
                           disabled={!bukaSekarang}
-                          aria-label={`Tambah ${m.nama} ke keranjang`}
-                          className="grid size-11 shrink-0 self-center place-items-center rounded-xl bg-forest-900 text-cream-50 transition active:scale-95 disabled:opacity-40"
+                          aria-label={
+                            opsi.length > 0
+                              ? `Pilih ${m.nama}`
+                              : `Tambah ${m.nama} ke keranjang`
+                          }
+                          className="grid size-11 shrink-0 self-center place-items-center rounded-[0.625rem] bg-tinta-900 text-bersih-0 transition active:scale-95 disabled:opacity-40"
                         >
-                          <IkonTambah className="size-5" />
+                          {opsi.length > 0 ? (
+                            <span className="px-2 text-[0.6875rem] font-bold">Pilih</span>
+                          ) : (
+                            <IkonTambah className="size-5" />
+                          )}
                         </button>
                       )}
                     </li>
@@ -614,15 +798,15 @@ export function PortalPelanggan({
         })}
 
         {daftar.length === 0 && (
-          <p className="mt-10 text-center text-[0.8125rem] text-ink-500">
+          <p className="mt-10 text-center text-[0.8125rem] text-tinta-500">
             Tidak ada menu yang cocok dengan &ldquo;{cari}&rdquo;.
           </p>
         )}
 
         {/* ── Catatan tambahan: jam buka & info, diletakkan di akhir
              supaya tidak menghalangi menu. */}
-        <footer className="mt-8 border-t border-ink-900/10 pt-4">
-          <p className="text-[0.6875rem] leading-relaxed text-ink-500">
+        <footer className="mt-8 border-t border-bersih-200 pt-4">
+          <p className="text-[0.6875rem] leading-relaxed text-tinta-500">
             Buka setiap hari {jamHariIni}. Pembayaran di kasir setelah makan.
             Harga belum termasuk pajak dan biaya layanan.
           </p>
@@ -634,21 +818,21 @@ export function PortalPelanggan({
           untuk iPhone berponi. Satu tombol besar: seluruh bilah adalah tombol
           buka keranjang, jadi tidak ada ketukan meleset. */}
       {totalItem > 0 && !bukaKeranjang && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-900/10 bg-cream-50/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-bersih-200 bg-bersih-0/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
           <div className="mx-auto max-w-[45rem]">
             <button
               type="button"
               onClick={() => setBukaKeranjang(true)}
-              className="flex h-14 w-full items-center gap-3 rounded-xl bg-forest-900 px-4 text-cream-50 transition active:scale-[0.99]"
+              className="flex h-14 w-full items-center gap-3 rounded-[0.625rem] bg-tinta-900 px-4 text-bersih-0 shadow-[0_8px_24px_-12px_rgba(22,19,15,0.6)] transition active:scale-[0.99]"
             >
-              <span className="grid size-9 place-items-center rounded-lg bg-cream-50/15">
+              <span className="grid size-9 place-items-center rounded-[0.625rem] bg-bersih-0/15">
                 <IkonKeranjang className="size-4.5" />
               </span>
               <span className="flex-1 text-left">
                 <span className="block text-[0.8125rem] font-extrabold leading-tight">
                   Lihat keranjang · {totalItem} item
                 </span>
-                <span className="block text-[0.6875rem] leading-tight text-cream-100/80">
+                <span className="block text-[0.6875rem] leading-tight text-bersih-200">
                   {rupiah(rincian.total)} termasuk pajak
                 </span>
               </span>
@@ -658,55 +842,120 @@ export function PortalPelanggan({
         </div>
       )}
 
+
+      {/* ── Lembar pilih opsi (sambal / saus / rasa) ──
+          Muncul SEBELUM masuk keranjang, bukan sesudah. Kalau pelanggan
+          menekan (+) dan barang langsung masuk tanpa ditanya, dapur
+          menerima pesanan tanpa saus — persis masalah yang diperbaiki di
+          sini. Muncul sebagai lembar bawah supaya jangkauan ibu jari. */}
+      {pilihUntuk && (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-tinta-900/40">
+          <button
+            type="button"
+            aria-label="Tutup pilihan"
+            onClick={() => setPilihUntuk(null)}
+            className="flex-1"
+          />
+          <div className="rounded-t-[1.25rem] bg-bersih-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
+            <div className="mx-auto max-w-[45rem]">
+              <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-tinta-500">
+                Pilih salah satu
+              </p>
+              <h2 className="mt-1 text-[1rem] font-extrabold text-tinta-900">{pilihUntuk.nama}</h2>
+              <div className="mt-3 space-y-2">
+                {opsiDari(pilihUntuk).map((p) => (
+                  <button
+                    key={p.nama}
+                    type="button"
+                    onClick={() => {
+                      tambah(pilihUntuk, [p]);
+                      setPilihUntuk(null);
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 py-3 text-left transition active:bg-bersih-50"
+                  >
+                    <span className="text-[0.9375rem] font-bold text-tinta-900">{p.nama}</span>
+                    <span className="shrink-0 text-[0.8125rem] font-semibold text-tinta-700">
+                      {p.tambah > 0 ? `+${rupiah(p.tambah)}` : "Gratis"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPilihUntuk(null)}
+                className="mt-3 h-11 w-full rounded-[0.625rem] border border-bersih-200 text-[0.8125rem] font-bold text-tinta-700 active:bg-bersih-100"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Lembar keranjang ── */}
       {bukaKeranjang && (
-        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-ink-900/45">
+        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-tinta-900/40">
           <button
             type="button"
             aria-label="Tutup keranjang"
             onClick={() => setBukaKeranjang(false)}
             className="flex-1"
           />
-          <div className="max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-cream-50 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(20,35,26,0.28)]">
-            <div className="sticky top-0 flex items-center gap-2 border-b border-ink-900/10 bg-cream-50 px-4 py-3">
+          <div className="max-h-[88dvh] overflow-y-auto rounded-t-[1.25rem] bg-bersih-0 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(22,19,15,0.24)]">
+            <div className="sticky top-0 flex items-center gap-2 border-b border-bersih-200 bg-bersih-0 px-4 py-3">
               <button
                 type="button"
                 onClick={() => setBukaKeranjang(false)}
-                className="grid size-9 place-items-center rounded-lg border border-ink-900/15 text-ink-900"
+                className="grid size-9 place-items-center rounded-[0.625rem] border border-bersih-200 text-tinta-900"
                 aria-label="Kembali ke menu"
               >
                 <IkonKiri />
               </button>
-              <h2 className="flex-1 text-[0.9375rem] font-extrabold text-ink-900">Keranjang</h2>
-              <span className="text-[0.6875rem] font-semibold text-ink-500">
+              <h2 className="flex-1 text-[0.9375rem] font-extrabold text-tinta-900">Keranjang</h2>
+              <span className="text-[0.6875rem] font-semibold text-tinta-500">
                 Meja {mejaNomor}
               </span>
             </div>
 
             <div className="px-4">
               {keranjang.length === 0 ? (
-                <p className="py-10 text-center text-[0.8125rem] text-ink-500">
+                <p className="py-10 text-center text-[0.8125rem] text-tinta-500">
                   Keranjang kosong. Pilih menu dulu.
                 </p>
               ) : (
-                <ul className="divide-y divide-ink-900/8">
-                  {keranjang.map((b) => (
-                    <li key={b.menu.id} className="py-3">
+                <ul className="divide-y divide-bersih-100">
+                  {keranjang.map((b) => {
+                    /*
+                      Harga satuan sudah termasuk tambahan pilihan. Menampilkan
+                      b.menu.harga saja akan membuat pelanggan menghitung
+                      sendiri dan mengira tagihannya salah.
+                    */
+                    const kunci = kunciBaris(b.menu.id, b.pilihan);
+                    const satuan = b.menu.harga + b.pilihan.reduce((n, p) => n + p.tambah, 0);
+                    return (
+                    <li key={kunci} className="py-3">
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[0.875rem] font-bold text-ink-900">{b.menu.nama}</p>
-                          <p className="text-[0.75rem] text-ink-500">
-                            {rupiah(b.menu.harga)} × {b.jumlah} ={" "}
-                            <span className="font-bold text-ink-900">
-                              {rupiah(b.menu.harga * b.jumlah)}
+                          <p className="text-[0.9375rem] font-bold text-tinta-900">{b.menu.nama}</p>
+                          {b.pilihan.length > 0 && (
+                            <p className="mt-0.5 text-[0.8125rem] font-semibold text-clay-700">
+                              {b.pilihan
+                                .map((p) => (p.tambah > 0 ? `${p.nama} (+${rupiah(p.tambah)})` : p.nama))
+                                .join(", ")}
+                            </p>
+                          )}
+                          <p className="text-[0.8125rem] text-tinta-500">
+                            {rupiah(satuan)} × {b.jumlah} ={" "}
+                            <span className="font-bold text-tinta-900">
+                              {rupiah(satuan * b.jumlah)}
                             </span>
                           </p>
                         </div>
-                        <div className="flex items-center gap-1 rounded-lg border border-ink-900/15 p-0.5">
+                        <div className="flex items-center gap-1 rounded-[0.625rem] border border-bersih-200 p-0.5">
                           <button
                             type="button"
-                            onClick={() => ubahJumlah(b.menu.id, -1)}
-                            className="grid size-8 place-items-center rounded-md active:bg-cream-200"
+                            onClick={() => ubahJumlah(kunci, -1)}
+                            className="grid size-8 place-items-center rounded-[0.625rem] active:bg-bersih-50"
                             aria-label={`Kurangi ${b.menu.nama}`}
                           >
                             <IkonKurang className="size-3.5" />
@@ -716,8 +965,8 @@ export function PortalPelanggan({
                           </span>
                           <button
                             type="button"
-                            onClick={() => ubahJumlah(b.menu.id, 1)}
-                            className="grid size-8 place-items-center rounded-md active:bg-cream-200"
+                            onClick={() => ubahJumlah(kunci, 1)}
+                            className="grid size-8 place-items-center rounded-[0.625rem] active:bg-bersih-50"
                             aria-label={`Tambah ${b.menu.nama}`}
                           >
                             <IkonTambah className="size-3.5" />
@@ -725,9 +974,9 @@ export function PortalPelanggan({
                         </div>
                         <button
                           type="button"
-                          onClick={() => hapus(b.menu.id)}
+                          onClick={() => hapus(kunci)}
                           aria-label={`Hapus ${b.menu.nama}`}
-                          className="grid size-8 place-items-center rounded-md text-clay-700 active:bg-clay-600/10"
+                          className="grid size-8 place-items-center rounded-[0.625rem] text-clay-700 active:bg-clay-600/10"
                         >
                           <IkonHapus className="size-4" />
                         </button>
@@ -740,16 +989,19 @@ export function PortalPelanggan({
                         onChange={(e) =>
                           setKeranjang((k) =>
                             k.map((x) =>
-                              x.menu.id === b.menu.id ? { ...x, catatan: e.target.value } : x
+                              kunciBaris(x.menu.id, x.pilihan) === kunci
+                                ? { ...x, catatan: e.target.value }
+                                : x
                             )
                           )
                         }
                         placeholder="Catatan (mis. tanpa sambal)"
                         maxLength={200}
-                        className="mt-2 h-9 w-full rounded-lg border border-ink-900/12 bg-cream-100 px-2.5 text-[0.75rem] text-ink-900 outline-none placeholder:text-ink-500/70 focus:border-forest-700"
+                        className="mt-2 h-9 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-2.5 text-[0.8125rem] text-tinta-900 outline-none placeholder:text-tinta-500/70 focus:border-forest-700"
                       />
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
 
@@ -758,7 +1010,7 @@ export function PortalPelanggan({
                   benar — tetapi tidak diwajibkan (PRD bagian 4). */}
               {keranjang.length > 0 && (
                 <div className="mt-4">
-                  <label className="block text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-ink-500">
+                  <label className="block text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-tinta-500">
                     Nama pemesan (opsional)
                   </label>
                   <input
@@ -766,9 +1018,9 @@ export function PortalPelanggan({
                     onChange={(e) => setNama(e.target.value)}
                     maxLength={40}
                     placeholder="Mis. Rani"
-                    className="mt-1 h-11 w-full rounded-xl border border-ink-900/15 bg-cream-100 px-3 text-[0.8125rem] text-ink-900 outline-none placeholder:text-ink-500/70 focus:border-forest-700"
+                    className="mt-1 h-11 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[0.8125rem] text-tinta-900 outline-none placeholder:text-tinta-500/70 focus:border-forest-700"
                   />
-                  <p className="mt-1 text-[0.6875rem] text-ink-500">
+                  <p className="mt-1 text-[0.6875rem] text-tinta-500">
                     Supaya pelayan tahu pesanan ini untuk siapa kalau satu meja dipesan bergantian.
                   </p>
                 </div>
@@ -778,31 +1030,31 @@ export function PortalPelanggan({
                   terpisah, bukan dilipat ke harga, karena pelanggan berhak
                   tahu ke mana uangnya pergi sebelum membayar di kasir. */}
               {keranjang.length > 0 && (
-                <dl className="mt-4 space-y-1.5 rounded-xl bg-cream-100 p-3 text-[0.75rem]">
+                <dl className="mt-4 space-y-1.5 rounded-[0.625rem] bg-bersih-100 p-3 text-[0.8125rem]">
                   <div className="flex justify-between">
-                    <dt className="text-ink-500">Subtotal</dt>
-                    <dd className="font-semibold text-ink-900">{rupiah(rincian.subtotal)}</dd>
+                    <dt className="text-tinta-500">Subtotal</dt>
+                    <dd className="font-semibold text-tinta-900">{rupiah(rincian.subtotal)}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-ink-500">Biaya layanan</dt>
-                    <dd className="font-semibold text-ink-900">{rupiah(rincian.layanan)}</dd>
+                    <dt className="text-tinta-500">Biaya layanan</dt>
+                    <dd className="font-semibold text-tinta-900">{rupiah(rincian.layanan)}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-ink-500">Pajak {aturan.pajakPersen}%</dt>
-                    <dd className="font-semibold text-ink-900">{rupiah(rincian.pajak)}</dd>
+                    <dt className="text-tinta-500">Pajak {aturan.pajakPersen}%</dt>
+                    <dd className="font-semibold text-tinta-900">{rupiah(rincian.pajak)}</dd>
                   </div>
                   {rincian.pembulatan !== 0 && (
                     <div className="flex justify-between">
-                      <dt className="text-ink-500">Pembulatan</dt>
-                      <dd className="font-semibold text-ink-900">
+                      <dt className="text-tinta-500">Pembulatan</dt>
+                      <dd className="font-semibold text-tinta-900">
                         {rincian.pembulatan > 0 ? "+" : ""}
                         {rupiah(rincian.pembulatan)}
                       </dd>
                     </div>
                   )}
-                  <div className="flex justify-between border-t border-ink-900/10 pt-1.5">
-                    <dt className="font-extrabold text-ink-900">Perkiraan total</dt>
-                    <dd className="text-[0.875rem] font-extrabold text-ink-900">
+                  <div className="flex justify-between border-t border-bersih-200 pt-1.5">
+                    <dt className="font-extrabold text-tinta-900">Perkiraan total</dt>
+                    <dd className="text-[0.9375rem] font-extrabold text-tinta-900">
                       {rupiah(rincian.total)}
                     </dd>
                   </div>
@@ -813,9 +1065,9 @@ export function PortalPelanggan({
                 <div
                   ref={refGalat}
                   role="alert"
-                  className="mt-3 rounded-xl border border-clay-600/30 bg-clay-600/10 p-3"
+                  className="mt-3 rounded-[0.625rem] border border-clay-600/30 bg-clay-600/10 p-3"
                 >
-                  <p className="text-[0.75rem] font-semibold leading-snug text-clay-800">
+                  <p className="text-[0.8125rem] font-semibold leading-snug text-clay-800">
                     {pesanGalat}
                   </p>
                 </div>
@@ -825,12 +1077,12 @@ export function PortalPelanggan({
                 type="button"
                 onClick={kirim}
                 disabled={keranjang.length === 0 || mengirim || !bukaSekarang}
-                className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-forest-900 text-[0.875rem] font-extrabold text-cream-50 transition active:scale-[0.99] disabled:opacity-45"
+                className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 transition active:scale-[0.99] disabled:opacity-45"
               >
                 {mengirim ? "Mengirim…" : keranjang.length === 0 ? "Keranjang kosong" : "Kirim Pesanan"}
                 {!mengirim && keranjang.length > 0 && <IkonKanan />}
               </button>
-              <p className="mt-2 pb-1 text-center text-[0.6875rem] text-ink-500">
+              <p className="mt-2 pb-1 text-center text-[0.6875rem] text-tinta-500">
                 Bayar di kasir setelah makan. Bisa tambah pesanan kapan saja.
               </p>
             </div>
@@ -843,7 +1095,7 @@ export function PortalPelanggan({
       {panggilanTerkirim && (
         <div
           role="status"
-          className="fixed inset-x-0 bottom-24 z-40 mx-auto w-fit rounded-full bg-ink-900 px-4 py-2 text-[0.75rem] font-bold text-cream-50 shadow-lg"
+          className="fixed inset-x-0 bottom-24 z-40 mx-auto w-fit rounded-full bg-tinta-900 px-4 py-2 text-[0.8125rem] font-semibold text-bersih-0 shadow-lg"
         >
           <span className="inline-flex items-center gap-2">
             <IkonCentang className="size-4" />
@@ -869,10 +1121,10 @@ function FilterAktif({
       type="button"
       onClick={onClick}
       className={[
-        "shrink-0 rounded-full px-3 py-1.5 text-[0.75rem] font-bold transition",
+        "shrink-0 rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold transition",
         aktif
-          ? "bg-ink-900 text-cream-50"
-          : "border border-ink-900/15 bg-cream-50 text-ink-700 active:bg-cream-100",
+          ? "bg-tinta-900 text-bersih-0"
+          : "border border-bersih-200 bg-bersih-0 text-tinta-700 active:bg-bersih-100",
       ].join(" ")}
     >
       {children}

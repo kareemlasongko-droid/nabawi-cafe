@@ -13,6 +13,114 @@ lalu jalankan ulang migrasinya.
 | Harga termurah | Rp10.000 (`Mini Croffle Original`, `Black Tea Panas`, `Mineral Bottle`) |
 | Harga termahal | Rp375.000 (`Nasi Liwet Kastrol 4 Pax`) |
 
+## Pilihan menu (sambal / saus / rasa)
+
+Empat menu punya pilihan. Sebelum ada fitur ini, pilihan hanya tertulis di
+deskripsi: dapur menerima "Wagyu Meltique" tanpa tahu saus apa yang diminta,
+lalu menebak. Sekarang pelanggan **wajib memilih satu** sebelum item masuk
+keranjang, dan pilihannya ikut sampai ke dapur, kasir, dan struk.
+
+| Menu | Opsi | Tambahan harga |
+|---|---|---|
+| Rice Bowl Chicken | Sambal Matah, BBQ, Gravy, Salted Egg | Salted Egg **+Rp5.000** (contoh) |
+| Wagyu Meltique | Mushroom, BBQ, Black Pepper | gratis |
+| Crispy Chicken Steak | Mushroom, BBQ, Black Pepper | gratis |
+| Flavoured Latte Panas / Dingin | Vanilla, Caramel, Hazelnut, Rum, Banana, Cotton Candy, Butter Scotch | gratis |
+
+> **Angka tambahan harga masih CONTOH** dan harus dikonfirmasi pemilik.
+> Selama masih 0, tidak ada yang ditagih untuk pilihan itu.
+
+### Mengubah pilihan — SEKARANG LEWAT ADMIN
+
+Buka `/order/admin`, cari menunya, klik **Ubah**. Di bagian **Pilihan /
+add-on** ada daftar isian: nama opsi + tambahan harga (Rp). Kosongkan
+daftarnya untuk menghapus semua pilihan dari menu itu.
+
+Tambahan harga bisa diisi 0 untuk opsi gratis (mis. pilihan saus tanpa
+biaya). Admin juga bisa menambah pilihan pada menu yang sebelumnya tidak
+punya — pelanggan akan langsung ditanya saat memesan menu itu.
+
+SQL tetap bisa dipakai untuk pekerjaan massal (mis. menaikkan semua opsi
+sekaligus), tetapi bukan lagi satu-satunya jalan:
+
+```sql
+UPDATE public.menu
+SET pilihan = '[{"nama":"Salted Egg","tambah":8000}]'::jsonb
+WHERE nama = 'Rice Bowl Chicken';
+```
+
+Menaikkan tambahan harga **tidak** mengubah tagihan yang sudah terlanjur
+dibuat: harga dikunci per item saat pesanan disimpan.
+
+### Yang dijaga saat menyimpan dari admin
+
+| Kejadian | Perilaku |
+|---|---|
+| Nama opsi dikosongkan | Baris itu diabaikan, bukan membuat gagal simpan |
+| Dua opsi bernama sama | **Ditolak**, pesan menyebut nama yang bentrok |
+| Tambahan harga negatif | **Ditolak** — bukan dijepit diam-diam ke 0 |
+| Lebih dari 12 opsi | **Ditolak** |
+| Hanya mengubah "tersedia" | Pilihan **tidak tersentuh** |
+| Simpan `pilihan: []` atau `null` | Semua pilihan dihapus |
+
+Baris "hanya mengubah tersedia" itu bukan kehalusan: kasir menandai menu
+habis beberapa kali sehari, dan kalau PATCH `{tersedia:false}` ikut
+mengosongkan pilihan, add-on seluruh menu akan lenyap tanpa ada yang
+menyadarinya sampai pelanggan berikutnya tidak ditanya saus.
+
+### Aturan yang dijaga kode
+
+- **Satu pilihan per item.** Dua saus sekaligus ditolak.
+- **Harga tidak pernah diterima dari browser.** Browser hanya mengirim NAMA
+  opsi; server mencocokkannya ke database lalu mengambil `tambah` dari sana.
+  Tanpa ini, siapa pun bisa mengirim `tambah: 0` untuk Wagyu dan membayar
+  harga dasar.
+- **Dua saus berbeda = dua baris keranjang dan struk.** Bukan digabung.
+- **Pilihan ikut tercetak** di struk, kasir, dan layar dapur (huruf besar).
+
+#### Bug yang pernah lolos: pilihan tidak sampai ke dapur
+
+Fitur pilihan di-commit dan diuji 18/0, tetapi dapur **tidak pernah**
+menerima pilihannya. Penyebabnya: `/api/order/dapur` dan
+`/api/order/pelayan` menyusun ulang objek item dengan tangan —
+`{ id, nama_saat_pesan, jumlah, catatan }` — dan `pilihan` tidak ikut
+disalin. Portal dapur sudah punya kode untuk menampilkannya; yang hilang
+datanya.
+
+Uji saat itu memeriksa respons pembuatan pesanan (di situ `pilihan` ada),
+bukan respons dapur. **Menguji "data tersimpan" tidak sama dengan menguji
+"data sampai".** Sekarang ada `scripts/uji/pilihan-sampai.ts` yang
+memeriksa ketiga endpoint: pesanan, dapur, dan pelayan.
+
+## Rekomendasi
+
+Menu unggulan ditandai di `/order/admin` dengan **tombol bintang** di kolom
+paling kanan tabel — satu ketukan, tanpa membuka dialog. Bisa juga dari dalam
+dialog sunting (centang "Tampilkan sebagai rekomendasi").
+
+Di portal pelanggan, menu bertanda:
+
+1. naik ke **paling atas kategorinya**, dan
+2. mendapat lencana bintang **Rekomendasi**.
+
+Urutan sisanya **tidak berubah**: setelah semua rekomendasi, menu tetap
+mengikuti `urutan` milik pemilik, lalu nama sebagai penentu terakhir supaya
+posisi tidak berubah-ubah setiap halaman dimuat.
+
+Yang **tidak** dilakukan: memindahkan rekomendasi ke kategori lain. Tamu yang
+sedang membuka "Kopi" tetap melihat kopi — hanya yang direkomendasikan lebih
+dulu.
+
+Tanda rekomendasi tidak bergantung pada status ketersediaan. Menu rekomendasi
+yang sedang habis tetap di posisi atas dengan tanda "Habis" — memindahkannya
+ke bawah berarti urutan berubah sendiri setiap kali bahan habis.
+
+### Kenapa di database, bukan di kode
+
+Daftar rekomendasi di kode akan basi dalam hitungan hari: stok sedang banyak,
+bahan baru datang, hidangan baru dicoba. Pemilik harus bisa mengubahnya
+sendiri tanpa deploy.
+
 ## Cara memasukkan ke database
 
 Berkas `supabase/migrations/20261102000000_menu_nabawi.sql` berisi seluruh
@@ -31,7 +139,34 @@ Cappuccino Dingin Rp32.000). Tanpa akhiran itu, 13 nama menjadi kembar.
 
 Beberapa sub-grup dokumen digabung ke satu kategori:
 
-| Sub-grup di dokumen | Kategori di aplikasi |
+Kategori akhirnya **diringkas menjadi 6** (migrasi
+`20261103000000_ringkas_kategori.sql`). Dengan 18 kategori, baris chip di
+portal pelanggan selebar ±1.662 px sedangkan layar HP ±390 px — pelanggan
+harus menggeser lebih dari 4 lebar layar hanya untuk melihat pilihan. Dengan
+6 kategori menjadi ±749 px.
+
+| Kategori | Item | Digabung dari |
+|---|---|---|
+| Makanan Utama | 28 | Nasi & Rice Bowl, Ayam, Sapi & Iga, Udang, Ikan, Steak, Burger, Pasta |
+| Camilan & Pastry | 27 | Lauk & Sayur, Camilan, Pastry |
+| Kopi | 24 | Kopi |
+| Non-Kopi | 27 | Minuman Signature, Teh & Coklat |
+| Cheese & Milkshake | 11 | Cheese Series, Milkshake |
+| Jus & Dessert | 9 | Jus Segar, Dessert |
+
+**Kopi sengaja berdiri sendiri.** Digabung ke "Non-Kopi" atau "Minuman" akan
+menjadi 51 item yang harus digulir untuk menemukan Cappuccino — menu paling
+sering dicari di kafe.
+
+**"Lauk & Sayur" digabung ke Camilan & Pastry** meskipun Tumis Kangkung bukan
+camilan: hanya 6 item, dan berperan sebagai pendamping, bukan tujuan utama.
+
+Karena chip "Ayam"/"Ikan"/"Udang" hilang, **kotak cari ikut mencocokkan nama
+kategori** — mengetik "gurame" tetap menemukan Gurame Bakar Minang.
+
+Riwayat penggabungan dari sub-grup dokumen asli:
+
+| Sub-grup di dokumen | Kategori (sebelum diringkas) |
 |---|---|
 | SIGNATURE COFFEE + REGULAR COFFEE | Kopi |
 | SIGNATURE ICED COFFEE | Kopi |

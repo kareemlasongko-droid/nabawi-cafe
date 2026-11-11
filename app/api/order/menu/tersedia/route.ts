@@ -11,8 +11,8 @@
  * sedang memilih menu kehilangan tempatnya. Endpoint kecil ini memungkinkan
  * daftar menu diperbarui di latar belakang tanpa menyentuh keranjang.
  *
- * Jawabannya sengaja ramping ({id, tersedia}) supaya bisa ditanyakan tiap
- * 15 detik tanpa membebani kuota paket gratis.
+ * Jawabannya sengaja ramping ({id, tersedia, rekomendasi}) supaya bisa
+ * ditanyakan tiap 5 detik tanpa membebani kuota paket gratis.
  */
 import { NextResponse } from "next/server";
 import { ambilMenu } from "@/app/lib/order/data";
@@ -29,6 +29,7 @@ export async function GET() {
       menu: demoMenuDenganStatus(asli.ok ? asli.data.menu : MENU_CONTOH.menu).map((m) => ({
         id: m.id,
         tersedia: m.tersedia,
+        rekomendasi: m.rekomendasi === true,
       })),
       demo: true,
     });
@@ -42,7 +43,15 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    menu: res.data.menu.map((m) => ({ id: m.id, tersedia: m.tersedia })),
+    // `rekomendasi` ikut dikirim: tanpa itu, admin yang menandai bintang
+    // harus menunggu pelanggan memuat ulang halaman. Satu boolean per menu
+    // menambah ±17 byte — jauh lebih murah daripada satu tamu yang melihat
+    // urutan lama.
+    menu: res.data.menu.map((m) => ({
+      id: m.id,
+      tersedia: m.tersedia,
+      rekomendasi: m.rekomendasi === true,
+    })),
     demo: false,
   });
 }

@@ -5,7 +5,93 @@
  * sekali dan dipakai di mana saja: server saat menyimpan, dan layar saat
  * menampilkan perkiraan total.
  */
-import type { MetodeBayar } from "./tipe";
+import type { MetodeBayar, PilihanMenu } from "./tipe";
+
+// ─────────────────────────────────────────────────────────────
+// Pilihan menu (sambal / saus / rasa)
+// ─────────────────────────────────────────────────────────────
+
+/** Batas jumlah opsi per menu. Empat menu saat ini maksimal 7. */
+export const BATAS_PILIHAN = 12;
+
+/**
+ * Merapikan data pilihan dari database menjadi bentuk yang bisa dipercaya.
+ *
+ * Data jsonb bisa berbentuk apa saja kalau salah tulis di SQL Editor —
+ * `{}`, `null`, `[{"nama":123}]`, `tambah` berupa teks. Semua pembacaan
+ * menu lewat sini supaya satu baris rusak tidak membuat seluruh halaman
+ * gagal, dan supaya `tambah` dijamin angka (NaN di tengah perhitungan
+ * tagihan akan menghasilkan total NaN yang lolos ke struk).
+ */
+export function bacaPilihan(mentah: unknown): PilihanMenu[] {
+  if (!Array.isArray(mentah)) return [];
+  const hasil: PilihanMenu[] = [];
+  for (const x of mentah) {
+    if (!x || typeof x !== "object") continue;
+    const o = x as Record<string, unknown>;
+    const nama = typeof o.nama === "string" ? o.nama.trim().slice(0, 80) : "";
+    if (!nama) continue;
+    const angka = Number(o.tambah);
+    // Tambahan harga negatif tidak masuk akal (menurunkan harga jual) dan
+    // akan disalahgunakan. Dibulatkan ke rupiah utuh, dibatasi wajar.
+    const tambah = Number.isFinite(angka) ? Math.max(0, Math.round(angka)) : 0;
+    if (hasil.some((p) => p.nama.toLowerCase() === nama.toLowerCase())) continue;
+    hasil.push({ nama, tambah });
+    if (hasil.length >= BATAS_PILIHAN) break;
+  }
+  return hasil;
+}
+
+/**
+ * Memeriksa pilihan yang dikirim pelanggan terhadap pilihan menu di database.
+ *
+ * ATURAN: satu rasa/saus per item (permintaan pemilik). Kosong diperbolehkan
+ * bila menu memang tidak punya pilihan; bila menu punya pilihan, pelanggan
+ * WAJIB memilih satu — kalau tidak, dapur tetap harus menebak, dan itulah
+ * masalah yang sedang diperbaiki.
+ *
+ * Harga TIDAK diambil dari kiriman browser. Nama opsi dicocokkan ke menu,
+ * lalu `tambah` diambil dari database. Browser hanya boleh menyebut NAMA.
+ */
+export function periksaPilihan(
+  tersedia: PilihanMenu[],
+  diminta: unknown
+): { ok: true; pilihan: PilihanMenu[]; tambah: number } | { ok: false; pesan: string } {
+  if (tersedia.length === 0) {
+    // Menu tanpa pilihan: kiriman apa pun diabaikan, bukan ditolak. Menu bisa
+    // saja baru dihapus pilihannya saat pelanggan masih memegang layar lama.
+    return { ok: true, pilihan: [], tambah: 0 };
+  }
+
+  const daftar = Array.isArray(diminta)
+    ? diminta.filter((x): x is string => typeof x === "string").map((x) => x.trim())
+    : typeof diminta === "string"
+      ? [diminta.trim()]
+      : [];
+
+  const dipilih = daftar.filter(Boolean);
+  if (dipilih.length === 0) {
+    return { ok: false, pesan: `Pilih dulu: ${tersedia.map((p) => p.nama).join(", ")}.` };
+  }
+  if (dipilih.length > 1) {
+    return { ok: false, pesan: "Pilih satu saja, tidak bisa lebih dari satu." };
+  }
+
+  const cari = tersedia.find((p) => p.nama.toLowerCase() === dipilih[0].toLowerCase());
+  if (!cari) {
+    return {
+      ok: false,
+      pesan: `Pilihan "${dipilih[0]}" tidak tersedia untuk menu ini.`,
+    };
+  }
+  return { ok: true, pilihan: [cari], tambah: cari.tambah };
+}
+
+/** Tambahan harga dari pilihan yang sudah diperiksa. */
+export function tambahanPilihan(pilihan: PilihanMenu[] | null | undefined): number {
+  if (!Array.isArray(pilihan)) return 0;
+  return pilihan.reduce((n, p) => n + (Number.isFinite(p?.tambah) ? p.tambah : 0), 0);
+}
 
 // ─────────────────────────────────────────────────────────────
 // Pajak, biaya layanan, pembulatan (PRD bagian 11)
@@ -51,6 +137,20 @@ export type Rincian = {
  */
 export function hitungTagihan(subtotal: number, a: AturanBiaya = ATURAN_BAWAAN): Rincian {
   const dasar = Math.max(0, Math.round(subtotal));
+
+  /*
+    TAGIHAN KOSONG HARUS Rp0.
+
+    Biaya layanan bisa berupa nominal tetap (Rp2.000), bukan persentase.
+    Tanpa cabang `dasar === 0` di bawah, meja yang seluruh pesanannya
+    ditolak/dibatalkan tetap punya tagihan Rp2.200: subtotal 0, layanan
+    2.000, pajak 220. Angka itu muncul di layar kasir sebagai tagihan
+    yang harus ditagih — untuk makanan yang tidak pernah dibuat.
+
+    Biaya layanan adalah imbalan atas pelayanan yang diberikan; kalau
+    tidak ada yang dilayani, tidak ada yang perlu dibayar.
+  */
+  if (dasar === 0) return { subtotal: 0, layanan: 0, pajak: 0, pembulatan: 0, total: 0 };
 
   const layanan =
     a.layananPersen > 0
@@ -156,6 +256,12 @@ export type ItemMasuk = {
   jumlah: number;
   /** Selalu dinormalkan: string kosong menjadi null oleh validasi. */
   catatan: string | null;
+  /**
+   * NAMA opsi yang dipilih pelanggan, mis. ["Black Pepper"].
+   * Hanya nama — harga tidak pernah diterima dari browser. Dicocokkan ke
+   * database oleh `periksaPilihan()` saat pesanan disimpan.
+   */
+  pilihan: string[];
 };
 
 export type PesananMasuk = {
@@ -208,7 +314,17 @@ export function validasiPesananMasuk(masuk: unknown): HasilValidasi {
     }
     const it = mentah as Record<string, unknown>;
     const menuId = Number(it.menu_id);
-    const jumlah = Math.floor(Number(it.jumlah));
+    const jumlahMentah = Number(it.jumlah);
+    /*
+      Jumlah WAJIB bulat. Dulu `Math.floor` membuat 1,9 diterima diam-diam
+      sebagai 2 — pelanggan mengira memesan 1 porsi, struk menagih 2, dan
+      tidak ada satu pun pesan yang menjelaskan. Lebih baik ditolak dengan
+      kalimat yang bisa dibaca.
+    */
+    if (Number.isFinite(jumlahMentah) && !Number.isInteger(jumlahMentah)) {
+      return { ok: false, pesan: "Jumlah item harus bilangan bulat." };
+    }
+    const jumlah = Math.floor(jumlahMentah);
 
     if (!Number.isFinite(menuId) || menuId <= 0) {
       return { ok: false, pesan: "Ada item tanpa menu yang sah." };
@@ -229,7 +345,24 @@ export function validasiPesananMasuk(masuk: unknown): HasilValidasi {
     const catatan =
       typeof it.catatan === "string" ? it.catatan.trim().slice(0, BATAS_CATATAN) : "";
 
-    items.push({ menu_id: menuId, jumlah, catatan: catatan || null });
+    /*
+      Pilihan dibaca sebagai daftar NAMA saja. Isinya belum divalidasi di
+      sini karena validasi butuh data menu dari database (lihat data.ts).
+      Yang dijaga di sini: bentuknya tidak aneh dan panjangnya terbatas,
+      supaya tidak ada kiriman raksasa yang membebani database.
+    */
+    const pilihanMentah = Array.isArray(it.pilihan)
+      ? it.pilihan
+      : typeof it.pilihan === "string"
+        ? [it.pilihan]
+        : [];
+    const pilihan = pilihanMentah
+      .filter((x): x is string => typeof x === "string")
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+
+    items.push({ menu_id: menuId, jumlah, catatan: catatan || null, pilihan });
   }
 
   return { ok: true, bersih: { meja, nama: nama || null, sesi, items } };
@@ -282,4 +415,37 @@ export function nomorPesanan(meja: string, sekarang: Date = new Date()): string 
   }).format(sekarang);
   const acak = Math.floor(Math.random() * 90) + 10; // 10–99, selalu 2 digit
   return `M${meja}-${fmt.replace(":", "")}-${acak}`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Urutan menu di portal pelanggan
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Mengurutkan menu dalam satu kategori: rekomendasi dulu, lalu urutan
+ * pemilik, lalu nama.
+ *
+ * Kenapa bukan cukup `rekomendasi` saja: seluruh isi kategori tidak boleh
+ * berubah posisi hanya karena satu menu ditandai. `urutan` tetap jadi
+ * penentu kedua supaya sisa daftar persis seperti yang sudah disusun
+ * pemilik. `nama` jadi penentu terakhir hanya untuk memastikan urutan
+ * stabil — dua menu dengan `urutan` sama tidak boleh bertukar posisi
+ * setiap kali halaman dimuat, karena itu membuat pelanggan mengira
+ * menunya berubah.
+ *
+ * Fungsi ini murni supaya bisa diuji tanpa browser. Dipakai portal
+ * pelanggan DAN uji — satu sumber, bukan dua salinan.
+ */
+export function urutkanMenu<T extends { rekomendasi?: boolean | null; urutan?: number | null; nama: string }>(
+  daftar: T[]
+): T[] {
+  return [...daftar].sort((a, b) => {
+    const rekA = a.rekomendasi === true ? 1 : 0;
+    const rekB = b.rekomendasi === true ? 1 : 0;
+    if (rekA !== rekB) return rekB - rekA;
+    const urutA = Number.isFinite(a.urutan) ? Number(a.urutan) : 0;
+    const urutB = Number.isFinite(b.urutan) ? Number(b.urutan) : 0;
+    if (urutA !== urutB) return urutA - urutB;
+    return a.nama.localeCompare(b.nama, "id");
+  });
 }
