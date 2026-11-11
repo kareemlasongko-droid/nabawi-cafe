@@ -440,20 +440,22 @@ export function PortalPelanggan({
 
           LEBAR dihitung dari metrik Plus Jakarta Sans, bukan dikira-kira.
           Di layar 360px isinya 336px:
-            kiri  : logo 28 + "Nabawi Cafe" 95            = 131
-            kanan : meja 40 + Panggil 70 + Bill 40 + jarak = 162
-          Total 301px, sisa 35px. Karena itu, di bawah 640px:
+            kiri  : logo 28 + "Nabawi Cafe" 95             = 131
+            kanan : meja 78 (ikon + "Meja 3") + Panggil 63
+                    + Bill 35 + jarak 12                   = 188
+          Ditambah jarak antar kelompok dan luar: 326px, sisa 10px.
+          Karena itu, di bawah 640px:
             1. "& Resto" dan keterangan disembunyikan — memaksanya muat
                berarti ellipsis di tengah merek, yang terbaca sebagai rusak.
             2. Label "Panggil"/"Bill" tetap TAMPIL: tanpa teks, tamu tidak
                tahu ikon lonceng dan kertas itu apa. Padding tombolnya yang
                dipangkas, bukan artinya.
-            3. Di bawah 390px ikon di dalam tombol dilepas (labelnya tetap
-               ada). Di 375px dua ikon menyisakan 2px — terlalu mepet untuk
-               teks yang bisa membesar saat pengaturan huruf perangkat
-               dinaikkan.
+            3. Di bawah 414px ikon di dalam tombol dilepas (labelnya tetap
+               ada). Dua ikon butuh 40px, dan di 390px itu berarti sisa 0px —
+               tidak ada cadangan sama sekali untuk huruf perangkat yang
+               diperbesar.
         */}
-        <div className="mx-auto flex max-w-[45rem] items-center justify-between gap-3 px-3 py-2.5">
+        <div className="mx-auto flex max-w-[45rem] items-center justify-between gap-2 px-3 py-2.5 sm:gap-3">
           {/* ── KIRI: identitas kafe ── */}
           <div className="flex min-w-0 items-center">
             <LogoNabawi
@@ -478,33 +480,37 @@ export function PortalPelanggan({
               memang tidak bisa ditekan.
             */}
             <span
-              className="flex h-10 shrink-0 items-center gap-1 rounded-[0.625rem] bg-tinta-900 px-2 text-[0.8125rem] font-bold text-bersih-0"
+              className="flex h-10 shrink-0 items-center gap-1 rounded-[0.625rem] bg-tinta-900 px-2 text-[0.8125rem] text-bersih-0"
               title={`Meja ${mejaNomor} · ${mejaArea}`}
             >
               <IkonMeja className="size-4 shrink-0" />
-              <span aria-hidden="true" className="tabular-nums">
-                {mejaNomor}
-              </span>
-              <span className="sr-only">
-                Meja {mejaNomor}, area {mejaArea}
-              </span>
+              {/*
+                "Meja" ditulis, bukan hanya angkanya: tanpa kata itu, "3"
+                hanyalah angka tanpa satuan — tamu yang baru duduk tidak
+                tahu apakah itu nomor meja, nomor pesanan, atau jumlah item.
+                Warnanya diredupkan dan bobotnya diturunkan supaya yang
+                dibaca pertama tetap angkanya.
+              */}
+              <span className="text-bersih-0/70">Meja</span>
+              <span className="font-bold tabular-nums">{mejaNomor}</span>
+              <span className="sr-only">, area {mejaArea}</span>
             </span>
 
             <button
               type="button"
               onClick={() => panggil("pelayan")}
-              className="flex h-10 items-center gap-1 rounded-[0.625rem] border border-bersih-300 px-2 text-[0.8125rem] font-semibold text-tinta-900 transition active:scale-[0.97] active:bg-bersih-100 min-[390px]:px-2.5"
+              className="flex h-10 items-center gap-1 rounded-[0.625rem] border border-bersih-300 px-2 text-[0.8125rem] font-semibold text-tinta-900 transition active:scale-[0.97] active:bg-bersih-100 min-[414px]:px-2.5"
               title="Panggil pelayan ke meja"
             >
-              <IkonBel className="hidden size-4 min-[390px]:block" />
+              <IkonBel className="hidden size-4 min-[414px]:block" />
               Panggil
             </button>
             <button
               type="button"
               onClick={() => panggil("bill")}
-              className="flex h-10 items-center gap-1 rounded-[0.625rem] bg-aksi-500 px-2 text-[0.8125rem] font-bold text-bersih-0 transition active:scale-[0.97] active:bg-aksi-600 min-[390px]:px-2.5"
+              className="flex h-10 items-center gap-1 rounded-[0.625rem] bg-aksi-500 px-2 text-[0.8125rem] font-bold text-bersih-0 transition active:scale-[0.97] active:bg-aksi-600 min-[414px]:px-2.5"
             >
-              <IkonBill className="hidden size-4 min-[390px]:block" />
+              <IkonBill className="hidden size-4 min-[414px]:block" />
               Bill
             </button>
           </div>

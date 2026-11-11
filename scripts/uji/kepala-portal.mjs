@@ -102,8 +102,15 @@ async function main() {
   );
   cek(
     "pelanggan: angka meja memakai ukuran huruf tombol (13px)",
-    kepalaPelanggan.includes("text-[0.8125rem] font-bold text-bersih-0") &&
+    kepalaPelanggan.includes("text-[0.8125rem] text-bersih-0") &&
       !kepalaPelanggan.includes("text-[1.0625rem] font-extrabold"),
+  );
+  // "Meja" harus tertulis: angka tanpa satuan tidak berarti apa pun bagi tamu.
+  cek(
+    "pelanggan: kotak meja menulis kata \"Meja\" sebelum angka",
+    /<span class="[^"]*text-bersih-0\/70"[^>]*>Meja<\/span>\s*<span class="[^"]*tabular-nums"[^>]*>/.test(
+      kepalaPelanggan,
+    ),
   );
   const tinggiTombol = [...kepalaPelanggan.matchAll(/<button[^>]*class="[^"]*h-10/g)];
   cek("pelanggan: dua tombol setinggi 40px", tinggiTombol.length === 2);

@@ -117,7 +117,7 @@ keterangan), bukan dikira-kira. Di ponsel 360px ruang isi hanya **336px**
 | Dapur | identitas 186 + tiga tombol ikon 116 | 34px |
 | Pelayan | identitas 235 + tombol bunyi 40 | 53px |
 | Admin | identitas 206 + dua tab 112 | 10px |
-| Pelanggan | identitas 131 + meja/Panggil/Bill 166 | 31px |
+| Pelanggan | identitas 131 + meja/Panggil/Bill 195 | 10px |
 
 Di tablet semuanya kembali penuh: "& Resto", nama layar panjang, dan keterangan
 tiga angka. Yang dipendekkan di ponsel, berurutan sesuai prioritas:
@@ -141,15 +141,23 @@ berbeda di satu garis — 20/28/40 — terbaca sebagai elemen yang kebetulan
 berdekatan, bukan satu bilah. Logo tetap 28px agar cincinnya tajam; yang
 setinggi 40px adalah kotak pembungkusnya (`setinggiKontrol`).
 
-Kotak meja juga memakai **bentuk yang sama** dengan tombol: ikon 16px + angka
+Kotak meja juga memakai **bentuk yang sama** dengan tombol: ikon 16px + teks
 13px, `px-2`, `gap-1`. Kotak 40x40 berisi angka 17px adalah satu-satunya
 elemen tanpa ikon dan satu-satunya yang hurufnya lebih besar — ia terbaca
 sebagai hiasan. Bedanya dengan tombol hanya pada warna: latar `tinta-900`
 penuh, tanpa `hover`/`active`, karena nomor meja tidak bisa ditekan.
 
-Angka meja ditandai `aria-hidden` dan diganti satu label utuh
-("Meja 3, area teras"), supaya pembaca layar tidak mengumumkan angkanya dua
-kali.
+Isinya **"Meja 3"**, bukan "3". Angka tanpa satuan tidak berarti apa pun bagi
+tamu yang baru duduk — bisa dibaca nomor pesanan atau jumlah item. Kata
+"Meja" diredupkan (`text-bersih-0/70`) dan bobotnya diturunkan supaya yang
+dibaca pertama tetap angkanya. Area meja tetap hanya di `title` + teks
+pembaca layar (`sr-only`), karena ia mengulang isi kotak dan panjangnya
+(seperti "teras lantai 2") akan mendorong tombol keluar layar.
+
+Kotak ini kini **78px** (dari 44px). Di 360px sisa ruang tinggal 10px, jadi
+dua penyesuaian ikut: jarak antar kelompok 12 → 8px, dan ikon di dalam tombol
+Panggil/Bill baru muncul mulai **414px** (dua ikon butuh 40px; di 390px itu
+berarti sisa 0px, tanpa cadangan untuk huruf perangkat yang diperbesar).
 
 Konsekuensinya lebar bertambah 32px, jadi dua penyesuaian ikut masuk: ikon di
 dalam tombol hanya muncul mulai **390px** (di bawah itu label teks saja), dan
