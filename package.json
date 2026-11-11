@@ -12,9 +12,10 @@
     "uji:aturan": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/aturan-pilihan.mjs",
     "uji:jalur": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/jalur-pilihan.mjs",
     "uji:saring": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/saring-admin.mjs",
-    "uji:http": "node scripts/uji/regresi.mjs && node scripts/uji/kepala-portal.mjs && node scripts/uji/pilihan.mjs && npm run uji:sampai --silent",
+    "uji:http": "node scripts/uji/regresi.mjs && node scripts/uji/kepala-portal.mjs && node scripts/uji/bug-audit.mjs && node scripts/uji/pilihan.mjs && npm run uji:sampai --silent",
     "uji:sampai": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/pilihan-sampai.ts",
-    "uji:kepala": "node scripts/uji/kepala-portal.mjs"
+    "uji:kepala": "node scripts/uji/kepala-portal.mjs",
+    "uji:bug": "node scripts/uji/bug-audit.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",

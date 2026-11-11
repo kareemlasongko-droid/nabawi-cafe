@@ -268,7 +268,18 @@ export function demoBuatPesanan(masuk: {
 
   for (const it of masuk.items) {
     const mnu = peta.get(it.menu_id);
-    if (mnu && !mnu.tersedia) {
+    /*
+      Menu yang tidak ada harus DITOLAK, bukan diberi nama "Menu 999999"
+      dengan harga 0. Sebelum ini mode demo menerima id apa pun, sehingga
+      kiriman rusak tampak berhasil — sementara jalur database menolaknya
+      dengan "menu tidak dikenal". Perbedaan itu membuat uji otomatis
+      melaporkan lulus untuk perilaku yang di produksi berakhir sebagai
+      pesanan gratis.
+    */
+    if (!mnu) {
+      return { ok: false as const, pesan: `Ada menu yang tidak dikenal (id ${it.menu_id}).` };
+    }
+    if (!mnu.tersedia) {
       return { ok: false as const, pesan: `${mnu.nama} sedang habis. Hapus dari keranjang.` };
     }
     const tersedia = bacaPilihan(mnu?.pilihan);
@@ -421,6 +432,33 @@ export function demoUbahStatus(id: number, ke: StatusPesanan, alasan?: string) {
   if (ke === "diantar") p.diantar_at = sekarang;
   if (ke === "ditolak") p.alasan_tolak = alasan ?? "Tidak disebutkan";
   if (ke === "dibatalkan") p.alasan_batal = alasan ?? null;
+
+  /*
+    Tagihan dihitung ulang, sama seperti jalur database. Tanpa ini mode demo
+    menyimpan total yang sudah tidak sesuai dengan itemnya, dan kasir di
+    layar demo menagih makanan yang pesanannya sudah dibatalkan. Bug itu
+    pernah lolos justru karena demo tidak melakukannya.
+  */
+  if (ke === "ditolak" || ke === "dibatalkan") {
+    const tag = t.tagihan.find((x) => x.meja_id === p.meja_id && x.status !== "lunas");
+    if (tag) {
+      const subtotal = t.items
+        .filter((i) => {
+          const ps = t.pesanan.find((x) => x.id === i.pesanan_id);
+          return ps?.meja_id === p.meja_id && ps.status !== "ditolak" && ps.status !== "dibatalkan";
+        })
+        .reduce((n, i) => n + i.jumlah * i.harga_satuan, 0);
+      Object.assign(tag, hitungTagihan(subtotal, ATURAN_BAWAAN), {
+        id: tag.id,
+        meja_id: tag.meja_id,
+        status: tag.status,
+        dibuka_at: tag.dibuka_at,
+        ditutup_at: tag.ditutup_at,
+        kasir: tag.kasir,
+      });
+    }
+  }
+
   return { ok: true as const, pesanan: p };
 }
 

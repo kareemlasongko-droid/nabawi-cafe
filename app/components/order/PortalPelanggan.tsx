@@ -604,7 +604,16 @@ export function PortalPelanggan({
             Kategori dibuat baris yang bisa digeser horizontal, bukan grid
             kartu: pelanggan memakai satu tangan, dan baris di bawah ibu jari
             lebih mudah dijangkau daripada grid dua kolom di tengah layar. */}
-        <div className="sticky top-[4.25rem] z-20 -mx-4 mt-4 bg-bersih-50/95 px-4 py-2 backdrop-blur">
+        {/*
+          `top-[3.75rem]` = 60px, TINGGI KEPALA YANG SEBENARNYA (py-2.5 = 20px
+          + isi tertinggi h-10 = 40px). Sebelumnya 4.25rem (68px) — sisa 8px
+          dari versi lama ketika kepala masih memuat baris identitas
+          tambahan, dan tidak pernah diperbarui setelah baris itu dihapus.
+          Akibatnya baris cari menempel 8px di bawah tepi kepala, sehingga
+          menu sempat menyelip di celah itu saat digulir.
+          Kalau tinggi kepala berubah, angka ini WAJIB ikut berubah.
+        */}
+        <div className="sticky top-[3.75rem] z-20 -mx-4 mt-4 bg-bersih-50/95 px-4 py-2 backdrop-blur">
           <label className="flex h-11 items-center gap-2 rounded-[0.625rem] border border-bersih-200 bg-bersih-0 px-3">
             <IkonCari className="size-4 shrink-0 text-tinta-500" />
             <input

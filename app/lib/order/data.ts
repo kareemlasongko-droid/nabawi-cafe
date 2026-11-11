@@ -431,6 +431,29 @@ export async function ubahStatus(
         sesudah: { status: ke, alasan: patch.alasan_tolak ?? patch.alasan_batal ?? null },
       },
     });
+
+    /*
+      TAGIHAN WAJIB DIHITUNG ULANG.
+
+      hitungUlangTagihan hanya dipanggil saat pesanan DIBUAT. Akibatnya
+      pesanan yang ditolak atau dibatalkan tetap menempel di tagihan: tamu
+      yang memesan Rp46.600 lalu dibatalkan melihat tagihan Rp46.600 di
+      meja kasir padahal struknya kosong. Kalau kasir menagihnya, tamu
+      membayar makanan yang tidak pernah dibuat — dan kalau kasir
+      menyadarinya, ia harus menghitung ulang secara manual.
+
+      Kegagalan di sini TIDAK membatalkan perubahan status: status sudah
+      tersimpan, dan menolak pesanan tetap lebih penting daripada tagihan
+      yang benar. Selisihnya akan terlihat di layar kasir sebagai total
+      yang tidak cocok dengan daftar item — lebih mudah ditemukan daripada
+      pesanan yang statusnya tidak berubah.
+    */
+    const tagihan = await db<Tagihan[]>("tagihan", {
+      q: `select=id&meja_id=eq.${p.meja_id}&status=neq.lunas&limit=1`,
+    });
+    if (tagihan.ok && tagihan.data.length > 0) {
+      await hitungUlangTagihan(p.meja_id, tagihan.data[0].id);
+    }
   }
 
   return { ok: true, data: upd.data[0] };

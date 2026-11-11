@@ -103,6 +103,14 @@ export async function POST(req: Request) {
         sudah ditandai habis tetap bisa dipesan di mode demo — dan uji
         otomatis akan melaporkannya lulus, padahal produksi menolaknya.
       */
+      /*
+        demoMenuDenganStatus dulu TIDAK dipakai di sini — hanya di portal
+        dapur. Akibatnya penandaan "habis" dari dapur hilang tepat sebelum
+        validasi, dan mode demo tetap menerima pesanan untuk menu yang
+        sudah ditandai habis. Perilakunya berbeda dari produksi (di sana
+        `tersedia` dibaca dari database), jadi uji otomatis hijau untuk
+        hal yang akan ditolak sungguhan.
+      */
       menu: demoMenuDenganStatus(menu.ok ? menu.data.menu : MENU_CONTOH.menu),
     });
     if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });

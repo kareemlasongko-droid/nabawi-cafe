@@ -138,6 +138,20 @@ export type Rincian = {
 export function hitungTagihan(subtotal: number, a: AturanBiaya = ATURAN_BAWAAN): Rincian {
   const dasar = Math.max(0, Math.round(subtotal));
 
+  /*
+    TAGIHAN KOSONG HARUS Rp0.
+
+    Biaya layanan bisa berupa nominal tetap (Rp2.000), bukan persentase.
+    Tanpa cabang `dasar === 0` di bawah, meja yang seluruh pesanannya
+    ditolak/dibatalkan tetap punya tagihan Rp2.200: subtotal 0, layanan
+    2.000, pajak 220. Angka itu muncul di layar kasir sebagai tagihan
+    yang harus ditagih — untuk makanan yang tidak pernah dibuat.
+
+    Biaya layanan adalah imbalan atas pelayanan yang diberikan; kalau
+    tidak ada yang dilayani, tidak ada yang perlu dibayar.
+  */
+  if (dasar === 0) return { subtotal: 0, layanan: 0, pajak: 0, pembulatan: 0, total: 0 };
+
   const layanan =
     a.layananPersen > 0
       ? Math.round((dasar * a.layananPersen) / 100)
@@ -300,7 +314,17 @@ export function validasiPesananMasuk(masuk: unknown): HasilValidasi {
     }
     const it = mentah as Record<string, unknown>;
     const menuId = Number(it.menu_id);
-    const jumlah = Math.floor(Number(it.jumlah));
+    const jumlahMentah = Number(it.jumlah);
+    /*
+      Jumlah WAJIB bulat. Dulu `Math.floor` membuat 1,9 diterima diam-diam
+      sebagai 2 — pelanggan mengira memesan 1 porsi, struk menagih 2, dan
+      tidak ada satu pun pesan yang menjelaskan. Lebih baik ditolak dengan
+      kalimat yang bisa dibaca.
+    */
+    if (Number.isFinite(jumlahMentah) && !Number.isInteger(jumlahMentah)) {
+      return { ok: false, pesan: "Jumlah item harus bilangan bulat." };
+    }
+    const jumlah = Math.floor(jumlahMentah);
 
     if (!Number.isFinite(menuId) || menuId <= 0) {
       return { ok: false, pesan: "Ada item tanpa menu yang sah." };
