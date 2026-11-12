@@ -13,6 +13,16 @@ const nextConfig = {
   ],
   images: {
     formats: ["image/avif", "image/webp"],
+    /*
+      Foto menu akan diunggah ke Supabase Storage, bukan ke /public.
+      next/image MENOLAK host yang tidak terdaftar (dan sebelumnya
+      halaman /menu memakai <img> mentah supaya tidak perlu ini).
+      Pola `*.supabase.co` mencakup URL project sekarang maupun project
+      baru bila Supabase dipindah — tanpa membuka host sembarang.
+    */
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/**" },
+    ],
   },
 };
 

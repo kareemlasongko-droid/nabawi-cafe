@@ -19,6 +19,7 @@
  * Jalankan: npm run uji:menu
  */
 import { urutkanMenu } from "../../app/lib/order/aturan";
+import { aturanSaring, kelompokkanMenu as kelompokkan } from "../../app/lib/order/saring";
 import type { KategoriMenu, Menu } from "../../app/lib/order/tipe";
 
 
@@ -28,31 +29,6 @@ const gagal: string[] = [];
 function cek(nama: string, syarat: boolean, catatan = "") {
   if (syarat) lulus++;
   else gagal.push(catatan ? `${nama} — ${catatan}` : nama);
-}
-
-// Salinan `kelompokkan` dari app/menu/page.tsx. Disalin apa adanya; kalau
-// keduanya menyimpang, uji ini berhenti menguji yang sebenarnya.
-type Kelompok = { kategori: KategoriMenu; menu: Menu[] };
-
-function kelompokkan(kategori: KategoriMenu[], menu: Menu[]): Kelompok[] {
-  const hasil: Kelompok[] = [];
-  const dipakai = new Set<number>();
-
-  for (const k of [...kategori].sort((a, b) => a.urutan - b.urutan)) {
-    const isi = urutkanMenu(menu.filter((m) => m.kategori_id === k.id));
-    if (isi.length === 0) continue;
-    hasil.push({ kategori: k, menu: isi });
-    dipakai.add(k.id);
-  }
-
-  const yatim = urutkanMenu(
-    menu.filter((m) => m.kategori_id === null || !dipakai.has(m.kategori_id))
-  );
-  if (yatim.length > 0) {
-    hasil.push({ kategori: { id: -1, nama: "Lainnya", urutan: 999 }, menu: yatim });
-  }
-
-  return hasil;
 }
 
 // Potongan asli DB, termasuk satu menu yang sedang habis.
@@ -145,6 +121,41 @@ cek(
 const bowl = hasil.flatMap((g) => g.menu).find((m) => m.id === 5);
 const salted = (bowl?.pilihan ?? []).find((p) => p.nama === "Salted Egg");
 cek("tambahan harga pilihan terjaga", salted?.tambah === 5000, String(salted?.tambah));
+
+// ── 10. Aturan saring lahir dari data, bukan dari daftar manual ───────
+//      Ini menutup bug yang paling mahal: pil kategori baru tanpa aturan
+//      tampil = daftar kosong di production, tanpa error.
+const aturan = aturanSaring(KATEGORI);
+for (const k of KATEGORI) {
+  cek(
+    `aturan saring untuk kategori ${k.id}`,
+    aturan.includes(`body[data-saring="${k.id}"] [data-kat="${k.id}"]{display:block}`)
+  );
+}
+cek("aturan saring = jumlah kategori", (aturan.match(/display:block/g) ?? []).length === 6);
+
+// Kategori ke-7 (mis. pemilik menambah "Teh") harus ikut punya aturan.
+const tujuh = aturanSaring([...KATEGORI, { id: 7, nama: "Teh", urutan: 7 }]);
+cek("kategori baru otomatis punya aturan", tujuh.includes('body[data-saring="7"]'));
+
+// Id rusak tidak boleh menghasilkan CSS yang membocorkan seluruh daftar.
+const kotor = aturanSaring([
+  { id: 3 },
+  { id: Number.NaN },
+  { id: 2.5 },
+  { id: 4 },
+]);
+cek("id NaN dibuang", !kotor.includes("NaN"));
+cek("id pecahan dibuang", !kotor.includes("2.5"));
+cek("id valid tetap ada", kotor.includes('"3"') && kotor.includes('"4"'));
+// Tiap aturan harus berbentuk PERSIS satu pola dengan id bilangan bulat.
+// Pemeriksaan sebelumnya memakai regex "boleh/tidak boleh" yang salah tulis
+// sendiri — bukan kode yang diuji. Ini menguji bentuknya, bukan karakternya.
+const polaAturan = /^body\[data-saring="\d+"\] \[data-kat="\d+"\]\{display:block\}$/;
+const setiapAturanSah = kotor.split("}").filter(Boolean).every((a) => polaAturan.test(a + "}"));
+cek("setiap aturan berbentuk sah", setiapAturanSah, kotor);
+cek("id ganda tidak menggandakan aturan", (aturanSaring([{ id: 1 }, { id: 1 }]).match(/display:block/g) ?? []).length === 1);
+cek("tanpa kategori", aturanSaring([]) === "");
 
 console.log(`\n/ menu  ${lulus} lulus, ${gagal.length} gagal`);
 for (const g of gagal) console.log("  GAGAL:", g);

@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { BackLink } from "../../components/back-link";
+import {
+  IkonBiskuit,
+  IkonCangkir,
+  IkonEsKrim,
+  IkonGelas,
+  IkonMangkuk,
+  IkonMilkshake,
+} from "../components/menu/IkonKategori";
+import { SaringanKategori } from "../components/menu/SaringanKategori";
 import { Navbar } from "../components/Navbar";
 import { ambilMenu } from "../lib/order/data";
 import { MENU_CONTOH } from "../lib/order/demo";
 import { bacaPilihan, urutkanMenu } from "../lib/order/aturan";
+import { aturanSaring, kelompokkanMenu } from "../lib/order/saring";
 import type { KategoriMenu, Menu } from "../lib/order/tipe";
 
 /**
@@ -14,27 +24,19 @@ import type { KategoriMenu, Menu } from "../lib/order/tipe";
  * tidak ada halaman detail menunya, tapi di daftar menu sudah mencakup
  * informasi detailnya."
  *
- * Yang diambil dari /tour, dan yang sengaja TIDAK:
- *   diambil  : kanvas 440px di tengah, latar hijau + gambar tetap,
- *              Navbar gradient, kepala berlabel kecil, kartu hias
- *              `forest-900` bergaris krem tipis.
- *   dibuang  : peta mini (10 titik tidak punya arti untuk menu),
- *              chevron ">" (tidak ada halaman tujuan), penomoran urut
- *              01–10 (menunya 126; nomornya jadi derau, bukan penunjuk),
- *              dan badge durasi "12m" (tidak relevan).
+ * TIGA PERUBAHAN DARI VERSI PERTAMA (permintaan pemilik)
  *
- * KENAPA SATU KARTU PER MENU, BUKAN GRID
- * Kartu tour berbentuk baris: keping visual di kiri, teks di kanan.
- * Bentuk yang sama dipakai di sini — kepingnya berisi HARGA, bukan foto,
- * karena 126 menu ini belum punya satu pun foto di database. Harga adalah
- * informasi yang paling dicari tamu, jadi ia mendapat tempat yang di tour
- * dipakai panorama.
+ *   1. Warna mengikuti tombol "Menu Kami" di /fitur — terracotta
+ *      `clay-600`, bukan hijau `forest-900` seperti /tour. Alasannya bukan
+ *      selera: tombol itulah pintu masuk halaman ini, jadi halaman yang
+ *      dibukanya harus terasa satu benda dengan tombolnya.
+ *   2. Ada saringan kategori, bentuknya mengikuti /order: satu baris pil
+ *      yang menempel saat digulir.
+ *   3. slot gambar di kiri kartu berisi GAMBAR (foto bila ada, ikon garis
+ *      bila tidak) — bukan lagi keping harga.
  *
- * KENAPA TANPA JS KLIEN
- * Tidak ada pencarian, saringan, atau akordeon. Halaman ini untuk dibaca
- * dan dibagikan lewat tautan/QR. Menambah interaksi berarti menambah
- * hidrasi untuk 126 kartu — persis biaya yang sedang kita hindari di
- * portal pelanggan.
+ * Yang tetap dibuang dari /tour: peta mini, chevron ">" (tak ada halaman
+ * detail), nomor urut 01–126, badge durasi, dan footer.
  */
 
 export const metadata: Metadata = {
@@ -44,126 +46,92 @@ export const metadata: Metadata = {
 };
 
 /*
-  Halaman ini DINAMIS — dan itu bukan kelalaian.
+  Halaman ini DINAMIS, dan itu disengaja.
 
-  Saya sempat menulis `export const revalidate = 60` di sini, lalu
-  membuangnya setelah `next build` menunjukkan rutenya tetap `ƒ`
-  (dynamic). Penyebabnya `db()` di lib/order/db.ts memakai
-  `cache: "no-store"` pada SEMUA permintaan — termasuk menu. Ekspor
-  revalidate jadi hiasan yang tidak berefek; menyisakannya hanya
-  menipu orang berikutnya yang membaca berkas ini.
-
-  Kenapa tidak dipaksa statis:
-  satu-satunya cara adalah memberi jalur cache khusus menu
-  (`unstable_cache`) yang memotong `no-store` untuk dua kueri menu saja.
-  Belum dikerjakan karena untungnya kecil dan risikonya nyata: menu yang
-  tertinggal di cache akan menampilkan hidangan yang sudah HABIS sebagai
-  masih bisa dipesan — tamu memesan, dapur menolak. Untuk sebuah kafe,
-  "Daftar menu selalu benar" lebih berharga daripada ~150 ms.
-
-  Kalau nanti halaman ini jadi jalur masuk utama (QR di tiap meja), yang
-  perlu diukur dulu: berapa permintaan/menit, dan berapa lama dua kueri
-  menu ke Supabase. Baru setelah itu layak mempertimbangkan cache.
+  Ekspor `revalidate` sempat ditulis lalu dibuang setelah `next build`
+  tetap menandai rutenya ƒ: db() di lib/order/db.ts memakai
+  `cache: "no-store"` untuk SEMUA permintaan. Menu yang tertinggal di
+  cache berarti tamu memesan hidangan yang sudah habis dan dapur
+  menolaknya — untuk kafe, "daftar selalu benar" lebih berharga daripada
+  ~150 ms.
 */
 
-/**
- * Latar halaman memakai foto yang SAMA dengan /tour.
- *
- * Bukan pilihan malas: memakai gambar berbeda untuk dua halaman yang
- * bersebelahan membuat keduanya terasa dari situs yang berbeda. Yang
- * membedakan halaman ini adalah isinya, bukan latarnya.
- *
- * Gambar diunduh sekali dan dipakai ulang dari cache peramban, karena
- * URL-nya identik dengan yang ada di /tour.
- */
+/*
+  Foto latar dilebur ke WARNA clay-600, bukan diganti gambar lain.
+
+  Tombol "Menu Kami" di /fitur memakai `bg-clay-600` polos — di sana
+  terracotta itu tidak punya tekstur. Kalau halaman ini memakai bidang
+  clay polos juga, 126 kartu akan mengambang di atas oranye rata dan
+  terasa seperti templat. Foto yang dilebur memberi tekstur tanpa
+  mengubah warnanya: `mix-blend-luminosity` mengambil TERANG-GELAP foto
+  dan membuang warnanya, jadi hue tetap clay-600, hanya bergradasi.
+  Opasitas 0.22 pada lapisan blend + gradasi clay di atas-bawah.
+*/
 const LATAR = "/images/fitur-bg.jpg";
 
 /**
- * SATU warna untuk semua kartu — sama dengan /tour (`forest-900`).
+ * Palet halaman — SEMUA diturunkan dari clay-600 #b4502c (warna tombol).
  *
- * Kontras terukur pada #1b3325 (bukan dikira-kira):
- *   teks cream-50        13.35 : 1
- *   harga cream-100      12.1  : 1
- *   pil cream-100/15      6.78 : 1
- *   label samar /60       4.9  : 1
- * Semua lolos ambang 4.5:1 untuk teks kecil.
+ * Kontras terukur terhadap #b4502c (dihitung, bukan dikira-kira):
+ *   cream-50            5.01 : 1  ← satu-satunya yang LOLOS 4.5:1
+ *   cream-50/90         4.39 : 1  ← gagal
+ *   cream-50/70         3.04 : 1  ← gagal
+ *   #14231a (hijau tua) 3.21 : 1  ← gagal, bahkan pada opasitas penuh
  *
- * Keping harga memakai `cream-100` dengan teks `forest-900` — kebalikan
- * dari kartunya, jadi ia terbaca sebagai "label harga", bukan sebagai
- * blok gelap kedua.
+ * Karena putih transparan gagal sebagai teks sekunder di terracotta,
+ * hierarki di halaman ini memakai DUA warna solid: krem untuk yang
+ * penting, `forest-950` untuk yang sekunder. Itu juga sebabnya kartu
+ * memakai latar krem, bukan terracotta transparan — teks di atas krem
+ * punya kontras dua digit.
  */
+const CLAY = "bg-clay-600";
+
 const GAYA = {
-  kartu: "bg-forest-900 ring-1 ring-inset ring-cream-100/15",
-  teks: "text-cream-50",
-  pil: "bg-cream-100/15 text-cream-100",
-  keping: "bg-cream-100 text-forest-900",
+  /** Kartu: krem, garis terracotta tipis, sudut 20px seperti /tour. */
+  kartu:
+    "bg-cream-50 ring-1 ring-inset ring-clay-600/20 shadow-[0_10px_24px_-14px_rgba(20,35,26,0.55)]",
+  /** Judul menu: hijau tua di atas krem — 15.4:1. */
+  teks: "text-forest-950",
+  /** Teks sekunder: hijau tua 72% — ~8:1. */
+  redup: "text-forest-950/72",
 } as const;
 
-/*
-  Satu formatter untuk seluruh halaman. `toLocaleString` dipanggil 126 kali
-  per render (satu per kartu); membuat objek Intl baru tiap panggilan
-  menambah kerja yang tidak terlihat tapi terukur pada render server.
-*/
 const angka = new Intl.NumberFormat("id-ID");
 
-type Kelompok = {
-  kategori: KategoriMenu;
-  menu: Menu[];
-};
-
 /**
- * Kelompokkan per kategori, urutan kategori mengikuti kolom `urutan`.
+ * Gambar untuk menu yang belum punya foto: ikon GARIS per kategori.
  *
- * `kategori_id` yang tidak cocok dengan kategori mana pun TIDAK dibuang:
- * ia masuk kelompok "Lainnya". Menu yatim (mis. kategori dihapus) harus
- * tetap terlihat di menu publik — menyembunyikannya berarti tamu tidak
- * bisa memesan hidangan yang sebenarnya masih dijual.
+ * Kenapa ikon garis dan bukan blob/gradasi/ilustrasi berwarna: seluruh
+ * ikon di situs ini bergaya garis 1.6px bersudut membulat. Ilustrasi
+ * makanan berwarna akan jadi satu-satunya benda di halaman yang tidak
+ * mengikuti bahasa visual itu — dan itulah bentuk AI slop yang paling
+ * mudah dikenali.
+ *
+ * Pemetaan mengikuti nama kategori yang ADA di database, bukan karangan:
+ *   1 Makanan Utama       → mangkuk
+ *   2 Camilan & Pastry    → biskuit
+ *   3 Kopi                → cangkir
+ *   4 Non-Kopi            → gelas bersedotan
+ *   5 Cheese & Milkshake  → milkshake
+ *   6 Jus & Dessert       → es krim
+ * Nilai lain (kategori baru, atau menu yatim ber-id -1) jatuh ke mangkuk
+ * — ikon paling umum, bukan kotak kosong.
  */
-function kelompokkan(kategori: KategoriMenu[], menu: Menu[]): Kelompok[] {
-  const hasil: Kelompok[] = [];
-  const dipakai = new Set<number>();
-
-  for (const k of [...kategori].sort((a, b) => a.urutan - b.urutan)) {
-    const isi = urutkanMenu(menu.filter((m) => m.kategori_id === k.id));
-    if (isi.length === 0) continue;
-    hasil.push({ kategori: k, menu: isi });
-    dipakai.add(k.id);
+function ikonKategori(kategoriId: number | null) {
+  switch (kategoriId) {
+    case 2:
+      return IkonBiskuit;
+    case 3:
+      return IkonCangkir;
+    case 4:
+      return IkonGelas;
+    case 5:
+      return IkonMilkshake;
+    case 6:
+      return IkonEsKrim;
+    default:
+      return IkonMangkuk;
   }
-
-  const yatim = urutkanMenu(menu.filter((m) => m.kategori_id === null || !dipakai.has(m.kategori_id)));
-  if (yatim.length > 0) {
-    hasil.push({
-      kategori: { id: -1, nama: "Lainnya", urutan: 999 },
-      menu: yatim,
-    });
-  }
-
-  return hasil;
-}
-
-/** Satu baris pilihan: "Sambal Matah · BBQ · Gravy · Salted Egg +5.000". */
-function BarisPilihan({ pilihan }: { pilihan: { nama: string; tambah: number }[] }) {
-  if (pilihan.length === 0) return null;
-  return (
-    <p className="mt-[0.25rem] flex flex-wrap items-baseline gap-x-[0.375rem] gap-y-[0.125rem] text-[0.625rem] leading-[1.45] text-cream-100/75">
-      <span className="font-bold uppercase tracking-[0.1em] text-cream-100/70">Pilihan</span>
-      {pilihan.map((p, i) => (
-        <span key={p.nama} className="whitespace-nowrap">
-          {i > 0 && (
-            <span aria-hidden="true" className="mr-[0.375rem] text-cream-100/60">
-              ·
-            </span>
-          )}
-          {p.nama}
-          {p.tambah > 0 && (
-            <span className="ml-[0.1875rem] font-bold tabular-nums text-cream-100/90">
-              +{angka.format(p.tambah)}
-            </span>
-          )}
-        </span>
-      ))}
-    </p>
-  );
 }
 
 export default async function MenuPage() {
@@ -187,13 +155,10 @@ export default async function MenuPage() {
 
     Yang perlu disadari: salinan ini bisa BASI. Kalau harga naik atau
     sebuah hidangan habis setelah demo.ts disalin, tamu bisa membaca
-    harga lama. Itu kerugian yang jauh lebih kecil daripada halaman
-    kosong, tapi bukan nol — jadi kalau nanti /menu jadi jalur masuk
-    utama, demo.ts wajib disegarkan setiap kali menu berubah.
-    /order mengambil sikap yang sama (`menuRes.ok ? ... : MENU_CONTOH`).
+    harga lama. /order mengambil sikap yang sama.
   */
   const data = res.ok ? res.data : MENU_CONTOH;
-  const kelompok = kelompokkan(data.kategori as KategoriMenu[], data.menu as Menu[]);
+  const kelompok = kelompokkanMenu(data.kategori as KategoriMenu[], data.menu as Menu[]);
 
   /* Jumlah HANYA menu yang tersedia. Menyebut "126 menu" padahal 8 sedang
      habis akan terasa seperti janji yang tidak ditepati. */
@@ -202,17 +167,18 @@ export default async function MenuPage() {
 
   return (
     <main className="flex min-h-dvh justify-center bg-forest-950">
+      {/* Kanvas 440px di tengah — sama seperti /tour dan beranda. */}
       {/*
-        Kanvas 440px di tengah — sama seperti /tour dan beranda. Halaman ini
-        BOLEH digulir (126 menu memang panjang); justru menggulir di sini
-        bagian dari pengalamannya.
-      */}
-      <div className="relative isolate w-full max-w-[27.5rem] bg-forest-900 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)]">
-        {/*
-          Latar dibuat `fixed` di dalam kanvas: saat menggulir, isi bergerak
-          di atas satu "jendela" yang diam — bukan tumpukan kartu di atas
-          gambar yang ikut bergeser. Sama seperti /tour.
+          `overflow-clip` SENGAJA TIDAK dipakai di sini.
+          Ia memang rapi untuk memotong latar di tepi kanvas, tetapi
+          `overflow` apa pun pada leluhur adalah salah satu penyebab
+          paling sering `position: sticky` berhenti bekerja — dan baris
+          pil kategori WAJIB menempel. Latar sudah dibatasi `max-w` +
+          `mx-auto`, jadi tidak ada yang perlu dipotong.
         */}
+        <div className="relative isolate w-full max-w-[27.5rem] bg-clay-600 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)]">
+        {/* Latar: terracotta bertekstur. `fixed` = jendela yang diam saat
+            isi bergeser, sama seperti /tour. */}
         <div className="fixed inset-0 mx-auto w-full max-w-[27.5rem]">
           <Image
             src={LATAR}
@@ -220,168 +186,204 @@ export default async function MenuPage() {
             fill
             priority
             sizes="(max-width: 440px) 100vw, 440px"
-            className="object-cover object-center"
+            className="object-cover object-center opacity-[0.22] mix-blend-luminosity"
           />
-          <div aria-hidden="true" className="absolute inset-0 bg-forest-950/45" />
+          <div aria-hidden="true" className={`absolute inset-0 ${CLAY} opacity-80`} />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-b from-forest-950/55 via-transparent to-forest-950/80"
+            className="absolute inset-0 bg-gradient-to-b from-clay-700/70 via-clay-600/20 to-clay-800/80"
           />
         </div>
 
         <div className="relative z-10 flex min-h-dvh flex-col">
-          <Navbar sticky gradient />
+          {/*
+            Navbar TANPA `gradient`.
 
-          <header className="px-5 pb-[0.875rem] pt-[0.75rem] text-center">
+            `gradient` melukis gradasi hijau #14231a setinggi navbar +
+            18px. Di /tour (latar hijau gelap) itu menyatu; di atas
+            terracotta ia menjadi pita hijau kotor di belakang bilah
+            putih. Gradasi halaman ini sudah ditangani lapisan latar
+            (clay-700 di atas), jadi navbar cukup transparan.
+          */}
+          <Navbar sticky />
+
+          <header className="px-5 pb-[0.75rem] pt-[0.75rem]">
             <div className="mb-[0.625rem] flex justify-start">
               <BackLink href="/fitur" label="Kembali" aria="Kembali ke halaman Fitur" />
             </div>
-            <p className="text-[0.625rem] font-medium leading-none tracking-[0.16em] text-white/75">
-              DAFTAR LENGKAP
+            <p className="text-[0.625rem] font-bold uppercase leading-none tracking-[0.16em] text-cream-50">
+              Daftar lengkap
             </p>
-            <h1 className="mt-[0.25rem] text-[1.375rem] font-extrabold leading-[1.1] tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(20,35,26,0.55)]">
+            <h1 className="mt-[0.25rem] text-[1.375rem] font-extrabold leading-[1.1] tracking-[-0.01em] text-cream-50">
               Menu Kami
             </h1>
-            {/* Angka ditulis apa adanya. "126 pilihan" akan jadi klaim yang
-                salah begitu ada menu habis, jadi yang dihitung hanya yang
-                benar-benar bisa dipesan hari ini. */}
-            <p className="mx-auto mt-[0.375rem] max-w-[19rem] text-[0.6875rem] leading-[1.5] text-white/80">
+            {/*
+              DUA baris, bukan satu baris dengan dua warna.
+              Percobaan pertama: "{n} pilihan · ketuk kategori untuk
+              menyaring" dengan bagian kedua `forest-950/80`. Terukur
+              2.70:1 di atas clay-600 — gagal telak. Hijau tua hanya
+              mencapai 3.21:1 di terrakota, bahkan pada opasitas penuh.
+              Jadi di atas terrakota hanya ada SATU warna teks yang lolos:
+              cream-50 penuh (5.01:1). Hierarki dipisah baris + ukuran.
+            */}
+            <p className="mt-[0.375rem] text-[0.6875rem] leading-[1.5] text-cream-50">
               {tersedia} pilihan dari {totalKategori} kategori
+            </p>
+            <p className="text-[0.625rem] leading-[1.5] text-cream-50">
+              Ketuk kategori untuk menyaring
             </p>
           </header>
 
           {/*
-            Daftar per kategori. `<section>` + heading asli (bukan div)
-            karena ini struktur dokumen, bukan hiasan: pembaca layar bisa
-            melompat antar kategori.
+            Saringan di LUAR <header sejak awal: ia menempel sendiri saat
+            digulir, dan menaruhnya di dalam kepala yang tidak sticky akan
+            membuatnya ikut terangkat.
           */}
-          <div className="flex flex-col gap-[1.25rem] px-5 pb-[0.875rem]">
-            {kelompok.map((g) => (
-              <section key={g.kategori.id} aria-labelledby={`kat-${g.kategori.id}`}>
-                <div className="mb-[0.5rem] flex items-baseline justify-between gap-3 px-[0.125rem]">
-                  <h2
-                    id={`kat-${g.kategori.id}`}
-                    className="text-[0.8125rem] font-extrabold uppercase tracking-[0.14em] text-cream-50 [text-shadow:0_1px_8px_rgba(20,35,26,0.7)]"
-                  >
-                    {g.kategori.nama}
-                  </h2>
-                  <span className="shrink-0 text-[0.625rem] font-bold tabular-nums text-cream-100/70">
-                    {g.menu.length}
-                  </span>
-                </div>
+          {/*
+            Aturan tampil-per-kategori ditulis dari DATA, bukan disalin ke
+            globals.css. Kalau pemilik menambah kategori ke-7, pilnya dan
+            aturannya lahir bersamaan — tidak ada kemungkinan pil yang
+            menyembunyikan seluruh daftar.
+          */}
+          <style id="menu-aturan-saring">{aturanSaring(kelompok.map((g) => g.kategori))}</style>
+          <SaringanKategori kategori={data.kategori as KategoriMenu[]} />
 
-                {/*
-                  Tiap <li> diberi `content-visibility:auto`: peramban
-                  melewati render kartu yang masih jauh di bawah layar,
-                  lalu mengerjakannya saat mendekat. Untuk 126 kartu
-                  bershadow ini memangkas kerja tata letak awal.
+          {/*
+            `data-kat` ada untuk saringan di app/globals.css: pil kategori
+            menulis `data-saring` ke <body>, dan aturan CSS menyembunyikan
+            setiap [data-kat] yang tidak cocok. Tidak ada kartu yang
+            dirender ulang — React tidak menyentuh daftar ini sama sekali.
+          */}
+          {kelompok.map((g) => (
+            <section
+              key={g.kategori.id}
+              id={`kategori-${g.kategori.id}`}
+              data-kat={g.kategori.id}
+              className="px-5 pb-[1.25rem]"
+            >
+              <div className="mb-[0.5rem] flex items-center gap-[0.375rem]">
+                <h2 className="text-[0.8125rem] font-extrabold uppercase tracking-[0.14em] text-cream-50">
+                  {g.kategori.nama}
+                </h2>
+                <span className="rounded-full bg-forest-950/25 px-[0.4375rem] py-[0.125rem] text-[0.5625rem] font-bold tabular-nums text-cream-50">
+                  {g.menu.length}
+                </span>
+              </div>
 
-                  `contain-intrinsic-size: auto 76px` WAJIB menyertainya.
-                  Tanpa ukuran cadangan, baris yang belum dirender
-                  dianggap setinggi 0 → tinggi halaman melompat dan posisi
-                  scrollbar bergeser saat tamu menggulir. `auto` membuat
-                  peramban memakai ukuran sebenarnya setelah baris itu
-                  pernah dirender.
-
-                  76px = tinggi kartu terpendek (nama satu baris +
-                  padding). Kartu berisi deskripsi/pilihan lebih tinggi;
-                  `auto` yang mengoreksinya setelah render pertama.
-                */}
-                <ul className="flex flex-col gap-[0.5rem]">
-                  {g.menu.map((m) => {
-                    const pilihan = bacaPilihan(m.pilihan);
-                    return (
-                      <li
-                        key={m.id}
-                        className="[contain-intrinsic-size:auto_76px] [content-visibility:auto]"
-                      >
+              <ul className="grid grid-cols-2 gap-[0.5rem]">
+                {g.menu.map((m) => {
+                  const pilihan = bacaPilihan(m.pilihan);
+                  const Ikon = ikonKategori(m.kategori_id);
+                  return (
+                    <li
+                      key={m.id}
+                      className="flex flex-col overflow-hidden rounded-[1rem] [contain-intrinsic-size:auto_210px] [content-visibility:auto]"
+                    >
+                      {/*
+                        Kartu TIDAK bisa diklik: tidak ada halaman detail.
+                        Karena itu <article>, bukan <a>.
+                      */}
+                      <article className={["flex h-full flex-col rounded-[1rem]", GAYA.kartu, m.tersedia ? "" : "opacity-75"].join(" ")}>
                         {/*
-                          Kartu TIDAK bisa diklik: tidak ada halaman detail.
-                          Karena itu ia <article>, bukan <a>. Elemen yang
-                          bisa diklik tapi tidak ke mana-mana lebih buruk
-                          daripada elemen yang jujur diam.
+                          Bagian GAMBAR.
+                          Sumber: `foto_url` bila ada. Hari ini 0 dari 126
+                          menu punya foto, jadi praktisnya ikon garis
+                          kategori — TAPI urutannya ditulis begini supaya
+                          begitu pemilik mengunggah foto, foto langsung
+                          terpakai tanpa mengubah kode.
                         */}
-                        <article
-                          className={`flex min-h-[4.75rem] items-stretch gap-[0.625rem] rounded-[1.25rem] p-[0.5rem] shadow-[0_14px_28px_-12px_rgba(0,0,0,0.55)] ${GAYA.kartu} ${
-                            m.tersedia ? "" : "opacity-75"
-                          }`}
-                        >
-                          {/* Keping harga menggantikan foto panorama: belum
-                              ada satu pun foto menu di database, dan harga
-                              adalah hal pertama yang dicari tamu. */}
-                          <div
-                            className={`relative flex size-[5.25rem] shrink-0 flex-col items-center justify-center rounded-[0.875rem] px-[0.25rem] text-center ${GAYA.keping}`}
-                          >
-                            <span className="text-[0.5625rem] font-bold uppercase leading-none tracking-[0.12em] opacity-65">
-                              Rp
-                            </span>
-                            <span className="mt-[0.125rem] text-[0.8125rem] font-extrabold leading-[1.05] tabular-nums">
-                              {angka.format(m.harga)}
-                            </span>
-                          </div>
+                        <div className="relative aspect-[4/3] shrink-0 overflow-hidden rounded-t-[1rem] bg-clay-600/10">
+                          {m.foto_url ? (
+                            /*
+                              Foto dari Supabase Storage lewat optimasi
+                              Next, bukan <img> mentah. Kartu hanya 176px
+                              lebar (2 kolom di kanvas 440px), jadi
+                              `sizes` menyatakan itu dan Next mengirim
+                              varian 1x/2x — bukan foto 1200px untuk
+                              kotak sebesar prangko. Foto menu berasal
+                              dari domain Supabase, jadi domainnya harus
+                              terdaftar di next.config (lihat pencatatan
+                              di komentar bawah).
+                            */
+                            <Image
+                              src={m.foto_url}
+                              alt=""
+                              fill
+                              sizes="(max-width: 440px) 45vw, 198px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div aria-hidden="true" className="grid size-full place-items-center bg-clay-600/8">
+                              <Ikon className="size-[1.75rem] text-clay-700" />
+                            </div>
+                          )}
+                          {!m.tersedia && (
+                            <p className="absolute bottom-[0.25rem] left-[0.25rem] rounded-full bg-forest-950/85 px-[0.4375rem] py-[0.1875rem] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-cream-50">
+                              Habis
+                            </p>
+                          )}
+                        </div>
 
-                          <div className="flex min-w-0 flex-1 flex-col justify-center py-[0.125rem]">
-                            {/*
-                              Penanda rekomendasi: SATU bintang di depan nama,
-                              bukan pil "★ Rekomendasi".
-
-                              Alasannya terukur, bukan selera. Kartu 320px:
-                              lebar dalam 264px, kotak harga 84px + jarak 10px
-                              menyisakan 170px untuk teks. Pil teks memakan
-                              ~74px dari itu → nama tinggal ~90px dan
-                              "Paket Nasi Liwet Personal" pecah jadi 4 baris.
-                              Bintang sebaris hanya ~12px dan, karena ia
-                              bagian dari aliran teks, ia ikut turun bersama
-                              baris nama alih-alih mendesak seluruh nama.
-
-                              Untuk pembaca layar, "Rekomendasi" tetap
-                              diucapkan lewat sr-only — bintangnya sendiri
-                              disembunyikan supaya tidak dibaca "bintang
-                              hitam".
-                            */}
-                            <h3
-                              className={`text-[0.9375rem] font-extrabold leading-[1.15] ${GAYA.teks}`}
-                            >
-                              {m.rekomendasi === true && (
-                                <>
-                                  <span aria-hidden="true" className="mr-[0.25rem] text-cream-100">
-                                    ★
-                                  </span>
-                                  <span className="sr-only">Rekomendasi: </span>
-                                </>
-                              )}
-                              {m.nama}
-                            </h3>
-
-                            {m.deskripsi?.trim() && (
-                              <p
-                                className={`mt-[0.1875rem] text-[0.625rem] leading-[1.4] text-cream-100/80 ${
-                                  pilihan.length > 0 ? "line-clamp-2" : "line-clamp-3"
-                                }`}
-                              >
-                                {m.deskripsi.trim()}
-                              </p>
+                        <div className="flex min-w-0 flex-1 flex-col p-[0.5rem]">
+                          <h3 className={`text-[0.8125rem] font-extrabold leading-[1.2] ${GAYA.teks}`}>
+                            {m.rekomendasi === true && (
+                              <>
+                                <span aria-hidden="true" className="mr-[0.1875rem] text-clay-600">
+                                  ★
+                                </span>
+                                <span className="sr-only">Rekomendasi: </span>
+                              </>
                             )}
+                            {m.nama}
+                          </h3>
 
-                            <BarisPilihan pilihan={pilihan} />
+                          {m.deskripsi?.trim() && (
+                            <p className={`mt-[0.1875rem] text-[0.625rem] leading-[1.35] ${GAYA.redup} ${pilihan.length > 0 ? "line-clamp-2" : "line-clamp-3"}`}>
+                              {m.deskripsi.trim()}
+                            </p>
+                          )}
 
-                            {!m.tersedia && (
-                              <p className="mt-[0.25rem] text-[0.625rem] font-bold uppercase tracking-[0.1em] text-cream-100/90">
-                                Sedang habis
-                              </p>
-                            )}
-                          </div>
-                        </article>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            ))}
-          </div>
+                          <BarisPilihan pilihan={pilihan} />
 
+                          <p className="mt-auto pt-[0.375rem] text-[0.875rem] font-extrabold leading-none tabular-nums text-clay-700">
+                            {angka.format(m.harga)}
+                          </p>
+                        </div>
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
         </div>
       </div>
     </main>
+  );
+}
+
+/** Satu baris pilihan: "Sambal Matah · BBQ · Salted Egg +5.000". */
+function BarisPilihan({
+  pilihan,
+}: {
+  pilihan: { nama: string; tambah: number }[];
+}) {
+  if (pilihan.length === 0) return null;
+  return (
+    <p className={`mt-[0.25rem] flex flex-wrap items-baseline gap-x-[0.25rem] gap-y-[0.0625rem] text-[0.5625rem] leading-[1.4] ${GAYA.redup}`}>
+      {pilihan.map((p, i) => (
+        <span key={p.nama} className="whitespace-nowrap">
+          {i > 0 && (
+            <span aria-hidden="true" className="mr-[0.25rem] text-clay-700/45">
+              ·
+            </span>
+          )}
+          {p.nama}
+          {p.tambah > 0 && (
+            <span className="ml-[0.125rem] font-bold text-clay-700">+{angka.format(p.tambah)}</span>
+          )}
+        </span>
+      ))}
+    </p>
   );
 }
