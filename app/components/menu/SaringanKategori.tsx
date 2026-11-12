@@ -94,10 +94,12 @@ export function SaringanKategori({ kategori }: Props) {
 
         Sebelumnya ia menempel tanpa latar, jadi kartu menu mengalir di
         belakang pil dan teksnya saling tabrakan — di /order hal ini
-        ditangani `bg-bersih-50/95` + backdrop-blur. Di sini latarnya
-        terrakota pekat (clay-800/94) supaya pil yang lewat di atasnya
-        tetap terbaca, dan gradasi tipis di tepi bawah supaya tidak
-        terpotong seperti selotip.
+        ditangani `bg-bersih-50/95` + backdrop-blur.
+
+        Warnanya hijau (forest-950/94), bukan terrakota seperti versi
+        sebelumnya: latar halaman ini kini hijau seperti /tour, dan yang
+        terrakota adalah kartunya. Bar terrakota + kartu terrakota akan
+        menyatu, dan batas antara "saringan" dan "isi" hilang.
 
         `px-5` saja, TANPA `-mx-5`.
         Rencana awal `-mx-5 px-5` (bar lebih lebar dari kanvas) saya
@@ -108,7 +110,7 @@ export function SaringanKategori({ kategori }: Props) {
         Dengan `px-5` saja, latar bar pas selebar kanvas dan pil tetap
         sejajar dengan isi halaman (section juga px-5).
       */}
-      <div className="relative border-b border-clay-800/60 bg-clay-800/94 px-5 backdrop-blur-[6px]">
+      <div className="relative border-b border-forest-950/60 bg-forest-950/94 px-5 backdrop-blur-[6px]">
         <div
           ref={barisRef}
           role="group"
@@ -147,7 +149,7 @@ export function SaringanKategori({ kategori }: Props) {
             berhenti di dalam padding). w-6 cukup untuk isyarat "masih
             ada lagi" tanpa memakan pil yang sedang dibaca.
           */
-          className="pointer-events-none absolute inset-y-0 right-5 w-6 bg-gradient-to-l from-clay-800 to-transparent"
+          className="pointer-events-none absolute inset-y-0 right-5 w-6 bg-gradient-to-l from-forest-950 to-transparent"
         />
       </div>
     </div>
@@ -175,18 +177,19 @@ function Pil({
           di atas bar terrakota ia terlihat seperti teks mengambang, bukan
           tombol.
 
-          Pil TIDAK AKTIF: `bg-forest-950/50` (hijau tua) + teks krem.
-            · teks    cream-50 di latar itu  → 11.65:1
-            · vs bar  latar pil vs clay-800  →  1.46:1 (batas pil terbaca)
-            · vs aktif pil pasif vs cream-50 → 11.65:1 (bedanya jelas)
-          Kandidat yang saya ukur dan TOLAK:
-            · krem/12 di kanvas mentah        → teks 4.04:1, gagal
-            · cream-100 penuh di bar          → hanya 1.09:1 beda dari
-              pil aktif; keduanya krem, tak terbedakan.
-          Hijau dipilih, bukan oranye lebih muda, karena terrakota sudah
-          jadi warna halaman: pil oranye akan tenggelam ke latar, dan
-          hijau tua adalah warna yang SUDAH ada di palet (forest-950),
-          bukan warna baru yang dikarang untuk kesempatan ini.
+          Pil TIDAK AKTIF: `cream-50/18` + teks krem, di bar hijau.
+          Terukur terhadap bar hijau hasil blend (28,42,31):
+            · teks    cream-50 di latar itu  → 8.30:1
+            · vs bar  latar pil vs bar       → 1.78:1 (batas pil jelas)
+            · vs aktif pil pasif vs cream-50 → 8.30:1
+          Kandidat yang diukur lalu TOLAK:
+            · cream-50/12 → batas vs bar cuma 1.45:1, pil nyaris hilang
+            · cream-50/25 → batas 2.25:1, tapi pil mulai terlihat "aktif
+              kedua" — dua tingkat krem di satu bar membingungkan
+            · forest-900  → batas vs bar 1.09:1, praktis tak terlihat
+          Sebelumnya halaman ini terrakota dan pil pasif memakai
+          forest-950/50. Setelah latar jadi hijau, arahnya dibalik: pil
+          pasif jadi krem transparan dan pil aktif tetap krem penuh.
 
           Pil AKTIF: cream-50 penuh + clay-700 → 6.77:1. Ia satu-satunya
           elemen krem di bar, jadi "yang dipilih" terbaca tanpa perlu
@@ -194,7 +197,7 @@ function Pil({
         */
         aktif
           ? "bg-cream-50 text-clay-700 shadow-[0_2px_8px_-2px_rgba(20,35,26,0.45)]"
-          : "bg-forest-950/50 text-cream-50 ring-1 ring-inset ring-cream-50/20",
+          : "bg-cream-50/18 text-cream-50 ring-1 ring-inset ring-cream-50/25",
       ].join(" ")}
     >
       {children}

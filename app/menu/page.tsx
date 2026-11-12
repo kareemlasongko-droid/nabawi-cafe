@@ -72,52 +72,55 @@ const LATAR = "/images/fitur-bg.jpg";
 /**
  * Palet halaman — SEMUA diturunkan dari clay-600 #b4502c (warna tombol).
  *
- * Kontras terukur terhadap clay-600 #b4502c (dihitung, bukan dikira-kira):
- *   cream-50            5.01 : 1  ← satu-satunya yang LOLOS 4.5:1
- *   cream-50/90         4.39 : 1  ← gagal
- *   cream-50/70         3.04 : 1  ← gagal
- *   #14231a (hijau tua) 3.21 : 1  ← gagal, bahkan pada opasitas penuh
+ * Latar halaman sekarang HIJAU, sama dengan /tour (foto 100% + forest-950/45
+ * + gradasi 55→0→80). Yang terrakota adalah KARTUNYA. Dua konteks kontras:
  *
- * CATATAN PENTING — angka di atas berlaku untuk latar kanvas MENTAH.
- * Kepala halaman tidak berada di clay-600, melainkan di atas pita
- * `from-clay-700/70` yang menghasilkan (159,69,35). Di sana putih/80 =
- * 4.64:1 dan lolos. Karena itu kepala memakai putih, sedangkan badge
- * "N menu" di atas kanvas mentah memakai pil gelap + krem. Dua konteks,
- * dua jawaban — bukan satu resep yang dipakai buta.
+ * (1) DI ATAS KARTU clay-600 #b4502c:
+ *       cream-50         5.01 : 1  ← L O L O S
+ *       cream-50/95      4.67 : 1  ← L O L O S (dipakai teks sekunder)
+ *       cream-100        4.61 : 1  ← L O L O S
+ *       cream-50/90      4.39 : 1  ← GAGAL
+ *       cream-50/80      3.79 : 1  ← GAGAL
+ *       cream-50/70      3.27 : 1  ← GAGAL
+ *     Artinya: di atas terrakota hanya boleh ada SATU tingkat peredupan,
+ *     dan itu pun cuma 5%. Hierarki di kartu dibawa ukuran huruf.
  *
- * Itu juga sebabnya kartu memakai latar krem: teks di atas krem punya
- * kontras dua digit, jadi hierarki di dalam kartu bisa memakai opasitas
- * tanpa risiko.
+ * (2) DI ATAS LATAR HIJAU (foto median 206 → setelah dua lapisan ≈ 66,77,71):
+ *       white/80         6.33 : 1  ← ringkasan kepala
+ *       white/85         6.91 : 1  ← label kepala
+ *     Lebih lega daripada terrakota, dan itu sebabnya kepala memakai
+ *     putih seperti /tour tanpa perlu dinaikkan opasitasnya.
+ *
+ * Kartu terrakota di atas hijau gelap hanya berdiri sendiri lewat RING-nya
+ * (cream-50/45 = 2.62:1 terhadap latar); bayangan nyaris tak terlihat di
+ * latar gelap. Itu bukan pilihan estetis, itu satu-satunya cara tepi kartu
+ * tetap terbaca.
  */
-const CLAY = "bg-clay-600";
-
-/**
- * Gradasi di belakang navbar — TERRAKOTA, bukan hijau.
- *
- * Diminta: "warna belakang navbar sesuaikan dengan tema warna halaman
- * daftar menu kami". Nilainya diturunkan dari tema halaman ini, bukan
- * dipilih dari roda warna:
- *
- *   ujung atas  #7a3316  = clay-800  (paling pekat, menahan bilah putih)
- *   tengah      clay-700 @85%
- *   ujung bawah transparan → menyatu dengan latar kanvas clay-600
- *
- * Yang TIDAK dipakai: hijau #14231a bawaan /tour. Hijau di atas
- * terrakota bukan cuma "kurang cocok" — kedua warna itu saling
- * menabrak, dan bilah putih di atasnya kehilangan satu-satunya jangkar
- * warna yang jelas.
- */
-const GRADASI_CLAY =
-  "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-[calc(100%+1.125rem)] before:bg-[linear-gradient(to_bottom,#7a3316_0%,rgba(150,64,31,0.85)_55%,rgba(150,64,31,0)_100%)] before:content-['']";
-
 const GAYA = {
-  /** Kartu: krem, garis terracotta tipis, sudut 20px seperti /tour. */
+  /**
+   * Kartu: TERRAKOTA `clay-600` — warna yang sama dengan tombol "Menu Kami"
+   * di /fitur, diminta pemilik.
+   *
+   * Ring krem 45% bukan hiasan: kartu terrakota di atas latar hijau hanya
+   * berdiri sendiri lewat tepinya. Terukur terhadap latar (100,100,76):
+   *   ring cream-50/25 → 1.85:1  (terlalu tipis, tepi menghilang)
+   *   ring cream-50/45 → 2.62:1  (dipakai)
+   * Bayangan tetap ada, tetapi di atas latar gelap ia nyaris tak terlihat —
+   * ring-lah yang menyatakan batas kartu.
+   */
   kartu:
-    "bg-cream-50 ring-1 ring-inset ring-clay-600/20 shadow-[0_10px_24px_-14px_rgba(20,35,26,0.55)]",
-  /** Judul menu: hijau tua di atas krem — 15.4:1. */
-  teks: "text-forest-950",
-  /** Teks sekunder: hijau tua 72% — ~8:1. */
-  redup: "text-forest-950/72",
+    "bg-clay-600 ring-1 ring-inset ring-cream-50/45 shadow-[0_12px_24px_-14px_rgba(20,35,26,0.75)]",
+  /** Judul menu: cream-50 di clay-600 — 5.01:1. */
+  teks: "text-cream-50",
+  /**
+   * Teks sekunder: `cream-50/95` = 4.67:1.
+   *
+   * Opasitas lain SEMUA gagal di atas clay-600 (cream-50/90 = 4.39,
+   * /80 = 3.79, /70 = 3.27). Jadi teks sekunder di sini hanya boleh
+   * diredupkan 5% — pengurangan yang nyaris tak terlihat. Hierarki
+   * dibawa ukuran huruf, bukan transparansi; itu batas keras terrakota.
+   */
+  redup: "text-cream-50/95",
 } as const;
 
 const angka = new Intl.NumberFormat("id-ID");
@@ -200,22 +203,31 @@ export default async function MenuPage() {
           pil kategori WAJIB menempel. Latar sudah dibatasi `max-w` +
           `mx-auto`, jadi tidak ada yang perlu dipotong.
         */}
-        <div className="relative isolate w-full max-w-[27.5rem] bg-clay-600 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)]">
+        <div className="relative isolate w-full max-w-[27.5rem] bg-forest-900 shadow-[0_0_100px_-30px_rgba(0,0,0,0.9)]">
         {/* Latar: terracotta bertekstur. `fixed` = jendela yang diam saat
             isi bergeser, sama seperti /tour. */}
         <div className="fixed inset-0 mx-auto w-full max-w-[27.5rem]">
+          {/*
+            LATAR DISAMAKAN DENGAN /tour — nilai per nilai, diminta pemilik.
+              foto             : 100% (tanpa opacity, tanpa mix-blend)
+              lapisan rata     : forest-950/45
+              gradasi          : forest-950/55 → transparan → forest-950/80
+            Sebelumnya /menu memakai foto 22% + blend luminosity di atas
+            terrakota; keduanya dibuang. Kalau ada satu angka yang berbeda,
+            dua halaman ini akan terlihat dari dua situs berbeda.
+          */}
           <Image
             src={LATAR}
             alt=""
             fill
             priority
             sizes="(max-width: 440px) 100vw, 440px"
-            className="object-cover object-center opacity-[0.22] mix-blend-luminosity"
+            className="object-cover object-center"
           />
-          <div aria-hidden="true" className={`absolute inset-0 ${CLAY} opacity-80`} />
+          <div aria-hidden="true" className="absolute inset-0 bg-forest-950/45" />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-b from-clay-700/70 via-clay-600/20 to-clay-800/80"
+            className="absolute inset-0 bg-gradient-to-b from-forest-950/55 via-transparent to-forest-950/80"
           />
         </div>
 
@@ -223,15 +235,20 @@ export default async function MenuPage() {
           {/*
             Navbar DENGAN `gradient` — disamakan dengan /tour (diminta).
 
-            Sebelumnya saya mematikannya dengan alasan "gradasi hijau di
-            atas terrakota jadi pita kotor", lalu menghidupkannya kembali
-            dengan warna hijau bawaan /tour. Pemilik meminta gradasinya
-            DISESUAIKAN dengan tema halaman ini — benar, hijau di atas
-            terrakota adalah dua warna yang saling menabrak. Sekarang
-            gradient memakai `gelap={GRADASI_CLAY}`: terrakota pekat yang
-            menyatu dengan latar, bukan menempel di atasnya.
+            Riwayatnya berbelit dan perlu dicatat supaya tidak diulang:
+              1. dimatikan — "gradasi hijau di atas terrakota jadi pita
+                 kotor";
+              2. dihidupkan dengan hijau bawaan /tour;
+              3. diganti terrakota (prop `gelap`, karena latar halaman
+                 saat itu terrakota);
+              4. sekarang kembali ke hijau bawaan — karena latarnya SUDAH
+                 disamakan dengan /tour. Prop `gelap` tidak dipakai lagi
+                 di halaman ini, tetapi tetap ada di Navbar untuk halaman
+                 lain yang mungkin memakai latar berbeda.
+            Pelajarannya: warna gradasi ini bukan pilihan bebas — ia harus
+            mengikuti warna latar yang ada di belakangnya.
           */}
-          <Navbar sticky gradient gelap={GRADASI_CLAY} />
+          <Navbar sticky gradient />
 
           {/*
             Kepala halaman — DISAMAKAN dengan /tour, nilai per nilai:
@@ -351,7 +368,7 @@ export default async function MenuPage() {
                           begitu pemilik mengunggah foto, foto langsung
                           terpakai tanpa mengubah kode.
                         */}
-                        <div className="relative aspect-[4/3] shrink-0 overflow-hidden rounded-t-[1rem] bg-clay-600/10">
+                        <div className="relative aspect-[4/3] shrink-0 overflow-hidden rounded-t-[1rem] bg-forest-950/10">
                           {m.foto_url ? (
                             /*
                               Foto dari Supabase Storage lewat optimasi
@@ -372,8 +389,8 @@ export default async function MenuPage() {
                               className="object-cover"
                             />
                           ) : (
-                            <div aria-hidden="true" className="grid size-full place-items-center bg-clay-600/8">
-                              <Ikon className="size-[1.75rem] text-clay-700" />
+                            <div aria-hidden="true" className="grid size-full place-items-center bg-cream-50/10">
+                              <Ikon className="size-[1.75rem] text-cream-50/85" />
                             </div>
                           )}
                           {!m.tersedia && (
@@ -386,7 +403,7 @@ export default async function MenuPage() {
                         {/*
                           Padding teks 12px kiri-kanan (sebelumnya 8px).
                           Di layar 360px kartu hanya ~156px lebar, jadi 8px
-                          membuat nama menu menempel ke tepi kertas krem —
+                          membuat nama menu menempel ke tepi kartu —
                           terlihat seperti teks yang meluber, bukan teks
                           yang diletakkan. 12px menyisakan ~132px untuk
                           teks: cukup untuk harga terpanjang (Rp145.000
@@ -396,7 +413,7 @@ export default async function MenuPage() {
                           <h3 className={`text-[0.8125rem] font-extrabold leading-[1.2] ${GAYA.teks}`}>
                             {m.rekomendasi === true && (
                               <>
-                                <span aria-hidden="true" className="mr-[0.1875rem] text-clay-600">
+                                <span aria-hidden="true" className="mr-[0.1875rem] text-cream-50">
                                   ★
                                 </span>
                                 <span className="sr-only">Rekomendasi: </span>
@@ -413,7 +430,7 @@ export default async function MenuPage() {
 
                           <BarisPilihan pilihan={pilihan} />
 
-                          <p className="mt-auto pt-[0.5rem] text-[0.875rem] font-extrabold leading-none tabular-nums text-clay-700">
+                          <p className="mt-auto pt-[0.5rem] text-[0.875rem] font-extrabold leading-none tabular-nums text-cream-50">
                             {angka.format(m.harga)}
                           </p>
                         </div>
@@ -442,13 +459,13 @@ function BarisPilihan({
       {pilihan.map((p, i) => (
         <span key={p.nama} className="whitespace-nowrap">
           {i > 0 && (
-            <span aria-hidden="true" className="mr-[0.25rem] text-clay-700/45">
+            <span aria-hidden="true" className="mr-[0.25rem] text-cream-50/60">
               ·
             </span>
           )}
           {p.nama}
           {p.tambah > 0 && (
-            <span className="ml-[0.125rem] font-bold text-clay-700">+{angka.format(p.tambah)}</span>
+            <span className="ml-[0.125rem] font-bold text-cream-50">+{angka.format(p.tambah)}</span>
           )}
         </span>
       ))}
