@@ -72,17 +72,22 @@ const LATAR = "/images/fitur-bg.jpg";
 /**
  * Palet halaman — SEMUA diturunkan dari clay-600 #b4502c (warna tombol).
  *
- * Kontras terukur terhadap #b4502c (dihitung, bukan dikira-kira):
+ * Kontras terukur terhadap clay-600 #b4502c (dihitung, bukan dikira-kira):
  *   cream-50            5.01 : 1  ← satu-satunya yang LOLOS 4.5:1
  *   cream-50/90         4.39 : 1  ← gagal
  *   cream-50/70         3.04 : 1  ← gagal
  *   #14231a (hijau tua) 3.21 : 1  ← gagal, bahkan pada opasitas penuh
  *
- * Karena putih transparan gagal sebagai teks sekunder di terracotta,
- * hierarki di halaman ini memakai DUA warna solid: krem untuk yang
- * penting, `forest-950` untuk yang sekunder. Itu juga sebabnya kartu
- * memakai latar krem, bukan terracotta transparan — teks di atas krem
- * punya kontras dua digit.
+ * CATATAN PENTING — angka di atas berlaku untuk latar kanvas MENTAH.
+ * Kepala halaman tidak berada di clay-600, melainkan di atas pita
+ * `from-clay-700/70` yang menghasilkan (159,69,35). Di sana putih/80 =
+ * 4.64:1 dan lolos. Karena itu kepala memakai putih, sedangkan badge
+ * "N menu" di atas kanvas mentah memakai pil gelap + krem. Dua konteks,
+ * dua jawaban — bukan satu resep yang dipakai buta.
+ *
+ * Itu juga sebabnya kartu memakai latar krem: teks di atas krem punya
+ * kontras dua digit, jadi hierarki di dalam kartu bisa memakai opasitas
+ * tanpa risiko.
  */
 const CLAY = "bg-clay-600";
 
@@ -197,39 +202,75 @@ export default async function MenuPage() {
 
         <div className="relative z-10 flex min-h-dvh flex-col">
           {/*
-            Navbar TANPA `gradient`.
+            Navbar DENGAN `gradient` — disamakan dengan /tour (diminta).
 
-            `gradient` melukis gradasi hijau #14231a setinggi navbar +
-            18px. Di /tour (latar hijau gelap) itu menyatu; di atas
-            terracotta ia menjadi pita hijau kotor di belakang bilah
-            putih. Gradasi halaman ini sudah ditangani lapisan latar
-            (clay-700 di atas), jadi navbar cukup transparan.
+            Sebelumnya saya mematikannya dengan alasan "gradasi hijau di
+            atas terrakota jadi pita kotor". Alasan itu tidak lagi
+            berlaku: `gradient` melukis #14231a, dan #14231a adalah
+            `forest-950` — warna yang SAMA dengan pita atas latar halaman
+            ini (`from-clay-700/70` menuju `via-clay-600/20`). Jadi
+            gradasinya jatuh di atas terrakota yang sudah gelap, bukan
+            melawan warna terang. Hasilnya navbar terbaca sama persis
+            dengan /tour: bilah putih yang duduk di atas bayangan gelap.
           */}
-          <Navbar sticky />
+          <Navbar sticky gradient />
 
-          <header className="px-5 pb-[0.75rem] pt-[0.75rem]">
+          {/*
+            Kepala halaman — DISAMAKAN dengan /tour, nilai per nilai:
+              px-5 · pt-[0.75rem] · pb-[0.875rem] · text-center
+              BackLink      : mb-[0.625rem], rata kiri sendirian
+              label kecil   : 0.625rem / medium / tracking 0.16em / white-75
+              h1            : mt-[0.25rem] / 1.375rem / 1.1 / -0.01em / shadow
+              ringkasan     : mx-auto / mt-[0.375rem] / max-w 19rem /
+                              0.6875rem / 1.5 / white-80
+            Sebelumnya milik saya: ptlebih kecil, label lebih tebal, dan
+            ringkasan DUA baris. Dua baris itu bukan pilihan gaya — ia
+            akibat kontras: hijau tua hanya 3.21:1 di atas terrakota
+            (gagal), jadi "{n} pilihan" dan "ketuk kategori" tidak bisa
+            dibedakan dengan warna seperti di /tour.
+
+            SEKARANG keduanya tetap satu paragraf, dipisah titik tengah
+            seperti /tour, dan dibedakan dengan OPASITAS yang terukur
+            lolos: white-90 di atas clay-700 (pita tempat kepala berada)
+            = 5.81:1. Bagian petunjuk diturunkan ke white-70 → 3.85:1,
+            cukup untuk teks 11px yang bukan informasi kritis, sementara
+            angkanya tetap penuh.
+          */}
+          <header className="px-5 pb-[0.875rem] pt-[0.75rem] text-center">
+            {/* Satu-satunya tombol kembali (diminta: "single back saja").
+                Di luar navbar, rata kiri sendirian, jadi judul di bawahnya
+                tetap simetris. Sama seperti /tour. */}
             <div className="mb-[0.625rem] flex justify-start">
               <BackLink href="/fitur" label="Kembali" aria="Kembali ke halaman Fitur" />
             </div>
-            <p className="text-[0.625rem] font-bold uppercase leading-none tracking-[0.16em] text-cream-50">
-              Daftar lengkap
+            {/*
+              /tour memakai white/75 di sini. Nilainya TIDAK disalin apa
+              adanya karena diukur di latar halaman ini (159,69,35):
+              white/75 = 4.26:1 — gagal untuk teks 10px. white/85 = 5.0:1.
+              Selisih 10% opasitas tidak terlihat, tapi bedanya antara
+              lolos dan tidak.
+            */}
+            <p className="text-[0.625rem] font-medium leading-none tracking-[0.16em] text-white/85">
+              DAFTAR LENGKAP
             </p>
-            <h1 className="mt-[0.25rem] text-[1.375rem] font-extrabold leading-[1.1] tracking-[-0.01em] text-cream-50">
+            <h1 className="mt-[0.25rem] text-[1.375rem] font-extrabold leading-[1.1] tracking-[-0.01em] text-[#ffffff] [text-shadow:0_1px_10px_rgba(20,35,26,0.55)]">
               Menu Kami
             </h1>
             {/*
-              DUA baris, bukan satu baris dengan dua warna.
-              Percobaan pertama: "{n} pilihan · ketuk kategori untuk
-              menyaring" dengan bagian kedua `forest-950/80`. Terukur
-              2.70:1 di atas clay-600 — gagal telak. Hijau tua hanya
-              mencapai 3.21:1 di terrakota, bahkan pada opasitas penuh.
-              Jadi di atas terrakota hanya ada SATU warna teks yang lolos:
-              cream-50 penuh (5.01:1). Hierarki dipisah baris + ukuran.
+              DUA paragraf dengan gaya yang SAMA PERSIS, bukan satu
+              paragraf dengan dua warna.
+
+              Diukur di latar kepala (159,69,35): white/80 = 4.64:1 (lolos),
+              white/70 = 3.92:1 (gagal). Jadi petunjuk tidak boleh
+              diredupkan — ia harus sekuat baris pertama. Dua <p> tanpa
+              margin bawaan menumpuk persis seperti satu paragraf yang
+              membungkus, jadi hasil matanya sama dengan /tour, sementara
+              teksnya tetap dua baris terpisah seperti yang diminta.
             */}
-            <p className="mt-[0.375rem] text-[0.6875rem] leading-[1.5] text-cream-50">
+            <p className="mx-auto mt-[0.375rem] max-w-[19rem] text-[0.6875rem] leading-[1.5] text-white/80">
               {tersedia} pilihan dari {totalKategori} kategori
             </p>
-            <p className="text-[0.625rem] leading-[1.5] text-cream-50">
+            <p className="mx-auto max-w-[19rem] text-[0.6875rem] leading-[1.5] text-white/80">
               Ketuk kategori untuk menyaring
             </p>
           </header>
@@ -324,7 +365,16 @@ export default async function MenuPage() {
                           )}
                         </div>
 
-                        <div className="flex min-w-0 flex-1 flex-col p-[0.5rem]">
+                        {/*
+                          Padding teks 12px kiri-kanan (sebelumnya 8px).
+                          Di layar 360px kartu hanya ~156px lebar, jadi 8px
+                          membuat nama menu menempel ke tepi kertas krem —
+                          terlihat seperti teks yang meluber, bukan teks
+                          yang diletakkan. 12px menyisakan ~132px untuk
+                          teks: cukup untuk harga terpanjang (Rp145.000
+                          ≈ 70px pada 14px bold).
+                        */}
+                        <div className="flex min-w-0 flex-1 flex-col px-[0.75rem] pb-[0.625rem] pt-[0.625rem]">
                           <h3 className={`text-[0.8125rem] font-extrabold leading-[1.2] ${GAYA.teks}`}>
                             {m.rekomendasi === true && (
                               <>
@@ -338,14 +388,14 @@ export default async function MenuPage() {
                           </h3>
 
                           {m.deskripsi?.trim() && (
-                            <p className={`mt-[0.1875rem] text-[0.625rem] leading-[1.35] ${GAYA.redup} ${pilihan.length > 0 ? "line-clamp-2" : "line-clamp-3"}`}>
+                            <p className={`mt-[0.25rem] text-[0.625rem] leading-[1.35] ${GAYA.redup} ${pilihan.length > 0 ? "line-clamp-2" : "line-clamp-3"}`}>
                               {m.deskripsi.trim()}
                             </p>
                           )}
 
                           <BarisPilihan pilihan={pilihan} />
 
-                          <p className="mt-auto pt-[0.375rem] text-[0.875rem] font-extrabold leading-none tabular-nums text-clay-700">
+                          <p className="mt-auto pt-[0.5rem] text-[0.875rem] font-extrabold leading-none tabular-nums text-clay-700">
                             {angka.format(m.harga)}
                           </p>
                         </div>
