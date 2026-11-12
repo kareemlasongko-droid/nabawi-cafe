@@ -89,12 +89,31 @@ export function SaringanKategori({ kategori }: Props) {
       pernah diperbarui.
     */
     <div className="sticky top-[calc(max(0.5rem,env(safe-area-inset-top))+4rem)] z-20 tablet:top-[calc(max(0.75rem,env(safe-area-inset-top))+4.625rem)]">
-      <div className="relative">
+      {/*
+        Bar ini WAJIB punya latar sendiri.
+
+        Sebelumnya ia menempel tanpa latar, jadi kartu menu mengalir di
+        belakang pil dan teksnya saling tabrakan — di /order hal ini
+        ditangani `bg-bersih-50/95` + backdrop-blur. Di sini latarnya
+        terrakota pekat (clay-800/94) supaya pil yang lewat di atasnya
+        tetap terbaca, dan gradasi tipis di tepi bawah supaya tidak
+        terpotong seperti selotip.
+
+        `px-5` saja, TANPA `-mx-5`.
+        Rencana awal `-mx-5 px-5` (bar lebih lebar dari kanvas) saya
+        batalkan setelah dihitung: induk bar ini tidak punya padding,
+        jadi -mx-5 mendorong latar bar 20px KELUAR kanvas di kiri dan
+        kanan. Di HP 390px bar jadi 430px → scroll horizontal, dan di
+        tablet latarnya menyeberang ke area gelap di luar kanvas.
+        Dengan `px-5` saja, latar bar pas selebar kanvas dan pil tetap
+        sejajar dengan isi halaman (section juga px-5).
+      */}
+      <div className="relative border-b border-clay-800/60 bg-clay-800/94 px-5 backdrop-blur-[6px]">
         <div
           ref={barisRef}
           role="group"
           aria-label="Saring menu menurut kategori"
-          className="flex gap-[0.375rem] overflow-x-auto px-5 pb-[0.625rem] pt-[0.375rem] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-[0.375rem] overflow-x-auto pb-[0.5rem] pt-[0.5rem] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <Pil aktif={aktif === "semua"} onClick={() => pilih("semua")}>
             Semua
@@ -122,7 +141,13 @@ export function SaringanKategori({ kategori }: Props) {
             yang ada. */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-clay-600 to-transparent"
+          /*
+            `right-5` = selebar padding bar. Tanpa ini gradasi menutupi
+            pil terakhir (ia menempel ke tepi LUAR bar, sedangkan pil
+            berhenti di dalam padding). w-6 cukup untuk isyarat "masih
+            ada lagi" tanpa memakan pil yang sedang dibaca.
+          */
+          className="pointer-events-none absolute inset-y-0 right-5 w-6 bg-gradient-to-l from-clay-800 to-transparent"
         />
       </div>
     </div>
@@ -146,16 +171,30 @@ function Pil({
       className={[
         "shrink-0 rounded-full px-[0.6875rem] py-[0.3125rem] text-[0.75rem] font-bold transition active:scale-[0.97]",
         /*
-          Pil AKTIF: krem penuh + teks clay-700 → 6.77:1.
-          Pil PASIF: `text-cream-50` penuh, TIDAK diredupkan. Di atas
-          terrakota hanya cream-50 penuh yang lolos (5.01:1);
-          `cream-50/70` tinggal 3.04:1 dan gagal untuk teks kecil.
-          Bedanya pil aktif vs pasif dibawa oleh latar + bayangan, bukan
-          oleh opasitas teks.
+          DUA keadaan, dua latar. Sebelumnya pil pasif hanya bergaris —
+          di atas bar terrakota ia terlihat seperti teks mengambang, bukan
+          tombol.
+
+          Pil TIDAK AKTIF: `bg-forest-950/50` (hijau tua) + teks krem.
+            · teks    cream-50 di latar itu  → 11.65:1
+            · vs bar  latar pil vs clay-800  →  1.46:1 (batas pil terbaca)
+            · vs aktif pil pasif vs cream-50 → 11.65:1 (bedanya jelas)
+          Kandidat yang saya ukur dan TOLAK:
+            · krem/12 di kanvas mentah        → teks 4.04:1, gagal
+            · cream-100 penuh di bar          → hanya 1.09:1 beda dari
+              pil aktif; keduanya krem, tak terbedakan.
+          Hijau dipilih, bukan oranye lebih muda, karena terrakota sudah
+          jadi warna halaman: pil oranye akan tenggelam ke latar, dan
+          hijau tua adalah warna yang SUDAH ada di palet (forest-950),
+          bukan warna baru yang dikarang untuk kesempatan ini.
+
+          Pil AKTIF: cream-50 penuh + clay-700 → 6.77:1. Ia satu-satunya
+          elemen krem di bar, jadi "yang dipilih" terbaca tanpa perlu
+          diberi tahu.
         */
         aktif
           ? "bg-cream-50 text-clay-700 shadow-[0_2px_8px_-2px_rgba(20,35,26,0.45)]"
-          : "border border-cream-50/60 text-cream-50",
+          : "bg-forest-950/50 text-cream-50 ring-1 ring-inset ring-cream-50/20",
       ].join(" ")}
     >
       {children}

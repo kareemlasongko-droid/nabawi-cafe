@@ -91,6 +91,25 @@ const LATAR = "/images/fitur-bg.jpg";
  */
 const CLAY = "bg-clay-600";
 
+/**
+ * Gradasi di belakang navbar — TERRAKOTA, bukan hijau.
+ *
+ * Diminta: "warna belakang navbar sesuaikan dengan tema warna halaman
+ * daftar menu kami". Nilainya diturunkan dari tema halaman ini, bukan
+ * dipilih dari roda warna:
+ *
+ *   ujung atas  #7a3316  = clay-800  (paling pekat, menahan bilah putih)
+ *   tengah      clay-700 @85%
+ *   ujung bawah transparan → menyatu dengan latar kanvas clay-600
+ *
+ * Yang TIDAK dipakai: hijau #14231a bawaan /tour. Hijau di atas
+ * terrakota bukan cuma "kurang cocok" — kedua warna itu saling
+ * menabrak, dan bilah putih di atasnya kehilangan satu-satunya jangkar
+ * warna yang jelas.
+ */
+const GRADASI_CLAY =
+  "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-[calc(100%+1.125rem)] before:bg-[linear-gradient(to_bottom,#7a3316_0%,rgba(150,64,31,0.85)_55%,rgba(150,64,31,0)_100%)] before:content-['']";
+
 const GAYA = {
   /** Kartu: krem, garis terracotta tipis, sudut 20px seperti /tour. */
   kartu:
@@ -205,15 +224,14 @@ export default async function MenuPage() {
             Navbar DENGAN `gradient` — disamakan dengan /tour (diminta).
 
             Sebelumnya saya mematikannya dengan alasan "gradasi hijau di
-            atas terrakota jadi pita kotor". Alasan itu tidak lagi
-            berlaku: `gradient` melukis #14231a, dan #14231a adalah
-            `forest-950` — warna yang SAMA dengan pita atas latar halaman
-            ini (`from-clay-700/70` menuju `via-clay-600/20`). Jadi
-            gradasinya jatuh di atas terrakota yang sudah gelap, bukan
-            melawan warna terang. Hasilnya navbar terbaca sama persis
-            dengan /tour: bilah putih yang duduk di atas bayangan gelap.
+            atas terrakota jadi pita kotor", lalu menghidupkannya kembali
+            dengan warna hijau bawaan /tour. Pemilik meminta gradasinya
+            DISESUAIKAN dengan tema halaman ini — benar, hijau di atas
+            terrakota adalah dua warna yang saling menabrak. Sekarang
+            gradient memakai `gelap={GRADASI_CLAY}`: terrakota pekat yang
+            menyatu dengan latar, bukan menempel di atasnya.
           */}
-          <Navbar sticky gradient />
+          <Navbar sticky gradient gelap={GRADASI_CLAY} />
 
           {/*
             Kepala halaman — DISAMAKAN dengan /tour, nilai per nilai:

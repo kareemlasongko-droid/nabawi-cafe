@@ -56,6 +56,17 @@ type NavbarProps = {
   /** Gradasi gelap di belakang navbar supaya konten yang lewat di
    *  belakangnya tidak bertabrakan dengan bilah putih. */
   gradient?: boolean;
+  /**
+   * Warna gradasi di belakang navbar. Default: hijau #14231a (forest-950),
+   * dipakai /tour dan /tour/[slug].
+   *
+   * Kenapa jadi parameter, bukan nilai tetap: gradasi ini duduk di atas
+   * latar halaman, jadi ia harus sewarna latar itu. Di /tour latarnya
+   * hijau gelap → hijau. Di /menu latarnya terrakota → terrakota
+   * (lihat GRADASI_CLAY di app/menu/page.tsx). Gradasi hijau di atas
+   * terrakota bukan "kurang cocok", tapi dua warna yang saling menabrak.
+   */
+  gelap?: string;
 };
 
 /**
@@ -78,15 +89,17 @@ type NavbarProps = {
  * Dengan `relative` pada nav, keduanya berada di lapisan yang sama dan
  * nav menang karena datang belakangan di urutan DOM.
  */
-export function Navbar({ sticky, gradient }: NavbarProps = {}) {
+/** Gradasi bawaan: hijau forest-950. Dipakai /tour. */
+const GRADASI_HIJAU =
+  "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-[calc(100%+1.125rem)] before:bg-[linear-gradient(to_bottom,#14231a_0%,rgba(20,35,26,0.85)_55%,rgba(20,35,26,0)_100%)] before:content-['']";
+
+export function Navbar({ sticky, gradient, gelap = GRADASI_HIJAU }: NavbarProps = {}) {
   return (
     <header
       className={[
         sticky ? "sticky top-0 z-30" : "relative z-20",
         "px-4 pt-[max(0.5rem,env(safe-area-inset-top))] tablet:px-5 tablet:pt-[max(0.75rem,env(safe-area-inset-top))]",
-        gradient
-          ? "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-[calc(100%+1.125rem)] before:bg-[linear-gradient(to_bottom,#14231a_0%,rgba(20,35,26,0.85)_55%,rgba(20,35,26,0)_100%)] before:content-['']"
-          : "",
+        gradient ? gelap : "",
       ].join(" ")}
     >
       <nav
