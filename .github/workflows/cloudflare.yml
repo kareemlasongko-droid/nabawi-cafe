@@ -1,0 +1,115 @@
+name: Cloudflare (persiapan)
+
+# ─────────────────────────────────────────────────────────────────────
+# ALUR INI SENGAJA TIDAK AKTIF SAMPAI ANDA MENYALAKANNYA.
+#
+# Syaratnya satu, di GitHub → Settings → Secrets and variables → Actions
+# → tab **Variables** (bukan Secrets):
+#
+#     CLOUDFLARE_ENABLED = true
+#
+# Kenapa pakai Variables, bukan langsung jalan:
+# tanpa kredensial Cloudflare, alur ini hanya akan merah di setiap push
+# dan membuat CI yang selalu gagal diabaikan orang. Gerbang eksplisit
+# lebih jujur daripada `continue-on-error`, yang menyembunyikan kegagalan
+# sungguhan nanti.
+#
+# RAHASIA yang harus diisi saat menyiapkan (tab Secrets):
+#     CLOUDFLARE_API_TOKEN   — token dengan izin Workers Scripts:Edit,
+#                              Workers KV:Edit, Account Settings:Read
+#     CLOUDFLARE_ACCOUNT_ID  — dari dashboard, kanan bawah Workers
+#
+# VARIABEL PEMBEDA PREVIEW vs PRODUCTION (tab Variables):
+#     CF_WORKER_NAME         — default "nabawi-cafe"
+#                              Menentukan alamat gratis:
+#                              https://<nama>.<subdomain>.workers.dev
+#
+# PERILAKU
+#   · Pull request  → unggah VERSI baru (bukan deploy). Preview tidak
+#                     menyentuh trafik produksi sama sekali. Ini yang
+#                     membuat "jalankan berdampingan dengan Vercel" aman.
+#   · push ke main  → deploy ke Worker produksi.
+#
+# CATATAN PENTING
+#   Vercel TETAP menjadi produksi selama ini menyala. Alur ini tidak
+#   mencabut apa pun. Vercel baru dimatikan setelah Cloudflare terbukti
+#   melayani semua halaman (lihat docs/PINDAH-CLOUDFLARE.md).
+# ─────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: # bisa dijalankan manual dari tab Actions
+
+concurrency:
+  # Satu alur per ref. Push beruntun tidak menumpuk deploy.
+  group: cloudflare-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & unggah ke Cloudflare
+    if: vars.CLOUDFLARE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Sama dengan package.json "engines": 22.x
+          node-version: 22
+          cache: npm
+
+      - name: Pasang dependensi
+        run: npm ci
+
+      # Uji murni: tidak butuh server, tidak butuh jaringan.
+      # Dijalankan SEBELUM build supaya kegagalan logika berhenti di sini,
+      # bukan setelah 60 detik membangun Worker.
+      - name: Uji logika (tanpa server)
+        run: |
+          npm run uji:aturan
+          npm run uji:jalur
+          npm run uji:menu
+
+      - name: Bangun bundel OpenNext
+        run: npx opennextjs-cloudflare build
+        env:
+          # Dibaca saat build untuk halaman yang memerlukannya.
+          # Nilai publishable (bukan rahasia) — aman di sini.
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+
+      # Gerbang kedua: `--name` kosong akan membuat wrangler memakai nama
+      # dari wrangler.jsonc (yang benar) ATAU gagal dengan pesan kabur.
+      # Lebih baik berhenti di sini dengan kalimat yang bisa dibaca.
+      - name: Pastikan CF_WORKER_NAME terisi
+        run: |
+          if [ -z "${{ vars.CF_WORKER_NAME }}" ]; then
+            echo "::error::Variabel CLOUDFLARE_ENABLED=true tapi CF_WORKER_NAME kosong."
+            echo "Isi di Settings → Secrets and variables → Actions → Variables."
+            exit 1
+          fi
+
+      - name: Unggah versi (Pull Request → tanpa menyentuh produksi)
+        if: github.event_name == 'pull_request'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            versions upload
+            --name ${{ vars.CF_WORKER_NAME }}
+
+      - name: Deploy (push ke main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            deploy
+            --name ${{ vars.CF_WORKER_NAME }}

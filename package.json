@@ -16,12 +16,17 @@
     "uji:sampai": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/pilihan-sampai.ts",
     "uji:kepala": "node scripts/uji/kepala-portal.mjs",
     "uji:bug": "node scripts/uji/bug-audit.mjs",
-    "uji:menu": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/menu-halaman.ts"
+    "uji:menu": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/menu-halaman.ts",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy:cf": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload:cf": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@fontsource/space-mono": "^5.3.0",
-    "next": "15.5.28",
+    "@opennextjs/cloudflare": "^1.20.18",
+    "next": "^15.5.29",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
@@ -31,7 +36,8 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "wrangler": "^4.166.0"
   },
   "packageManager": "npm@10.9.8"
 }

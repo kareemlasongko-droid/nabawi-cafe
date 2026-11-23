@@ -1,0 +1,10 @@
+# Environment untuk `wrangler dev` / `opennextjs-cloudflare preview`.
+#
+# BERKAS INI TIDAK BERISI RAHASIA dan aman di-commit: nilainya hanya
+# menunjuk ke mode pengembangan. Rahasia sungguhan (SUPABASE_SERVICE_KEY)
+# TIDAK masuk di sini — ia dipasang lewat `wrangler secret put`, atau
+# diimpor dari .env lokal saat preview.
+#
+# NEXTJS_ENV menentukan berkas .env mana yang dibaca Next saat dijalankan
+# di dalam Workers. Tanpa ini adapter memakai "production".
+NEXTJS_ENV=development
