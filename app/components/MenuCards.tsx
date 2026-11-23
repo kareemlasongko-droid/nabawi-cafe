@@ -91,7 +91,13 @@ const CARDS: MenuCard[] = [
     description:
       "Temukan hidangan autentik khas Maroko dan pilihan kopi terbaik",
     badge: "Terbaru",
-    href: null,
+    /*
+      Dulu `null`: kartunya sengaja tidak bisa ditekan karena halaman
+      tujuannya belum ada. Sekarang /menu sudah ada, jadi kartu ini menjadi
+      tautan seperti "Virtual Tour 360" di atasnya. Perilaku `Kulit`
+      (a vs article) sudah menangani keduanya tanpa perubahan lain.
+    */
+    href: "/menu",
     surface: "bg-clay-600",
     text: "text-cream-50",
     badgeClass: "bg-cream-50/20 text-cream-50",

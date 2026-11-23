@@ -277,3 +277,40 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ───────────────────────────────────────────────────────────────
+   Saringan kategori /menu.
+
+   Pil kategori menulis `data-saring` ke <body>; kartu di bawah ini yang
+   menyembunyikan diri lewat CSS. Konsekuensinya: 126 kartu TIDAK perlu
+   dihidrasi ulang saat pil ditekan, dan halaman tetap utuh tanpa JS
+   (atribut tidak pernah ada → semua kartu tampil).
+
+   `display:none` dipilih, bukan `hidden` atau animasi tinggi: daftar ini
+   dibaca, bukan dijelajahi — transisi buka-tutup 126 kartu hanya
+   menambah kerja tata letak tanpa menambah kejelasan.
+
+   `scroll-margin-top` memberi ruang setinggi navbar + baris pil (yang
+   menempel) supaya judul kategori tidak tertutup saat `scrollIntoView`.
+   Angka 6.5rem = 104px: navbar 64+8+8 = 80px, baris pil ~75px, disisakan
+   sedikit napas. Aman bila sedikit kebesaran; berbahaya bila kekecilan.
+   ─────────────────────────────────────────────────────────────── */
+body[data-saring] [data-kat] {
+  display: none;
+}
+/* Aturan "tampilkan yang cocok" TIDAK ditulis di sini.
+
+   Versi pertama menyalin id 1–6 secara manual:
+     body[data-saring="1"] [data-kat="1"] { display:block }  ...×6
+   Itu bug yang menunggu waktu: begitu pemilik menambah kategori ke-7,
+   pilnya muncul (pil dibuat dari data), tetapi menekannya menyembunyikan
+   SELURUH daftar karena tidak ada aturan yang menampilkan [data-kat="7"].
+   Halamannya tidak error — hanya kosong, di production.
+
+   Karena itu aturan per-id ditulis dari DATA di app/menu/page.tsx
+   (blok <style> di dalam halaman), sehingga kategori baru otomatis
+   punya aturannya sendiri. */
+
+[id^="kategori-"] {
+  scroll-margin-top: 6.5rem;
+}

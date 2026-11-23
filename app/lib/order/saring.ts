@@ -8,7 +8,8 @@
  * perilaku di layar sudah berbeda. Sekarang komponen dan uji mengimpor
  * fungsi yang sama.
  */
-import type { Menu } from "./tipe";
+import type { KategoriMenu, Menu } from "./tipe";
+import { urutkanMenu } from "./aturan";
 
 export type SaringanStatus = "semua" | "ada" | "habis";
 
@@ -78,4 +79,73 @@ export function hitungPerKategori(menu: Menu[]): Map<number, number> {
     peta.set(m.kategori_id, (peta.get(m.kategori_id) ?? 0) + 1);
   }
   return peta;
+}
+
+/**
+ * Aturan CSS "tampilkan kategori yang dipilih" untuk halaman /menu.
+ *
+ * KENAPA DIHASILKAN DARI DATA, BUKAN DITULIS DI globals.css
+ * Versi pertama menulis id 1–6 secara manual di CSS. Itu bug yang
+ * menunggu waktu: pil kategori dibuat dari data, jadi kategori ke-7 akan
+ * punya pil tetapi tidak punya aturan tampil — menekannya menyembunyikan
+ * SELURUH daftar (aturan dasarnya `display:none`). Halamannya tidak
+ * error, hanya kosong. Dengan aturan yang lahir dari data, pil dan
+ * aturannya selalu berjumlah sama.
+ *
+ * Id dinormalkan ke bilangan bulat: id dipakai sebagai nilai atribut
+ * `[data-saring="..."]`, dan id bertipe aneh (NaN, pecahan, string
+ * berisi tanda kutip) akan menghasilkan CSS rusak yang membocorkan
+ * seluruh daftar. Kategori yang id-nya tidak valid dilewati — pilnya
+ * tetap bisa ditekan, tetapi tidak mengosongkan halaman.
+ */
+export function aturanSaring(kategori: { id: number }[]): string {
+  const id = [...new Set(kategori.map((k) => k.id))].filter((n) => Number.isInteger(n));
+  return id
+    .map((n) => `body[data-saring="${n}"] [data-kat="${n}"]{display:block}`)
+    .join("");
+}
+
+/**
+ * Kelompokkan menu per kategori untuk halaman /menu.
+ *
+ * KENAPA DI LIB, BUKAN DI DALAM page.tsx
+ * Versi pertama fungsi ini hidup di page.tsx dan uji:menu menyalinnya.
+ * Salinan seperti itu punya cacat bawaan yang sudah pernah menggigit
+ * repo ini (lihat komentar kepala berkas): logika di halaman bisa
+ * diubah tanpa uji ikut berubah, dan uji tetap hijau padahal perilakunya
+ * berbeda. Sekarang halaman dan uji mengimpor fungsi yang sama.
+ *
+ * ATURAN
+ *   · urutan kategori mengikuti kolom `urutan`, bukan id atau alfabet;
+ *   · kategori tanpa menu tidak dirender (judul kosong membingungkan);
+ *   · menu yang `kategori_id`-nya yatim (null, atau id yang tidak ada di
+ *     daftar kategori) masuk kelompok terakhir "Lainnya" — TIDAK dibuang.
+ *     Membuangnya berarti tamu tidak bisa memesan hidangan yang masih
+ *     dijual hanya karena satu baris kategori terhapus;
+ *   · rekomendasi naik ke atas di dalam kategorinya (lewat urutkanMenu).
+ */
+export type KelompokMenu = {
+  kategori: { id: number; nama: string; urutan: number };
+  menu: Menu[];
+};
+
+export function kelompokkanMenu(kategori: KategoriMenu[], menu: Menu[]): KelompokMenu[] {
+  const hasil: KelompokMenu[] = [];
+  const dipakai = new Set<number>();
+
+  for (const k of [...kategori].sort((a, b) => a.urutan - b.urutan)) {
+    const isi = urutkanMenu(menu.filter((m) => m.kategori_id === k.id));
+    if (isi.length === 0) continue;
+    hasil.push({ kategori: k, menu: isi });
+    dipakai.add(k.id);
+  }
+
+  const yatim = urutkanMenu(
+    menu.filter((m) => m.kategori_id === null || !dipakai.has(m.kategori_id))
+  );
+  if (yatim.length > 0) {
+    hasil.push({ kategori: { id: -1, nama: "Lainnya", urutan: 999 }, menu: yatim });
+  }
+
+  return hasil;
 }
