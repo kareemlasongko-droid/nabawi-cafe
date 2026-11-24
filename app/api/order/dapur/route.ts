@@ -60,8 +60,26 @@ export async function GET() {
     }
   }
 
+  /*
+    ── "MENUNGGU_KONFIRMASI" IKUT DITAMPILKAN ──────────────────────────
+
+    Sebelumnya dapur hanya menerima "diterima", "diproses", "siap".
+    Akibatnya nyata dan pernah dilaporkan: pesanan sudah DIBAYAR, kasir
+    sudah menerima uangnya, tetapi tiketnya tidak muncul di dapur sampai
+    kasir menekan "terima" satu kali lagi di portalnya. Kalau kasir lupa
+    (dan itu mudah terjadi saat ramai), pesanan yang sudah dibayar
+    menggantung tanpa ada yang memasaknya.
+
+    Dengan prabayar, "lunas" berarti uang sudah masuk dan pesanan BOLEH
+    dikerjakan. Menahan tiketnya sampai konfirmasi manual menambah satu
+    langkah yang tidak melindungi apa pun lagi — keputusan "terima" sudah
+    diambil saat uangnya diterima.
+
+    Status itu tetap ada supaya kasir bisa menolak (mis. menu habis);
+    tiket lalu hilang dari dapur.
+  */
   const tiket = res.data
-    .filter((x) => ["diterima", "diproses", "siap"].includes(x.status))
+    .filter((x) => ["menunggu_konfirmasi", "diterima", "diproses", "siap"].includes(x.status))
     .map((x) => ({
       id: x.id,
       nomor: x.nomor,

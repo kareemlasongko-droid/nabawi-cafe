@@ -341,7 +341,13 @@ export async function tandaiLunas(opts: {
     body: {
       status_bayar: "lunas",
       dibayar_at: kini,
-      metode_bayar: opts.metode,
+      /*
+        "doku" — BUKAN nama kanal (QRIS/e-wallet/kartu). Constraint kolom
+        ini hanya menerima nilai yang dikenal; kanal sebenarnya tersimpan
+        di `pembayaran.metode`, yang tidak dibatasi supaya kanal baru dari
+        DOKU tidak membuat pembayaran gagal.
+      */
+      metode_bayar: "doku",
       // Pesanan yang lunas masuk antrean kasir, dan hanya yang lunas yang
       // boleh muncul di sana. Status dapur TIDAK dilompati: kasir tetap
       // harus menerimanya secara sadar.

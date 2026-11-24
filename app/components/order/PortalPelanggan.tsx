@@ -76,6 +76,33 @@ type StatusPesananPelanggan = {
   total?: number | null;
 };
 
+/**
+ * Nama dua metode pembayaran — SATU tempat, dipakai tombol dan ringkasan.
+ *
+ * Kata yang dipilih: "Bayar Sekarang" vs "Bayar di Kasir".
+ *
+ *   · "Bayar Sekarang"  → menekankan WAKTU. Tamu paham pesanannya baru
+ *     diteruskan setelah pembayaran selesai, dan itu memang yang terjadi.
+ *   · "Bayar di Kasir"  → menekankan TEMPAT. Tamu paham ia tidak perlu
+ *     menyelesaikan apa pun di ponselnya; uangnya dibayar di meja kasir.
+ *
+ * Menghindari "QRIS" dan "Tunai" sebagai label: QRIS hanyalah SALAH SATU
+ * kanal DOKU (masih ada e-wallet dan kartu), dan "tunai" mengesankan tamu
+ * tidak bisa memakai kartu di kasir.
+ */
+const METODE_BAYAR = {
+  online: {
+    judul: "Bayar Sekarang",
+    detail: "QRIS, e-wallet, atau kartu. Pesanan langsung diproses.",
+    catatan: "Butuh aplikasi pembayaran di ponsel Anda",
+  },
+  kasir: {
+    judul: "Bayar di Kasir",
+    detail: "Pesan dulu, bayar di meja kasir. Pesanan diproses setelah dibayar.",
+    catatan: "Tunai atau kartu, langsung ke kasir",
+  },
+} as const;
+
 const KUNCI_SESI = "nabawi-sesi-order";
 const KUNCI_KERANJANG = "nabawi-keranjang";
 
@@ -162,7 +189,23 @@ export function PortalPelanggan({
     total: number;
   } | null>(null);
   const [membuatInvoice, setMembuatInvoice] = useState(false);
+  /** Pesanan yang baru dibuat dengan metode "Bayar di Kasir". */
+  const [pesananDiKasir, setPesananDiKasir] = useState<{
+    id: number;
+    nomor: string;
+    total: number;
+  } | null>(null);
   const [galatBayar, setGalatBayar] = useState("");
+  /**
+   * Metode yang dipilih tamu. `null` = belum memilih.
+   *
+   * Kenapa harus dipilih lebih dulu, bukan tombol "Kirim" tunggal: dua
+   * metode ini menuntut hal berbeda DARI TAMU. "Bayar sekarang" berarti ia
+   * harus menyelesaikan pembayaran sebelum pesanan diteruskan; "bayar di
+   * kasir" berarti ia boleh langsung duduk. Satu tombol untuk dua janji
+   * yang berbeda membuat tamu tidak tahu mana yang ia sepakati.
+   */
+  const [metode, setMetode] = useState<"online" | "kasir" | null>(null);
   const [mengirim, setMengirim] = useState(false);
   const [pesanGalat, setPesanGalat] = useState("");
   const [pesananSaya, setPesananSaya] = useState<StatusPesananPelanggan[]>([]);
@@ -382,7 +425,7 @@ export function PortalPelanggan({
   }
 
   async function kirim() {
-    if (keranjang.length === 0 || mengirim) return;
+    if (keranjang.length === 0 || mengirim || !metode) return;
     setMengirim(true);
     setPesanGalat("");
 
@@ -396,6 +439,16 @@ export function PortalPelanggan({
           // Wajib sejak prabayar. Divalidasi ulang di server.
           nama: nama.trim(),
           no_wa: noWa.trim(),
+          /*
+            Metode dikirim ke server dan DISIMPAN di pesanan.
+
+            Tanpa ini kasir tidak tahu pesanan mana yang harus ditagih
+            (tamu berharap dilayani, kasir tidak tahu uangnya belum masuk),
+            dan tamu yang memilih "Bayar Sekarang" tidak bisa dibedakan
+            dari yang memilih "Bayar di Kasir" — padahal yang pertama
+            sedang menunggu halaman pembayaran terbuka.
+          */
+          metode_bayar: metode,
           items: keranjang.map((b) => ({
             menu_id: b.menu.id,
             jumlah: b.jumlah,
@@ -425,7 +478,29 @@ export function PortalPelanggan({
         dibayar; itu keputusan pemilik dan dijaga di server, bukan di sini.
       */
       const total = Number(j?.tagihan?.total ?? 0);
-      setMenungguBayar({ id: Number(j?.pesanan?.id ?? 0), nomor: String(j?.pesanan?.nomor ?? ""), total });
+      const dibuat = {
+        id: Number(j?.pesanan?.id ?? 0),
+        nomor: String(j?.pesanan?.nomor ?? ""),
+        total,
+      };
+
+      /*
+        Dua jalan setelah pesanan tersimpan:
+
+        · "Bayar Sekarang" → layar pembayaran, lalu tamu dibawa ke DOKU.
+        · "Bayar di Kasir"  → TIDAK ada layar pembayaran. Pesanan sudah
+          masuk dan tamu boleh langsung duduk. Memaksakan layar bayar di
+          sini akan membuat tamu yang sudah memilih kasir mengira ia harus
+          membayar di ponsel.
+      */
+      if (metode === "kasir") {
+        setMenungguBayar(null);
+        setPesananDiKasir(dibuat);
+      } else {
+        setPesananDiKasir(null);
+        setMenungguBayar(dibuat);
+      }
+      setMetode(null);
       setGalatBayar("");
       const ulang = await fetch(`/api/order/pesanan?sesi=${encodeURIComponent(sesi)}`, {
         cache: "no-store",
@@ -642,6 +717,55 @@ export function PortalPelanggan({
             : "pb-20",
         ].join(" ")}
       >
+        {/* ── PESANAN TERSIMPAN, BAYAR DI KASIR ──
+            Ini layar yang paling penting untuk metode kasir. Tanpa
+            konfirmasi, tamu yang sudah menekan kirim melihat keranjangnya
+            kosong dan tidak tahu apakah pesanannya masuk — lalu memesan
+            ulang, dan dapur menerima dua pesanan yang sama. */}
+        {pesananDiKasir && (
+          <section className="mt-4" aria-live="polite">
+            <div className="rounded-[0.75rem] border border-forest-700/30 bg-forest-700/[0.06] p-4">
+              <div className="flex items-start gap-2.5">
+                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-forest-700 text-bersih-0">
+                  <IkonCentang />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-[1rem] font-extrabold text-tinta-900">
+                    Pesanan diterima
+                  </h2>
+                  <p className="mt-0.5 text-[0.8125rem] leading-snug text-tinta-500">
+                    Nomor <strong className="font-mono text-tinta-900">{pesananDiKasir.nomor}</strong>
+                    {" · "}
+                    {rupiah(pesananDiKasir.total)}
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-2.5 text-[0.8125rem] leading-snug text-tinta-700">
+                Silakan bayar di meja kasir. Pesanan mulai disiapkan setelah
+                pembayaran diterima.
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPesananDiKasir(null)}
+                  className="h-10 rounded-[0.625rem] border border-forest-700/30 px-3 text-[0.8125rem] font-bold text-forest-700"
+                >
+                  Pesan lagi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => panggil("bill")}
+                  className="h-10 rounded-[0.625rem] bg-tinta-900 px-3 text-[0.8125rem] font-extrabold text-bersih-0"
+                >
+                  Panggil kasir
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ── LAYAR BAYAR ──
             Muncul tepat setelah pesanan tersimpan, dan hanya sekali. Ia
             sengaja TIDAK menutupi seluruh layar: tamu perlu tetap bisa
@@ -1259,11 +1383,88 @@ export function PortalPelanggan({
                 </div>
               )}
 
+              {/* ── PILIHAN METODE PEMBAYARAN ──
+                  Dua kartu, bukan dua tombol kecil: pilihan ini menentukan
+                  apa yang tamu harus LAKUKAN setelah menekan kirim, jadi
+                  konsekuensinya harus terbaca sebelum memilih. */}
+              {keranjang.length > 0 && (
+                <fieldset className="mt-4">
+                  <legend className="mb-2 block text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-tinta-500">
+                    Metode pembayaran
+                  </legend>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(Object.keys(METODE_BAYAR) as ("online" | "kasir")[]).map((k) => {
+                      const m = METODE_BAYAR[k];
+                      const aktif = metode === k;
+                      return (
+                        <label
+                          key={k}
+                          className={[
+                            "relative flex cursor-pointer gap-2.5 rounded-[0.625rem] border-2 p-3 transition",
+                            aktif
+                              ? "border-forest-700 bg-forest-700/[0.06]"
+                              : "border-bersih-200 bg-bersih-100 hover:border-forest-700/40",
+                          ].join(" ")}
+                        >
+                          <input
+                            type="radio"
+                            name="metode-bayar"
+                            value={k}
+                            checked={aktif}
+                            onChange={() => setMetode(k)}
+                            className="sr-only"
+                          />
+                          {/* Penanda pilihan: lingkaran dengan titik di tengah. */}
+                          <span
+                            aria-hidden
+                            className={[
+                              "mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border-2",
+                              aktif ? "border-forest-700" : "border-tinta-500/40",
+                            ].join(" ")}
+                          >
+                            {aktif && <span className="size-2 rounded-full bg-forest-700" />}
+                          </span>
+
+                          <span className="min-w-0">
+                            <span className="block text-[0.875rem] font-extrabold text-tinta-900">
+                              {m.judul}
+                            </span>
+                            <span className="mt-0.5 block text-[0.75rem] leading-snug text-tinta-500">
+                              {m.detail}
+                            </span>
+                            <span className="mt-1 block text-[0.6875rem] font-semibold leading-snug text-forest-700">
+                              {m.catatan}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {/*
+                    Pesanan yang memilih kasir TIDAK boleh kedaluwarsa dalam
+                    15 menit. Tanpa penjelasan ini, tamu yang memilih kasir
+                    dan baru datang membayar 20 menit kemudian akan menemukan
+                    pesanannya sudah batal — dan itu terasa seperti jebakan.
+                  */}
+                  <p className="mt-2 text-[0.6875rem] leading-snug text-tinta-500">
+                    {metode === "kasir"
+                      ? "Pesanan disiapkan setelah Anda membayar di kasir. Batas waktunya 15 menit — panggil kasir kalau butuh lebih lama."
+                      : "Pesanan disiapkan setelah pembayaran diterima. Batas waktunya 15 menit."}
+                  </p>
+                </fieldset>
+              )}
+
               <button
                 type="button"
                 onClick={kirim}
                 disabled={
-                  keranjang.length === 0 || mengirim || !bukaSekarang || !dataLengkap
+                  keranjang.length === 0 ||
+                  mengirim ||
+                  !bukaSekarang ||
+                  !dataLengkap ||
+                  !metode
                 }
                 className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 transition active:scale-[0.99] disabled:opacity-45"
               >
@@ -1271,12 +1472,15 @@ export function PortalPelanggan({
                   ? "Mengirim…"
                   : keranjang.length === 0
                     ? "Keranjang kosong"
-                    : "Lanjut ke Pembayaran"}
-                {!mengirim && keranjang.length > 0 && <IkonKanan />}
+                    : !metode
+                      ? "Pilih metode pembayaran"
+                      : metode === "kasir"
+                        ? "Kirim Pesanan · Bayar di Kasir"
+                        : "Kirim Pesanan · Bayar Sekarang"}
+                {!mengirim && keranjang.length > 0 && metode && <IkonKanan />}
               </button>
               <p className="mt-2 pb-1 text-center text-[0.6875rem] leading-snug text-tinta-500">
-                Pesanan diteruskan ke kasir setelah pembayaran diterima. Bisa
-                bayar online atau tunai di kasir.
+                Pesanan diteruskan ke kasir dan dapur setelah pembayaran diterima.
               </p>
             </div>
           </div>

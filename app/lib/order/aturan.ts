@@ -340,12 +340,14 @@ export type ItemMasuk = {
 
 export type PesananMasuk = {
   meja: string;
-  /** Nama pemesan opsional; null berarti tidak diisi. */
+  /** Wajib sejak prabayar (keputusan pemilik). */
   nama: string;
   /** Sudah dinormalkan ke bentuk +62… oleh validasi. */
   no_wa: string;
   sesi: string;
   items: ItemMasuk[];
+  /** Pilihan tamu di checkout. Bawaan "kasir" bila tidak dikirim. */
+  metode_bayar: "online" | "kasir";
 };
 
 export type HasilValidasi = { ok: true; bersih: PesananMasuk } | { ok: false; pesan: string };
@@ -392,6 +394,23 @@ export function validasiPesananMasuk(masuk: unknown): HasilValidasi {
       ok: false,
       pesan: "Nomor WhatsApp wajib diisi dengan benar. Contoh: 0812 3456 7890.",
     };
+  }
+
+  /*
+    METODE PEMBAYARAN — divalidasi di server, bukan hanya dipilih di layar.
+
+    Bawaannya "kasir" bila tidak dikirim. Itu pilihan yang aman: metode
+    "online" menjanjikan tamu dibawa ke halaman pembayaran, sedangkan
+    "kasir" hanya berarti "bayar nanti di kasir" — kalau nilai tak dikenal
+    jatuh ke "online", tamu bisa terjebak menunggu tautan yang tidak pernah
+    dibuka. Nilai tak dikenal yang dikirim langsung tetap DITOLAK, supaya
+    kesalahan di klien kelihatan, bukan ditelan diam-diam.
+  */
+  let metode: "online" | "kasir" = "kasir";
+  if (m.metode_bayar !== undefined && m.metode_bayar !== null) {
+    const nilai = typeof m.metode_bayar === "string" ? m.metode_bayar.trim() : "";
+    if (nilai === "online" || nilai === "kasir") metode = nilai;
+    else return { ok: false, pesan: "Metode pembayaran tidak dikenal." };
   }
 
   if (!Array.isArray(m.items) || m.items.length === 0) {
@@ -464,7 +483,10 @@ export function validasiPesananMasuk(masuk: unknown): HasilValidasi {
     items.push({ menu_id: menuId, jumlah, catatan: catatan || null, pilihan });
   }
 
-  return { ok: true, bersih: { meja, nama, no_wa: noWa, sesi, items } };
+  return {
+    ok: true,
+    bersih: { meja, nama, no_wa: noWa, sesi, items, metode_bayar: metode },
+  };
 }
 
 // ─────────────────────────────────────────────────────────────

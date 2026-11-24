@@ -22,7 +22,17 @@ export type StatusPesanan =
  */
 export type StatusBayar = "menunggu" | "lunas" | "kedaluwarsa" | "gagal" | "dikembalikan";
 
-export type MetodeBayarPrabayar = "doku_qris" | "doku_va" | "doku_ewallet" | "tunai_kasir";
+/**
+ * Metode yang DIPILIH TAMU saat checkout — bukan kanal yang akhirnya dipakai.
+ *
+ *   · "online" → tamu dibawa ke halaman DOKU; kanal sebenarnya (QRIS,
+ *     e-wallet, kartu) baru diketahui dari notifikasi DOKU.
+ *   · "kasir"  → tamu memilih membayar di meja kasir.
+ *
+ * Nilai kanal DOKU disimpan terpisah di `pembayaran.gerbang`/`metode`,
+ * karena satu pilihan "online" bisa berakhir sebagai QRIS atau kartu.
+ */
+export type MetodeBayarPrabayar = "online" | "kasir";
 
 export type StatusMeja = "kosong" | "ada_pesanan" | "minta_bill" | "menunggu_bayar";
 

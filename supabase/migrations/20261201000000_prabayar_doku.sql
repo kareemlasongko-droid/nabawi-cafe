@@ -51,6 +51,29 @@ begin
       add constraint pesanan_status_bayar_sah
       check (status_bayar in ('menunggu', 'lunas', 'kedaluwarsa', 'gagal', 'dikembalikan'));
   end if;
+
+  /*
+    METODE PEMBAYARAN — dua pilihan tamu, ditambah nilai yang ditulis
+    sistem saat pesanan benar-benar dibayar.
+
+    'online'    tamu memilih dibawa ke halaman DOKU
+    'kasir'     tamu memilih membayar di meja kasir
+    'doku'      sistem menandai lunas lewat notifikasi DOKU
+    'tunai'     sistem menandai lunas lewat kasir
+    'qris_kasir', 'kartu' — pembayaran manual di kasir lewat /api/order/bayar
+
+    Dibuat setelah semua nilai itu ada, bukan hanya dua nilai pilihan:
+    kolom yang sama dipakai untuk riwayat, dan constraint yang terlalu
+    sempit akan menolak pembayaran yang sah.
+  */
+  if not exists (select 1 from pg_constraint where conname = 'pesanan_metode_bayar_sah') then
+    alter table public.pesanan
+      add constraint pesanan_metode_bayar_sah
+      check (
+        metode_bayar is null
+        or metode_bayar in ('online', 'kasir', 'doku', 'tunai', 'qris_kasir', 'kartu')
+      );
+  end if;
 end $$;
 
 -- Pesanan yang menunggu bayar WAJIB punya batas waktu. Tanpa ini, satu
