@@ -153,8 +153,11 @@ const pesan = (pilihan) =>
   buatPesanan({
     meja: "5",
     sesi: "uji-" + Math.random(),
-    nama: "Tamu",
+    nama: "Tamu Uji",
+    // Sejak prabayar, nomor WA wajib dan setiap pesanan punya batas bayar.
+    no_wa: "+6281234567890",
     items: [{ menu_id: 100, jumlah: 1, catatan: null, pilihan }],
+    batasBayarMenit: 15,
   });
 
 const tanpa = await pesan([]);

@@ -32,7 +32,14 @@ import {
   urutkanMenu,
   type AturanBiaya,
 } from "@/app/lib/order/aturan";
-import { rupiah, type KategoriMenu, type Menu, type PilihanMenu } from "@/app/lib/order/tipe";
+import {
+  rupiah,
+  LABEL_BAYAR,
+  type KategoriMenu,
+  type Menu,
+  type PilihanMenu,
+  type StatusBayar,
+} from "@/app/lib/order/tipe";
 import {
   IkonCari,
   IkonKeranjang,
@@ -62,6 +69,11 @@ type StatusPesananPelanggan = {
   status: string;
   created_at: string;
   total_item: number;
+  /** 'menunggu' | 'lunas' | 'kedaluwarsa' | 'gagal' | 'dikembalikan' */
+  status_bayar: string;
+  kedaluwarsa_at: string | null;
+  /** Diisi server: total tagihan pesanan ini (untuk tombol bayar). */
+  total?: number | null;
 };
 
 const KUNCI_SESI = "nabawi-sesi-order";
@@ -140,6 +152,17 @@ export function PortalPelanggan({
   */
   const [pilihUntuk, setPilihUntuk] = useState<Menu | null>(null);
   const [nama, setNama] = useState("");
+  const [noWa, setNoWa] = useState("");
+  /** Urutan checkout: 'keranjang' → 'data' → 'bayar'. */
+  const [langkah, setLangkah] = useState<"keranjang" | "data">("keranjang");
+  /** Pesanan yang baru dibuat dan menunggu dibayar. */
+  const [menungguBayar, setMenungguBayar] = useState<{
+    id: number;
+    nomor: string;
+    total: number;
+  } | null>(null);
+  const [membuatInvoice, setMembuatInvoice] = useState(false);
+  const [galatBayar, setGalatBayar] = useState("");
   const [mengirim, setMengirim] = useState(false);
   const [pesanGalat, setPesanGalat] = useState("");
   const [pesananSaya, setPesananSaya] = useState<StatusPesananPelanggan[]>([]);
@@ -370,7 +393,9 @@ export function PortalPelanggan({
         body: JSON.stringify({
           meja: mejaNomor,
           sesi,
-          nama: nama.trim() || null,
+          // Wajib sejak prabayar. Divalidasi ulang di server.
+          nama: nama.trim(),
+          no_wa: noWa.trim(),
           items: keranjang.map((b) => ({
             menu_id: b.menu.id,
             jumlah: b.jumlah,
@@ -390,7 +415,18 @@ export function PortalPelanggan({
 
       setKeranjang([]);
       setBukaKeranjang(false);
+      setLangkah("keranjang");
       setPanggilanTerkirim("");
+
+      /*
+        Pesanan tersimpan, tetapi BELUM dibayar. Yang ditampilkan bukan
+        "berhasil" — melainkan layar pembayaran. Kalau kasir menerima
+        pesanan yang belum lunas, dapur memasak makanan yang belum tentu
+        dibayar; itu keputusan pemilik dan dijaga di server, bukan di sini.
+      */
+      const total = Number(j?.tagihan?.total ?? 0);
+      setMenungguBayar({ id: Number(j?.pesanan?.id ?? 0), nomor: String(j?.pesanan?.nomor ?? ""), total });
+      setGalatBayar("");
       const ulang = await fetch(`/api/order/pesanan?sesi=${encodeURIComponent(sesi)}`, {
         cache: "no-store",
       });
@@ -402,6 +438,41 @@ export function PortalPelanggan({
       );
     } finally {
       setMengirim(false);
+    }
+  }
+
+  /**
+   * Minta tautan pembayaran DOKU, lalu arahkan tamu ke sana.
+   *
+   * Pesanan SUDAH tersimpan sebelum ini. Kalau DOKU gagal, pesanan tetap
+   * ada dan tamu masih bisa membayar tunai di kasir — menghapusnya akan
+   * membuat data yang sudah diisi hilang karena gangguan pihak ketiga.
+   */
+  async function bayarOnline() {
+    if (!menungguBayar || membuatInvoice) return;
+    setMembuatInvoice(true);
+    setGalatBayar("");
+
+    try {
+      const res = await fetch("/api/order/doku/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pesanan_id: menungguBayar.id, sesi }),
+      });
+      const j = await res.json();
+
+      if (!res.ok) {
+        setGalatBayar(j.pesan ?? "Pembayaran online tidak bisa dimulai.");
+        return;
+      }
+
+      // `assign`, bukan `location.href` di state React: ini pindah ke
+      // domain lain (halaman DOKU), jadi tidak ada yang perlu dirender.
+      window.location.assign(j.url);
+    } catch {
+      setGalatBayar("Koneksi terputus. Coba lagi, atau bayar tunai di kasir.");
+    } finally {
+      setMembuatInvoice(false);
     }
   }
 
@@ -420,6 +491,13 @@ export function PortalPelanggan({
       setPesanGalat("Panggilan gagal terkirim. Coba lagi atau lambaikan tangan.");
     }
   }
+
+  /*
+    Kelengkapan data dicek di sini HANYA untuk kenyamanan (tombol mati).
+    Yang menentukan tetap server — menonaktifkan tombol di browser tidak
+    menghentikan siapa pun yang mengirim POST langsung.
+  */
+  const dataLengkap = nama.trim().length >= 2 && /\d{8,}/.test(noWa.replace(/[^0-9]/g, ""));
 
   const adaPesananBerjalan = pesananSaya.some(
     (p) => !["diantar", "ditolak", "dibatalkan"].includes(p.status)
@@ -564,6 +642,66 @@ export function PortalPelanggan({
             : "pb-20",
         ].join(" ")}
       >
+        {/* ── LAYAR BAYAR ──
+            Muncul tepat setelah pesanan tersimpan, dan hanya sekali. Ia
+            sengaja TIDAK menutupi seluruh layar: tamu perlu tetap bisa
+            memanggil pelayan kalau memilih bayar tunai.
+
+            Tidak ada tombol "Saya sudah bayar" yang menandai lunas. Tombol
+            semacam itu hanya akan berbohong: yang menentukan adalah
+            notifikasi bertanda tangan dari DOKU. Yang disediakan adalah
+            "Periksa status", yang menanyakan ulang ke server. */}
+        {menungguBayar && (
+          <section className="mt-4">
+            <div className="rounded-[0.75rem] border border-forest-700/30 bg-tinta-900/[0.06] p-4">
+              <p className="text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-tinta-500">
+                Pesanan {menungguBayar.nomor}
+              </p>
+              <h2 className="mt-1 text-[1rem] font-extrabold text-tinta-900">
+                Selesaikan pembayaran
+              </h2>
+              <p className="mt-1 text-[0.8125rem] leading-snug text-tinta-500">
+                Total{" "}
+                <strong className="font-extrabold text-tinta-900">
+                  {rupiah(menungguBayar.total)}
+                </strong>
+                . Pesanan diteruskan ke kasir setelah pembayaran diterima.
+              </p>
+
+              {galatBayar && (
+                <p
+                  role="alert"
+                  className="mt-2 rounded-[0.5rem] bg-clay-600/10 p-2 text-[0.75rem] font-semibold leading-snug text-clay-800"
+                >
+                  {galatBayar}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={bayarOnline}
+                disabled={membuatInvoice}
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-[0.625rem] bg-forest-700 text-[0.875rem] font-extrabold text-bersih-0 transition active:scale-[0.99] disabled:opacity-45"
+              >
+                {membuatInvoice ? "Menyiapkan pembayaran…" : "Bayar Online (QRIS / e-wallet)"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMenungguBayar(null)}
+                className="mt-2 flex h-11 w-full items-center justify-center rounded-[0.625rem] border border-forest-700/30 text-[0.8125rem] font-bold text-forest-700"
+              >
+                Bayar tunai di kasir
+              </button>
+
+              <p className="mt-2 text-center text-[0.6875rem] leading-snug text-tinta-500">
+                Pesanan otomatis dibatalkan bila tidak dibayar dalam 15 menit.
+                Bisa pesan ulang kapan saja.
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* ── Pesanan berjalan ──
             Ditaruh paling atas setelah kepala karena pertanyaan pertama
             pelanggan yang sudah memesan adalah "pesanan saya bagaimana".
@@ -575,8 +713,23 @@ export function PortalPelanggan({
             </h2>
             <div className="space-y-2">
               {pesananSaya.slice(0, 3).map((p) => {
-                const l = LABEL[p.status] ?? { judul: p.status, detail: "" };
-                const selesai = ["diantar", "ditolak", "dibatalkan"].includes(p.status);
+                /*
+                  Pesanan yang belum lunas TIDAK boleh memakai label dapur.
+                  "Menunggu kasir" pada pesanan yang belum dibayar membuat
+                  tamu mengira pesanannya sedang diproses, padahal dapur
+                  belum melihatnya sama sekali — dan itu sumber keluhan
+                  "pesanan saya kok belum datang".
+                */
+                const belumLunas = p.status_bayar && p.status_bayar !== "lunas";
+                const l = belumLunas
+                  ? (LABEL_BAYAR[p.status_bayar as StatusBayar] ?? {
+                      judul: "Menunggu pembayaran",
+                      detail: "",
+                    })
+                  : (LABEL[p.status] ?? { judul: p.status, detail: "" });
+                const selesai = belumLunas
+                  ? ["kedaluwarsa", "gagal", "dikembalikan"].includes(p.status_bayar)
+                  : ["diantar", "ditolak", "dibatalkan"].includes(p.status);
                 return (
                   <div
                     key={p.id}
@@ -1008,24 +1161,54 @@ export function PortalPelanggan({
                 </ul>
               )}
 
-              {/* Nama pemesan opsional. Satu meja bisa dipesan beberapa orang,
-                  jadi nama membantu pelayan menaruh pesanan pada orang yang
-                  benar — tetapi tidak diwajibkan (PRD bagian 4). */}
+              {/* ── Data pemesan — WAJIB sejak prabayar ──
+                  Dulu opsional karena pesanan dibayar di kasir dan pelayan
+                  bisa menanyakan langsung. Sekarang pesanan masuk lebih dulu
+                  dari uangnya: tanpa nama dan nomor, kasir tidak punya cara
+                  menghubungi tamu bila pembayaran menggantung atau menu
+                  yang dipesan ternyata habis. */}
               {keranjang.length > 0 && (
-                <div className="mt-4">
-                  <label className="block text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-tinta-500">
-                    Nama pemesan (opsional)
-                  </label>
-                  <input
-                    value={nama}
-                    onChange={(e) => setNama(e.target.value)}
-                    maxLength={40}
-                    placeholder="Mis. Rani"
-                    className="mt-1 h-11 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[0.8125rem] text-tinta-900 outline-none placeholder:text-tinta-500/70 focus:border-forest-700"
-                  />
-                  <p className="mt-1 text-[0.6875rem] text-tinta-500">
-                    Supaya pelayan tahu pesanan ini untuk siapa kalau satu meja dipesan bergantian.
-                  </p>
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <label
+                      htmlFor="nama-pemesan"
+                      className="block text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-tinta-500"
+                    >
+                      Nama pemesan
+                    </label>
+                    <input
+                      id="nama-pemesan"
+                      value={nama}
+                      onChange={(e) => setNama(e.target.value)}
+                      maxLength={40}
+                      autoComplete="name"
+                      placeholder="Mis. Rani"
+                      className="mt-1 h-11 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[0.8125rem] text-tinta-900 outline-none placeholder:text-tinta-500/70 focus:border-forest-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="no-wa"
+                      className="block text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-tinta-500"
+                    >
+                      Nomor WhatsApp
+                    </label>
+                    <input
+                      id="no-wa"
+                      value={noWa}
+                      onChange={(e) => setNoWa(e.target.value)}
+                      inputMode="tel"
+                      autoComplete="tel"
+                      maxLength={20}
+                      placeholder="0812 3456 7890"
+                      className="mt-1 h-11 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[0.8125rem] text-tinta-900 outline-none placeholder:text-tinta-500/70 focus:border-forest-700"
+                    />
+                    <p className="mt-1 text-[0.6875rem] leading-snug text-tinta-500">
+                      Dipakai kasir untuk menghubungi Anda bila ada yang perlu dikonfirmasi.
+                      Tidak untuk promosi.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -1079,14 +1262,21 @@ export function PortalPelanggan({
               <button
                 type="button"
                 onClick={kirim}
-                disabled={keranjang.length === 0 || mengirim || !bukaSekarang}
+                disabled={
+                  keranjang.length === 0 || mengirim || !bukaSekarang || !dataLengkap
+                }
                 className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 transition active:scale-[0.99] disabled:opacity-45"
               >
-                {mengirim ? "Mengirim…" : keranjang.length === 0 ? "Keranjang kosong" : "Kirim Pesanan"}
+                {mengirim
+                  ? "Mengirim…"
+                  : keranjang.length === 0
+                    ? "Keranjang kosong"
+                    : "Lanjut ke Pembayaran"}
                 {!mengirim && keranjang.length > 0 && <IkonKanan />}
               </button>
-              <p className="mt-2 pb-1 text-center text-[0.6875rem] text-tinta-500">
-                Bayar di kasir setelah makan. Bisa tambah pesanan kapan saja.
+              <p className="mt-2 pb-1 text-center text-[0.6875rem] leading-snug text-tinta-500">
+                Pesanan diteruskan ke kasir setelah pembayaran diterima. Bisa
+                bayar online atau tunai di kasir.
               </p>
             </div>
           </div>

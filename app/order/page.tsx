@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PortalPelanggan } from "../components/order/PortalPelanggan";
 import { cekBuka } from "../lib/order/aturan";
+import { ambilJamBuka } from "../lib/order/jam-buka";
 import { ambilAturan, ambilMenu, ambilMeja } from "../lib/order/data";
 import { PESAN_ENV_KOSONG, punyaEnvBaca, punyaKunciServer } from "../lib/order/db";
 import { pesanModeContoh, statusModeContoh } from "../lib/order/mode-contoh";
@@ -30,11 +31,21 @@ export default async function HalamanOrder({
   const { meja: mejaParam } = await searchParams;
   const nomor = (mejaParam ?? "").trim();
 
-  const [menuRes, aturan, buka] = await Promise.all([
+  /*
+    Jam buka DIBACA DARI DATABASE, bukan dipakai bawaan `cekBuka()`.
+
+    Sebelum ini halaman tamu memanggil `cekBuka()` tanpa argumen, sehingga
+    yang berlaku selalu JAM_BAWAAN di kode — dan pemilik yang mengubah jam
+    (termasuk memasang 24 jam) tidak melihat efek apa pun di halaman yang
+    justru paling penting. Perubahannya sudah ada di `pengaturan`, hanya
+    belum dibaca di sini.
+  */
+  const [menuRes, aturan, jamAktif] = await Promise.all([
     ambilMenu(),
     ambilAturan(),
-    Promise.resolve(cekBuka()),
+    ambilJamBuka(),
   ]);
+  const buka = cekBuka(new Date(), jamAktif.jam);
 
   // Tanpa nomor meja: tampilkan petunjuk scan, bukan menu tanpa konteks.
   if (!nomor) {

@@ -180,15 +180,33 @@ export const ZONA = "Asia/Jakarta";
 
 export type JamBuka = { weekday: [string, string]; weekend: [string, string] };
 
+/**
+ * Nilai cadangan bila baris `jam_mingguan` belum ada di database.
+ *
+ * Ini BUKAN jam yang berlaku — jam yang berlaku dibaca dari tabel
+ * `pengaturan` lewat `ambilJamBuka()` di `jam-buka.ts`. Nilai di sini hanya
+ * jaring agar `cekBuka()` tetap punya bentuk yang sah saat dipanggil tanpa
+ * argumen (mis. di uji).
+ */
 export const JAM_BAWAAN: JamBuka = {
   weekday: ["09.00", "20.00"],
   weekend: ["08.00", "21.00"],
 };
 
-/** Pecah "HH.MM" menjadi menit sejak tengah malam. */
-function keMenit(jam: string): number {
-  const [h, m] = jam.replace(":", ".").split(".");
-  return Number(h) * 60 + Number(m ?? 0);
+/**
+ * Pecah "HH.MM" menjadi menit sejak tengah malam.
+ *
+ * `"24.00"` menghasilkan 1440 — SENGAJA. Itu cara menyatakan "sampai akhir
+ * hari" tanpa membuat kasus khusus di dalam perbandingan. Kalau "24.00"
+ * dianggap 0, kafe yang buka sampai tengah malam akan dianggap tutup
+ * sepanjang sore.
+ */
+export function keMenit(jam: string): number {
+  const [h, m] = jam.replace(":", ".").trim().split(".");
+  const hh = Number(h);
+  const mm = Number(m ?? 0);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return NaN;
+  return hh * 60 + mm;
 }
 
 export type StatusBuka = {
@@ -222,18 +240,41 @@ export function cekBuka(sekarang: Date = new Date(), jam: JamBuka = JAM_BAWAAN):
 
   const ambil = (t: string) => bagian.find((p) => p.type === t)?.value ?? "";
   const hari = ambil("weekday"); // Mon, Tue, ...
-  const menitSekarang = Number(ambil("hour")) * 60 + Number(ambil("minute"));
+
+  /*
+    `Intl` mengembalikan "24" untuk pukul 00.xx pada sebagian runtime —
+    bukan "00". Tanpa normalisasi ini, tengah malam menghasilkan 1440
+    menit dan perbandingan `1440 < selesai` bernilai salah: kafe tertutup
+    satu menit setiap dini hari. Sudah diuji dengan Intl di Node 22; di
+    V8 Worker perilakunya bisa berbeda, jadi keduanya ditangani.
+  */
+  const jamMentah = Number(ambil("hour"));
+  const menitSekarang =
+    ((jamMentah % 24) * 60 + Number(ambil("minute"))) % 1440;
 
   const akhirPekan = hari === "Sat" || hari === "Sun";
   const [mulai, selesai] = akhirPekan ? jam.weekend : jam.weekday;
   const menitMulai = keMenit(mulai);
   const menitSelesai = keMenit(selesai);
 
-  const buka = menitSekarang >= menitMulai && menitSekarang < menitSelesai;
+  /*
+    mulai == selesai (mis. "24.00-24.00" atau "00.00-00.00") berarti BUKA
+    SEPANJANG HARI. Menafsirkannya sebagai rentang kosong akan membuat
+    kafe tidak pernah buka — kegagalan yang sulit dilacak karena semua
+    tampilan lain terlihat normal.
+  */
+  const sepanjangHari =
+    Number.isFinite(menitMulai) &&
+    Number.isFinite(menitSelesai) &&
+    menitMulai === menitSelesai;
+
+  const buka = sepanjangHari
+    ? true
+    : menitSekarang >= menitMulai && menitSekarang < menitSelesai;
 
   return {
     buka,
-    jamHariIni: `${mulai} – ${selesai}`,
+    jamHariIni: sepanjangHari ? "24 jam" : `${mulai} – ${selesai}`,
     alasan: buka
       ? ""
       : menitSekarang < menitMulai
@@ -250,6 +291,39 @@ export const BATAS_ITEM_PER_PESANAN = 20;
 export const BATAS_JUMLAH_PER_ITEM = 20;
 export const BATAS_CATATAN = 200;
 export const BATAS_NAMA = 40;
+export const BATAS_NO_WA = 20;
+
+/**
+ * Normalkan nomor WhatsApp Indonesia.
+ *
+ * Yang diterima: "0812-3456-7890", "+62 812 3456 7890", "62812...", "812..."
+ * Semua menjadi "+6281234567890".
+ *
+ * KENAPA DINORMALKAN, bukan disimpan apa adanya: nomor ini dipakai untuk
+ * menghubungi tamu dan (nanti) mengirim status pesanan. "0812..." dan
+ * "+62812..." adalah orang yang sama, dan menyimpannya mentah membuat
+ * pencarian serta pengiriman pesan gagal secara acak — jenis bug yang
+ * hanya muncul pada sebagian tamu.
+ *
+ * Mengembalikan null bila tidak sah. Validasi bentuknya SENGAJA longgar
+ * (9–15 digit): aturan prefix operator berubah-ubah, dan menolak nomor
+ * yang sah lebih buruk daripada menerima yang sedikit tidak rapi.
+ */
+export function normalisasiNoWa(masuk: unknown): string | null {
+  if (typeof masuk !== "string") return null;
+  const digit = masuk.replace(/[^0-9]/g, "");
+  if (!digit) return null;
+
+  let nasional = digit;
+  if (nasional.startsWith("62")) nasional = nasional.slice(2);
+  else if (nasional.startsWith("0")) nasional = nasional.slice(1);
+
+  // Nomor Indonesia selalu diawali 8 setelah kode negara.
+  if (!nasional.startsWith("8")) return null;
+  if (nasional.length < 9 || nasional.length > 14) return null;
+
+  return `+62${nasional}`;
+}
 
 export type ItemMasuk = {
   menu_id: number;
@@ -267,7 +341,9 @@ export type ItemMasuk = {
 export type PesananMasuk = {
   meja: string;
   /** Nama pemesan opsional; null berarti tidak diisi. */
-  nama: string | null;
+  nama: string;
+  /** Sudah dinormalkan ke bentuk +62… oleh validasi. */
+  no_wa: string;
   sesi: string;
   items: ItemMasuk[];
 };
@@ -293,7 +369,30 @@ export function validasiPesananMasuk(masuk: unknown): HasilValidasi {
   const sesi = typeof m.sesi === "string" ? m.sesi.trim().slice(0, 64) : "";
   if (!sesi) return { ok: false, pesan: "Sesi perangkat tidak dikenali. Muat ulang halaman." };
 
+  /*
+    NAMA DAN NOMOR WA WAJIB (keputusan pemilik, sesi prabayar).
+
+    Dulu nama opsional karena pesanan dibayar di kasir dan pelayan bisa
+    menanyakan langsung. Dengan prabayar, pesanan masuk lebih dulu dari
+    uangnya: tanpa nama dan nomor, kasir tidak punya cara menghubungi tamu
+    kalau ada yang perlu dikonfirmasi (menu habis, meja dobel, pembayaran
+    menggantung).
+
+    Divalidasi DI SERVER, bukan hanya di browser. Tombol yang dinonaktifkan
+    di layar tidak menghentikan siapa pun yang mengirim POST langsung.
+  */
   const nama = typeof m.nama === "string" ? m.nama.trim().slice(0, BATAS_NAMA) : "";
+  if (nama.length < 2) {
+    return { ok: false, pesan: "Nama pemesan wajib diisi (minimal 2 huruf)." };
+  }
+
+  const noWa = normalisasiNoWa(m.no_wa);
+  if (!noWa) {
+    return {
+      ok: false,
+      pesan: "Nomor WhatsApp wajib diisi dengan benar. Contoh: 0812 3456 7890.",
+    };
+  }
 
   if (!Array.isArray(m.items) || m.items.length === 0) {
     return { ok: false, pesan: "Keranjang masih kosong." };
@@ -365,7 +464,7 @@ export function validasiPesananMasuk(masuk: unknown): HasilValidasi {
     items.push({ menu_id: menuId, jumlah, catatan: catatan || null, pilihan });
   }
 
-  return { ok: true, bersih: { meja, nama: nama || null, sesi, items } };
+  return { ok: true, bersih: { meja, nama, no_wa: noWa, sesi, items } };
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -336,6 +336,16 @@ export function PortalDapur() {
                             {t.nama_pemesan || "Tanpa nama"}
                           </p>
                           <p className="font-mono text-[0.6875rem] text-gelap-samar">{t.nomor}</p>
+                          {/*
+                            Penanda "LUNAS" ditampilkan, walaupun server SUDAH
+                            menyaring: tiket dapur yang tidak menyebut status
+                            bayar membuat staf ragu apakah ini pesanan yang
+                            uangnya sudah masuk. Keraguan itu memakan waktu
+                            di jam sibuk dan mendorong orang bertanya ke kasir.
+                          */}
+                          <p className="mt-0.5 inline-block rounded-[0.25rem] bg-daun-100 px-1.5 py-0.5 text-[0.625rem] font-extrabold uppercase tracking-wider text-forest-700">
+                            Lunas
+                          </p>
                         </div>
                         {/* Waktu tunggu: angka SELALU ada, warna hanya penguat. */}
                         <span

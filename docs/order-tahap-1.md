@@ -1,8 +1,29 @@
 # Sistem Order Meja — Tahap 1
 
-Pesanan dari meja mengalir **pelanggan → kasir → dapur → pelayan → kasir (bayar)**.
-Tahap 1 sengaja belum menyertakan pembayaran online/QRIS dinamis: tamu membayar di
-kasir setelah makan.
+> **Berubah sejak prabayar.** Alur sekarang **bayar dulu, baru diproses**:
+>
+>     pelanggan (nama + WA) → bayar (DOKU atau tunai kasir) → kasir → dapur → pelayan
+>
+> Kasir dan dapur **hanya** melihat pesanan yang sudah **lunas**. Pesanan yang
+> belum dibayar tetap ada di database, menahan mejanya, dan dibatalkan sendiri
+> setelah 15 menit (dapat diubah di tabel `pengaturan`).
+>
+> Rincian lengkap ada di [prabayar-doku.md](prabayar-doku.md).
+
+## Alur uang (ringkas)
+
+| Kejadian | Yang berubah | Yang melihat |
+| --- | --- | --- |
+| Tamu kirim pesanan | `pesanan.status_bayar = 'menunggu'`, `kedaluwarsa_at = +15 menit` | hanya tamu (status "Menunggu pembayaran") |
+| Tamu bayar online | notifikasi DOKU → `status_bayar = 'lunas'` | kasir & dapur |
+| Tamu bayar tunai di kasir | kasir menekan "Bayar tunai" → `status_bayar = 'lunas'` | kasir & dapur |
+| Lewat 15 menit tanpa bayar | `status_bayar = 'kedaluwarsa'`, `status = 'dibatalkan'`, meja dikosongkan | tidak ada |
+
+**Yang menentukan "sudah dibayar" hanya notifikasi bertanda tangan dari DOKU.**
+Redirect balik ke `?status=success` tidak dipercaya: URL apa pun bisa diketik.
+
+**Refund dicatat manual oleh kasir**, bukan lewat API DOKU. Sistem hanya
+mencatat `status_bayar = 'dikembalikan'` bila kasir mengubahnya.
 
 ## Alamat
 

@@ -12,6 +12,18 @@ export type StatusPesanan =
   | "ditolak"
   | "dibatalkan";
 
+/**
+ * Status pembayaran — TERPISAH dari status dapur.
+ *
+ * "Sudah dibayar?" dan "sudah dimasak?" adalah dua pertanyaan berbeda yang
+ * bergerak sendiri-sendiri. Digabung menjadi satu kolom, setiap kombinasi
+ * baru (batal karena kedaluwarsa vs batal karena stok habis) memaksa
+ * perubahan pada seluruh mesin status.
+ */
+export type StatusBayar = "menunggu" | "lunas" | "kedaluwarsa" | "gagal" | "dikembalikan";
+
+export type MetodeBayarPrabayar = "doku_qris" | "doku_va" | "doku_ewallet" | "tunai_kasir";
+
 export type StatusMeja = "kosong" | "ada_pesanan" | "minta_bill" | "menunggu_bayar";
 
 export type StatusTagihan = "terbuka" | "minta_bill" | "lunas";
@@ -102,6 +114,16 @@ export type Pesanan = {
   diproses_at: string | null;
   siap_at: string | null;
   diantar_at: string | null;
+  /** Nomor WhatsApp tamu, sudah dinormalkan ke +62… oleh validasi. */
+  no_wa: string | null;
+  /** Tagihan milik pesanan ini. Satu pesanan satu tagihan (prabayar). */
+  tagihan_id: number | null;
+  status_bayar: StatusBayar;
+  dibayar_at: string | null;
+  /** Batas waktu bayar. Lewat dari ini, penyapu membatalkan pesanan. */
+  kedaluwarsa_at: string | null;
+  metode_bayar: string | null;
+  dibatalkan_oleh: "tamu" | "kasir" | "sistem" | "doku" | null;
 };
 
 export type Tagihan = {
@@ -206,3 +228,34 @@ export function sejak(iso: string, sekarang = Date.now()): string {
 export function menitTunggu(iso: string, sekarang = Date.now()): number {
   return Math.max(0, Math.floor((sekarang - new Date(iso).getTime()) / 60000));
 }
+
+/**
+ * Label untuk keadaan PEMBAYARAN, bukan keadaan dapur.
+ *
+ * Dipisah karena keduanya bisa berbeda: pesanan bisa "Menunggu pembayaran"
+ * sementara status dapurnya masih "menunggu_konfirmasi". Menampilkan label
+ * dapur pada pesanan yang belum dibayar membuat tamu mengira pesanannya
+ * sedang dibuat padahal belum ada uang masuk dan dapur belum melihatnya.
+ */
+export const LABEL_BAYAR: Record<StatusBayar, { judul: string; detail: string }> = {
+  menunggu: {
+    judul: "Menunggu pembayaran",
+    detail: "Selesaikan pembayaran supaya pesanan diteruskan ke kasir.",
+  },
+  lunas: {
+    judul: "Sudah dibayar",
+    detail: "Pembayaran diterima. Pesanan diteruskan ke kasir.",
+  },
+  kedaluwarsa: {
+    judul: "Pembayaran kedaluwarsa",
+    detail: "Waktu pembayaran habis. Silakan pesan ulang atau panggil pelayan.",
+  },
+  gagal: {
+    judul: "Pembayaran gagal",
+    detail: "Pembayaran tidak berhasil. Coba metode lain atau bayar di kasir.",
+  },
+  dikembalikan: {
+    judul: "Dana dikembalikan",
+    detail: "Pengembalian dana diproses manual oleh kasir.",
+  },
+};

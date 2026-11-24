@@ -15,6 +15,8 @@
 import { NextResponse } from "next/server";
 import { cekBuka, validasiPesananMasuk } from "@/app/lib/order/aturan";
 import { buatPesanan } from "@/app/lib/order/data";
+import { ambilBatasBayarMenit } from "@/app/lib/order/katalog";
+import { ambilJamBuka } from "@/app/lib/order/jam-buka";
 import { punyaKunciServer } from "@/app/lib/order/db";
 import { pesanModeContoh, statusModeContoh } from "@/app/lib/order/mode-contoh";
 
@@ -58,7 +60,8 @@ export async function POST(req: Request) {
     typeof badan === "object" &&
     (badan as { lewatiJamBuka?: boolean }).lewatiJamBuka === true;
 
-  const buka = cekBuka();
+  const jamAktif = await ambilJamBuka();
+  const buka = cekBuka(new Date(), jamAktif.jam);
   if (!buka.buka && !bolehLewati) {
     return NextResponse.json({ pesan: buka.alasan, kode: "tutup" }, { status: 409 });
   }
@@ -102,7 +105,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const hasil = await buatPesanan(v.bersih);
+  const batasBayarMenit = await ambilBatasBayarMenit();
+  const hasil = await buatPesanan({ ...v.bersih, batasBayarMenit });
   if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });
 
   return NextResponse.json(hasil.data);
@@ -127,9 +131,24 @@ export async function GET(req: Request) {
 
   const { db } = await import("@/app/lib/order/db");
   const res = await db<
-    { id: number; nomor: string; status: string; created_at: string; total_item: number }[]
+    {
+      id: number;
+      nomor: string;
+      status: string;
+      created_at: string;
+      total_item: number;
+      status_bayar: string;
+      kedaluwarsa_at: string | null;
+      tagihan_id: number | null;
+    }[]
   >("pesanan", {
-    q: `select=id,nomor,status,created_at,total_item&sesi_id=eq.${encodeURIComponent(
+    /*
+      `status_bayar` dan `kedaluwarsa_at` ikut dikirim: tanpa keduanya,
+      portal pelanggan menampilkan "Menunggu kasir" untuk pesanan yang
+      sebenarnya belum dibayar — dan tamu menunggu makanan yang belum
+      pernah masuk dapur.
+    */
+    q: `select=id,nomor,status,created_at,total_item,status_bayar,kedaluwarsa_at,tagihan_id&sesi_id=eq.${encodeURIComponent(
       sesi
     )}&order=created_at.desc&limit=10`,
     /*
@@ -143,5 +162,32 @@ export async function GET(req: Request) {
   });
 
   if (!res.ok) return NextResponse.json({ pesan: res.pesan, pesanan: [] }, { status: 200 });
-  return NextResponse.json({ pesanan: res.data });
+  /*
+    Total tagihan ikut dikirim untuk pesanan yang menunggu bayar: portal
+    menampilkannya di layar pembayaran, dan mengambilnya satu per satu
+    lewat request terpisah akan memperlambat checkout di jaringan kafe.
+
+    Tagihan diambil lewat `tagihan_id` milik pesanan — bukan lewat meja.
+    Semenjak tagihan per-pesanan, satu meja bisa punya beberapa tagihan,
+    dan mengambil yang salah berarti tamu melihat nominal orang lain.
+  */
+  const perluTotal = res.data
+    .filter((p) => p.status_bayar === "menunggu")
+    .map((p) => (p as { tagihan_id?: number | null }).tagihan_id)
+    .filter((x): x is number => typeof x === "number");
+
+  const petaTotal = new Map<number, number>();
+  if (perluTotal.length > 0) {
+    const tag = await db<{ id: number; total: number }[]>("tagihan", {
+      q: `select=id,total&id=in.(${perluTotal.join(",")})`,
+    });
+    if (tag.ok) for (const t of tag.data) petaTotal.set(t.id, t.total);
+  }
+
+  return NextResponse.json({
+    pesanan: res.data.map((p) => ({
+      ...p,
+      total: petaTotal.get((p as { tagihan_id?: number | null }).tagihan_id ?? -1) ?? null,
+    })),
+  });
 }
