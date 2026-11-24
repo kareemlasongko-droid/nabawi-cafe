@@ -97,6 +97,14 @@ export async function buatPesanan(masuk: {
   items: { menu_id: number; jumlah: number; catatan: string | null; pilihan: string[] }[];
   /** Menit sampai pesanan dianggap kedaluwarsa bila belum dibayar. */
   batasBayarMenit: number;
+  /**
+   * Pilihan tamu: bayar online sekarang, atau bayar di kasir.
+   *
+   * Disimpan di `pesanan.metode_bayar` supaya kasir bisa MENGANTREKAN yang
+   * memilih kasir, dan supaya laporan bisa menjawab "berapa persen tamu
+   * membayar online" tanpa menebak.
+   */
+  metode_bayar: "online" | "kasir";
 }): Promise<Hasil<HasilBuatPesanan>> {
   if (!punyaKunciServer()) {
     return {
@@ -173,14 +181,29 @@ export async function buatPesanan(masuk: {
     tagihan per meja tidak bisa mewakili dua pembayaran itu — dan biaya
     layanan akan terhitung ganda.
   */
-  const tagihanBaru = await db<Tagihan[]>("tagihan", {
-    method: "POST",
-    prefer: "return=representation",
-    q: "select=*",
-    body: { meja_id: m.id, status: "terbuka" },
-  });
-  if (!tagihanBaru.ok) return { ok: false, pesan: tagihanBaru.pesan };
-  const tagihan = tagihanBaru.data[0];
+  /*
+    ── DIBUAT SETELAH PESANAN, BUKAN SEBELUMNYA ──────────────────────
+
+    Sebelumnya tagihan dibuat DULU, lalu pesanan, lalu tagihan itu diisi.
+    Akibatnya: kalau pembuatan pesanan gagal dengan sebab apa pun, yang
+    tertinggal adalah TAGIHAN KOSONG — dan tamu melihat "pesanan gagal"
+    tanpa satu pun baris pesanan yang bisa diperiksa kasir. Persis
+    kegagalan yang dilaporkan pemilik: checkout tidak tersimpan, tidak ada
+    di kasir, tidak ada di dapur, dan tidak ada jejak apa pun.
+
+    Urutan yang dipakai sekarang:
+      1. pesanan (tanpa tagihan_id)
+      2. tagihan (per pesanan)
+      3. pesanan.tagihan_id diisi
+      4. item
+
+    Kalau langkah 2 atau 3 gagal, pesanan SUDAH ada dan kelihatan kasir —
+    lebih baik pesanan tanpa tagihan (bisa ditagih manual) daripada tamu
+    yang menunggu makanan yang tidak pernah tercatat.
+
+    Kebalikannya juga tidak benar: tagihan tidak boleh dibuat sebelum ada
+    pesanan, karena tagihan tanpa pesanan = meja tertahan tanpa isi.
+  */
 
   /*
     5. Pesanan + item.
@@ -221,7 +244,14 @@ export async function buatPesanan(masuk: {
         */
         status_bayar: "menunggu",
         kedaluwarsa_at: kedaluwarsa,
-        tagihan_id: tagihan.id,
+        /*
+          `metode_bayar` di sini adalah PILIHAN TAMU, bukan kanal yang
+          dipakai. Saat lunas, kolom yang sama ditimpa metode sebenarnya
+          ("doku", "tunai") — jadi riwayat pilihan tamu hanya terbaca
+          selagi pesanan belum lunas. Itu cukup: yang perlu diketahui
+          kasir hanyalah pesanan mana yang menunggu uangnya.
+        */
+        metode_bayar: masuk.metode_bayar,
         nama_pemesan: masuk.nama,
         no_wa: masuk.no_wa,
         sesi_id: masuk.sesi,
@@ -245,8 +275,42 @@ export async function buatPesanan(masuk: {
         "Pesanan belum tersimpan karena ada gangguan sesaat. Coba tekan Kirim sekali lagi.",
     };
   }
-  const pesanan = pesananRes.data[0];
+  let pesanan = pesananRes.data[0];
 
+  /*
+    6. TAGIHAN — dibuat SESUDAH pesanan ada.
+
+    Statusnya 'terbuka' dan totalnya masih 0; `hitungTagihanPesanan` di
+    langkah 8 yang mengisinya dari item. Membuatnya lebih awal berarti
+    tagihan kosong bisa tertinggal saat pembuatan pesanan gagal.
+  */
+  const tagihanBaru = await db<Tagihan[]>("tagihan", {
+    method: "POST",
+    prefer: "return=representation",
+    q: "select=*",
+    body: { meja_id: m.id, status: "terbuka" },
+  });
+  if (!tagihanBaru.ok) return { ok: false, pesan: tagihanBaru.pesan };
+  const tagihan = tagihanBaru.data[0];
+
+  /*
+    Tautkan tagihan ke pesanan. Kegagalan di sini TIDAK membatalkan
+    pesanan: pesanan sudah ada dan kasir bisa menagihnya manual. Yang
+    dibatalkan hanya tautannya — dan itu dicatat supaya kelihatan.
+  */
+  const taut = await db<Pesanan[]>("pesanan", {
+    method: "PATCH",
+    prefer: "return=representation",
+    q: `id=eq.${pesanan.id}&select=*`,
+    body: { tagihan_id: tagihan.id },
+  });
+  if (taut.ok && taut.data[0]) pesanan = taut.data[0];
+  else {
+    const sebab = taut.ok ? "respons kosong" : taut.pesan;
+    console.error("tagihan tidak bisa ditautkan ke pesanan", pesanan.id, sebab);
+  }
+
+  // 7. Item
   const itemRes = await db<ItemPesanan[]>("item_pesanan", {
     method: "POST",
     prefer: "return=representation",
@@ -262,6 +326,7 @@ export async function buatPesanan(masuk: {
     body: { status: "ada_pesanan" },
   });
 
+  // 8. Hitung tagihan dari item yang baru disimpan.
   const hitung = await hitungTagihanPesanan(pesanan.id, tagihan.id);
   if (!hitung.ok) return { ok: false, pesan: hitung.pesan };
 
@@ -544,7 +609,16 @@ export async function catatPembayaran(masuk: {
     await db("pesanan", {
       method: "PATCH",
       q: `id=eq.${p.id}`,
-      body: { status_bayar: "lunas", dibayar_at: kini, metode_bayar: masuk.metode },
+      /*
+        Metode yang DIPILIH tamu ("kasir") dipertahankan; kanal sebenarnya
+        (tunai / qris_kasir / kartu) tersimpan di baris `pembayaran`.
+
+        Kenapa tidak ditimpa: pertanyaan yang muncul belakangan adalah
+        "tamu memilih bayar di kasir atau online?", dan menimpanya dengan
+        kanal menghapus jawaban itu. Kolom `pembayaran.metode` sudah
+        menyimpan kanal dengan tepat.
+      */
+      body: { status_bayar: "lunas", dibayar_at: kini },
     });
   }
 
@@ -716,6 +790,53 @@ export async function ambilPesananAktif(): Promise<Hasil<PesananDenganItem[]>> {
  * daftar pesanan yang belum dibayar, dan yang ia lihat adalah nomor
  * pesanan. Meminta id tagihan membuat staf harus menebak angka internal.
  */
+/**
+ * Buat tagihan baru untuk pesanan yang kehilangan tagihannya, lalu hitung
+ * dari item yang tersimpan.
+ *
+ * Dipakai HANYA saat tagihan tidak ada. Kalau tagihannya ada tetapi totalnya
+ * 0 (mis. item belum dihitung), itu bukan kasus fungsi ini — jalur normal
+ * yang memperbaikinya.
+ */
+async function pulihkanTagihan(p: Pesanan): Promise<Hasil<Tagihan>> {
+  const baru = await db<Tagihan[]>("tagihan", {
+    method: "POST",
+    prefer: "return=representation",
+    q: "select=*",
+    body: { meja_id: p.meja_id, status: "terbuka" },
+  });
+  if (!baru.ok) return { ok: false, pesan: baru.pesan };
+
+  const tagihan = baru.data[0];
+
+  const taut = await db("pesanan", {
+    method: "PATCH",
+    q: `id=eq.${p.id}`,
+    body: { tagihan_id: tagihan.id },
+  });
+
+  const hitung = await hitungTagihanPesanan(p.id, tagihan.id);
+  if (!hitung.ok) return { ok: false, pesan: hitung.pesan };
+
+  /*
+    Dicatat, karena ini menandakan ada yang tidak beres di jalur pembuatan
+    pesanan. Satu baris log hari ini menghemat satu jam penyelidikan nanti.
+  */
+  await db("log_perubahan", {
+    method: "POST",
+    body: {
+      siapa: "kasir",
+      aksi: "pulihkan_tagihan",
+      entitas: "pesanan",
+      entitas_id: String(p.id),
+      sebelum: { tagihan_id: p.tagihan_id },
+      sesudah: { tagihan_id: tagihan.id, total: hitung.data.total, taut_ok: taut.ok },
+    },
+  });
+
+  return { ok: true, data: hitung.data };
+}
+
 export async function bayarTunaiKasir(masuk: {
   pesanan_id: number;
   /**
@@ -741,15 +862,41 @@ export async function bayarTunaiKasir(masuk: {
   if (p.status === "dibatalkan" || p.status === "ditolak") {
     return { ok: false, pesan: "Pesanan ini sudah dibatalkan dan tidak bisa dibayar." };
   }
-  if (!p.tagihan_id) return { ok: false, pesan: "Pesanan ini tidak punya tagihan." };
+  /*
+    ── TAGIHAN YANG HILANG DIPULIHKAN, BUKAN DITOLAK ───────────────────
 
-  const t = await db<Tagihan[]>("tagihan", {
-    q: `select=*&id=eq.${p.tagihan_id}&limit=1`,
-  });
-  if (!t.ok) return { ok: false, pesan: t.pesan };
-  if (t.data.length === 0) return { ok: false, pesan: "Tagihan tidak ditemukan." };
+    Sebelumnya: "Pesanan ini tidak punya tagihan." — dan kasir tidak punya
+    jalan keluar. Pesanan tampil di layar, tamu sudah di depan kasir, uang
+    sudah disiapkan, tetapi sistem menolak. Itu jalan buntu yang kita
+    ciptakan sendiri.
 
-  const tagihan = t.data[0];
+    Tagihan bisa hilang karena beberapa sebab yang semuanya sudah terjadi
+    atau mungkin terjadi: pesanan dibuat sebelum migrasi prabayar, tagihan
+    terhapus, atau penautan gagal karena gangguan sesaat.
+
+    Yang AMAN dilakukan: buat ulang tagihan dari item yang tersimpan, lalu
+    tautkan. Nominalnya dihitung ulang dari database — bukan dari apa pun
+    yang dikirim browser — jadi tidak ada celah harga.
+  */
+  let tagihan: Tagihan;
+
+  if (!p.tagihan_id) {
+    const pulih = await pulihkanTagihan(p);
+    if (!pulih.ok) return { ok: false, pesan: pulih.pesan };
+    tagihan = pulih.data;
+  } else {
+    const t = await db<Tagihan[]>("tagihan", {
+      q: `select=*&id=eq.${p.tagihan_id}&limit=1`,
+    });
+    if (!t.ok) return { ok: false, pesan: t.pesan };
+    if (t.data.length === 0) {
+      const pulih = await pulihkanTagihan(p);
+      if (!pulih.ok) return { ok: false, pesan: pulih.pesan };
+      tagihan = pulih.data;
+    } else {
+      tagihan = t.data[0];
+    }
+  }
 
   // Uang pas: nominalnya TOTAL, bukan angka dari browser.
   const diterima = masuk.uang_pas ? tagihan.total : Math.round(Number(masuk.diterima));
@@ -785,7 +932,13 @@ export async function bayarTunaiKasir(masuk: {
     body: {
       status_bayar: "lunas",
       dibayar_at: kini,
-      metode_bayar: "tunai_kasir",
+      /*
+        "tunai" — bukan "tunai_kasir". Nilai di kolom ini punya constraint
+        (pesanan_metode_bayar_sah) dan dipakai laporan; "tunai_kasir" akan
+        ditolak database dan membuat pembayaran gagal setelah uangnya
+        diterima.
+      */
+      metode_bayar: "tunai",
     },
   });
   if (!upd.ok) return { ok: false, pesan: upd.pesan };
@@ -840,6 +993,24 @@ export async function sapuKedaluwarsa(sekarang: Date = new Date()): Promise<numb
 
   let dibatalkan = 0;
   for (const p of r.data) {
+    /*
+      ── DIPERIKSA ULANG DI SINI, BUKAN DIPERCAYAKAN PADA FILTER ────────
+
+      Penyapu membatalkan pesanan. Salah membatalkan berarti tamu
+      kehilangan pesanan yang sebenarnya masih dalam batas waktu — dan itu
+      tidak bisa dibatalkan. Karena itu syaratnya diperiksa ULANG di sini,
+      tidak diserahkan kepada string query.
+
+      Bahayanya nyata, bukan teoretis: kalau filter `kedaluwarsa_at=lt.…`
+      gagal diterjemahkan (timestamp salah encode, kolom null, PostgREST
+      versi lain), yang dikembalikan adalah SEMUA pesanan berstatus
+      "menunggu" — termasuk yang baru dibuat satu detik lalu. Tanpa
+      pemeriksaan ini, seluruh antrean dibatalkan sekaligus.
+    */
+    const kedaluwarsa = p.kedaluwarsa_at ? new Date(p.kedaluwarsa_at) : null;
+    if (!kedaluwarsa || Number.isNaN(kedaluwarsa.getTime())) continue;
+    if (kedaluwarsa >= sekarang) continue;
+
     // Pesanan yang sudah dibayar di antara query dan loop ini tidak boleh
     // disentuh. Penjagaan ganda: penyapu berjalan tiap menit, sedangkan
     // webhook DOKU bisa masuk kapan saja.
@@ -861,10 +1032,24 @@ export async function sapuKedaluwarsa(sekarang: Date = new Date()): Promise<numb
     if (!upd.ok) continue;
 
     if (p.tagihan_id) {
+      /*
+        ── DITUTUP, BUKAN "LUNAS" ──────────────────────────────────
+
+        Sebelumnya tagihan pesanan kedaluwarsa ditandai `lunas`. Itu
+        menyesatkan laporan: tagihan "lunas" yang tidak punya satu pun baris
+        pembayaran membuat pendapatan terlihat lebih besar daripada uang
+        yang benar-benar masuk — selisih yang baru ketahuan saat tutup
+        harian, dan saat itu sudah sulit dilacak asalnya.
+
+        Tabel tagihan hanya punya tiga status (terbuka / minta_bill /
+        lunas), jadi tidak ada status "batal". Yang benar: kembalikan ke
+        'terbuka' lalu tutup waktunya. Kasir melihatnya sebagai tagihan
+        yang sudah ditutup tanpa pembayaran — persis keadaannya.
+      */
       await db("tagihan", {
         method: "PATCH",
         q: `id=eq.${p.tagihan_id}`,
-        body: { status: "lunas", ditutup_at: batas },
+        body: { status: "terbuka", ditutup_at: batas },
       });
     }
 

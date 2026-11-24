@@ -88,7 +88,21 @@ export async function GET() {
   if (!mejaRes.ok) return NextResponse.json({ pesan: mejaRes.pesan }, { status: 500 });
   if (!tagihanRes.ok) return NextResponse.json({ pesan: tagihanRes.pesan }, { status: 500 });
 
-  const petaTagihan = new Map(tagihanRes.data.map((t) => [t.meja_id, t]));
+  /*
+    ── TAGIHAN DIPETAKAN PER PESANAN, BUKAN PER MEJA ──────────────────
+
+    Sebelumnya: `new Map(tagihan.map(t => [t.meja_id, t]))`. Satu meja
+    hanya bisa menyimpan SATU tagihan, sehingga tagihan kedua di meja yang
+    sama menimpa yang pertama. Dengan tagihan per-pesanan itu salah dua
+    kali: kasir melihat struk pesanan yang keliru, dan pesanan yang
+    tagihannya tertimpa tampil TANPA total — tidak bisa ditagih dari layar.
+
+    Sekarang dikunci dengan `pesanan.tagihan_id`, yang memang satu-satunya
+    tautan yang benar. Pesanan tanpa tagihan_id (mis. dibuat sebelum
+    migrasi, atau gagal ditautkan) tetap bisa tampil; tagihannya dicari
+    lewat pesanan yang menunjuk ke meja yang sama, bukan lewat meja saja.
+  */
+  const petaTagihan = new Map(tagihanRes.data.map((t) => [t.id, t]));
   const petaNomor = new Map(mejaRes.data.map((m) => [m.id, m.nomor]));
 
   /*
@@ -97,7 +111,9 @@ export async function GET() {
     kosong: setelah lunas pesanan keluar dari daftar aktif, jadi itemnya
     tidak bisa lagi dicari dari /api/order/kasir.
   */
-  const mejaTagihan = mejaRes.data.filter((m) => petaTagihan.has(m.id));
+  const mejaTagihan = mejaRes.data.filter((m) =>
+    tagihanRes.data.some((t) => t.meja_id === m.id)
+  );
   const itemPerMeja = await Promise.all(
     mejaTagihan.map((m) => ambilItemTagihan(m.id))
   );
@@ -121,11 +137,35 @@ export async function GET() {
   return NextResponse.json({
     pesanan: pesananRes.data,
     menunggu_bayar: menunggu,
-    meja: mejaRes.data.map((m) => ({
-      ...m,
-      tagihan: petaTagihan.get(m.id) ?? null,
-      items_tagihan: petaItem.get(m.id) ?? [],
-    })),
+    meja: mejaRes.data.map((m) => {
+      /*
+        Tagihan yang ditampilkan di kartu meja: yang masih TERBUKA.
+        Kalau tidak ada (semua sudah lunas), kembalikan null — jangan
+        tagihan lunas, karena kartu akan menawarkan "Terima pembayaran"
+        untuk sesuatu yang sudah dibayar.
+      */
+      /*
+        Diurutkan menurut WAKTU, bukan teks. `localeCompare` pada string
+        tanggal menghasilkan 500 seluruh endpoint kalau salah satu baris
+        tidak punya `dibuka_at` — dan kegagalan satu baris tidak boleh
+        menjatuhkan seluruh layar kasir.
+      */
+      const waktu = (t: { dibuka_at?: string | null }) => {
+        const n = t.dibuka_at ? new Date(t.dibuka_at).getTime() : 0;
+        return Number.isFinite(n) ? n : 0;
+      };
+      const terbuka = tagihanRes.data
+        .filter((t) => t.meja_id === m.id && t.status !== "lunas")
+        .sort((a, b) => waktu(a) - waktu(b));
+      return {
+        ...m,
+        tagihan: terbuka[0] ?? null,
+        // Semua tagihan terbuka di meja ini, untuk denah yang menampilkan
+        // lebih dari satu pesanan pada satu meja.
+        tagihan_terbuka: terbuka,
+        items_tagihan: petaItem.get(m.id) ?? [],
+      };
+    }),
     panggilan: (panggilanRes.ok ? panggilanRes.data : []).map((g) => ({
       ...g,
       meja_nomor: petaNomor.get(g.meja_id) ?? "",

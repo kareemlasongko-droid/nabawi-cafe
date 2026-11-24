@@ -12,15 +12,38 @@ scan QR meja
   pilih menu  ──►  isi nama + nomor WhatsApp  ◄── WAJIB
       │
       ▼
-  "Lanjut ke Pembayaran"   ← pesanan SUDAH tersimpan di titik ini
+  PILIH METODE PEMBAYARAN  ──  dua pilihan, dua janji berbeda
       │
-      ├──►  Bayar online  ──►  halaman DOKU  ──►  webhook TTD  ──►  LUNAS
-      │
-      └──►  Bayar tunai di kasir  ──►  kasir menekan "Bayar tunai"  ──►  LUNAS
+      ├──►  "Bayar Sekarang"  ──►  halaman DOKU  ──►  webhook TTD  ──►  LUNAS
+      │        (QRIS / e-wallet / kartu)                                │
+      │                                                                 │
+      └──►  "Bayar di Kasir"  ──►  pesanan tersimpan, tamu duduk       │
+               kasir menekan "Uang pas" / "Uang lebih"  ──►  LUNAS  ◄──┘
                                                           │
                                                           ▼
                                             muncul di KASIR dan DAPUR
 ```
+
+### Kenapa dua nama itu
+
+| Tombol | Yang ditekankan | Janji ke tamu |
+| --- | --- | --- |
+| **Bayar Sekarang** | **waktu** | pesanan diteruskan setelah pembayaran selesai |
+| **Bayar di Kasir** | **tempat** | tamu tidak perlu menyelesaikan apa pun di ponsel |
+
+Sengaja **bukan** "QRIS" dan "Tunai":
+· QRIS hanyalah salah satu kanal DOKU (masih ada e-wallet dan kartu);
+· "tunai" mengesankan tamu tidak bisa memakai kartu di kasir.
+
+### Yang terjadi setelah memilih
+
+| Pilihan | Yang dilihat tamu | Yang dilihat kasir |
+| --- | --- | --- |
+| Bayar Sekarang | layar pembayaran + tombol bayar | muncul di **Belum dibayar** dengan label *Pilih bayar online* |
+| Bayar di Kasir | "Pesanan diterima · Nomor M1-…" + tombol Panggil kasir | muncul di **Belum dibayar** dengan label *Bayar di kasir* |
+
+Keduanya **sama-sama tersimpan** — bedanya hanya apa yang terjadi sesudahnya.
+Pesanan tidak masuk dapur sampai lunas, apa pun pilihannya.
 
 Pesanan tersimpan **sebelum** tautan bayar dibuat. Urutan ini disengaja:
 kebalikannya memungkinkan tamu membayar pesanan yang tidak pernah tercatat
@@ -39,6 +62,12 @@ gangguan pihak ketiga.
 | `kedaluwarsa` | lewat batas tanpa bayar | tidak |
 | `gagal` | percobaan bayar gagal (masih bisa coba lagi) | tidak |
 | `dikembalikan` | refund dicatat manual oleh kasir | tidak |
+
+Pesanan yang sudah `lunas` **langsung muncul di dapur** walaupun status
+dapurnya masih `menunggu_konfirmasi`. Sebelumnya dapur menyaring status itu,
+sehingga pesanan yang sudah dibayar tidak pernah muncul sampai kasir menekan
+"terima" satu kali lagi — dan bila kasir lupa, tamu menunggu makanan yang
+tidak pernah dimasak.
 
 `gagal` **tidak** membatalkan pesanan. Tamu sering mencoba metode lain setelah
 QRIS kedaluwarsa; yang membatalkan adalah penyapu kedaluwarsa.
@@ -142,11 +171,31 @@ pengaturannya. Pesanan yang sudah ada tidak terpengaruh.
 ## 8. Uji
 
 ```bash
-npm run uji:prabayar     # 48 uji: jam 24 jam, signature DOKU, verifikasi webhook
-npm run uji:aturan       # 45 uji: harga, pajak, transisi status
-npm run uji:jalur        # 17 uji: alur pesanan sungguhan ke database
-npm run uji:menu         # 32 uji: halaman menu
-npm run uji:env          # 11 uji: perilaku saat env kosong
+npm run uji:prabayar   # 56 uji: jam 24 jam, signature DOKU, metode bayar
+npm run uji:lunas      # 37 uji: checkout -> bayar tunai -> muncul di dapur
+npm run uji:alur       # 26 uji: seluruh portal lewat HTTP (butuh server)
+npm run uji:aturan     # 45 uji: harga, pajak, transisi status
+npm run uji:jalur      # 17 uji: alur pesanan sungguhan ke database
+npm run uji:menu       # 32 uji: halaman menu
+npm run uji:env        # 11 uji: perilaku saat env kosong
+```
+
+`uji:alur` **butuh server yang menyala** (`BASE=http://localhost:3000`).
+Jangan arahkan ke production — ia membuat pesanan sungguhan (dan
+membatalkannya lewat perubahan status, bukan menghapus).
+
+### Yang dijaga `uji:alur`
+
+Rantai yang pernah putus dan dilaporkan pemilik:
+
+```
+POST /api/order/pesanan   →  tersimpan + punya tagihan
+GET  /api/order/kasir     →  muncul di "Belum dibayar", BELUM di dapur
+POST /api/order/kasir     →  bayar_tunai → lunas
+GET  /api/order/kasir     →  muncul di antrean, membawa nomor meja & item
+GET  /api/order/dapur     →  tiket muncul, membawa nomor meja
+PATCH /api/order/status   →  diterima → diproses → siap
+GET  /api/order/pelayan   →  muncul setelah siap (dan TIDAK sebelum)
 ```
 
 `uji:prabayar` menguji **bolak-balik**: signature yang dibuat harus lolos

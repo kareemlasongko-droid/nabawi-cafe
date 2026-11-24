@@ -102,6 +102,8 @@ type MenungguBayar = {
   total_item: number;
   created_at: string;
   kedaluwarsa_at: string | null;
+  /** Pilihan tamu: "online" atau "kasir". */
+  metode_bayar: string | null;
 };
 
 type DataKasir = {
@@ -199,12 +201,36 @@ export function PortalKasir() {
    * tak terbatas": kembalian yang tercatat akan ikut salah, dan itu
    * merusak laporan kas di akhir hari.
    */
+  /**
+   * Buka dialog pelunasan untuk meja tertentu.
+   *
+   * Dipakai tombol "Uang lebih": kasir memasukkan nominal yang diterima,
+   * kembalian dihitung. Dialog ini sudah ada untuk denah meja; di sini
+   * dipanggil dari kartu "Belum dibayar" supaya kasir tidak perlu mencari
+   * mejanya dulu di denah.
+   */
+  const bukaPelunasan = useCallback(
+    (mejaId: number) => {
+      const m = data?.meja.find((x) => x.id === mejaId);
+      if (!m?.tagihan) {
+        setGalat("Meja ini belum punya tagihan terbuka.");
+        return;
+      }
+      // `mejaPilih` menyimpan NOMOR meja (sama seperti klik di denah),
+      // bukan id. Membandingkan id dengan nomor akan membuka kartu meja
+      // yang salah — dan kasir menagih tamu di meja lain.
+      setMejaPilih(m.nomor);
+      setBayar({ tagihan: m.tagihan, meja: m.nomor });
+    },
+    [data]
+  );
+
   const bayarTunai = useCallback(
     async (p: MenungguBayar) => {
       if (memproses !== null) return;
 
       const teks = `${p.total_item} item · ${p.nama_pemesan ?? "tanpa nama"}`;
-      if (!window.confirm(`Terima pembayaran tunai untuk ${p.nomor} (${teks})?`)) return;
+      if (!window.confirm(`Terima uang pas untuk ${p.nomor} (${teks})?`)) return;
 
       setMemproses(p.id);
       try {
@@ -413,6 +439,24 @@ export function PortalKasir() {
                 </p>
 
                 {/*
+                  Metode yang DIPILIH tamu. Bukan hiasan: pesanan "online"
+                  berarti tamu sedang menunggu halaman pembayaran terbuka
+                  (bisa jadi tautannya gagal), sedangkan "kasir" berarti
+                  tamu memang menunggu ditagih. Kasir memperlakukan keduanya
+                  berbeda, jadi ia perlu tahu sebelum mendatangi meja.
+                */}
+                <p
+                  className={[
+                    "mt-1 inline-block rounded-[0.25rem] px-1.5 py-0.5 text-[0.625rem] font-extrabold uppercase tracking-wider",
+                    p.metode_bayar === "online"
+                      ? "bg-tanah-100 text-clay-800"
+                      : "bg-daun-100 text-forest-700",
+                  ].join(" ")}
+                >
+                  {p.metode_bayar === "online" ? "Pilih bayar online" : "Bayar di kasir"}
+                </p>
+
+                {/*
                   Nomor WA ditampilkan, bukan disimpan diam-diam. Kasir
                   membutuhkannya untuk menagih/menghubungi tamu — dan data
                   yang tidak pernah terlihat tidak akan pernah dipakai.
@@ -428,14 +472,35 @@ export function PortalKasir() {
                   </a>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => bayarTunai(p)}
-                  disabled={memproses === p.id}
-                  className="mt-2 h-9 w-full rounded-[0.5rem] bg-forest-700 text-[0.75rem] font-extrabold text-bersih-0 disabled:opacity-50"
-                >
-                  {memproses === p.id ? "Menyimpan…" : "Bayar tunai"}
-                </button>
+                {/*
+                  Dua tombol, dua keadaan yang berbeda:
+                    · "Uang pas"   → tamu menyerahkan nominal pas. Server
+                      menghitung sendiri nominalnya dari total tagihan.
+                    · "Uang lebih" → nominal dimasukkan kasir, kembalian
+                      dihitung. Membuka dialog pelunasan yang sudah ada.
+
+                  Satu tombol saja pernah membuat kasir menekan "Bayar
+                  tunai" untuk tamu yang membayar Rp100.000 pada tagihan
+                  Rp91.000 — dan kembaliannya hilang dari catatan.
+                */}
+                <div className="mt-2 flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => bayarTunai(p)}
+                    disabled={memproses === p.id}
+                    className="h-9 flex-1 rounded-[0.5rem] bg-forest-700 text-[0.75rem] font-extrabold text-bersih-0 disabled:opacity-50"
+                  >
+                    {memproses === p.id ? "Menyimpan…" : "Uang pas"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => bukaPelunasan(p.meja_id)}
+                    disabled={memproses === p.id}
+                    className="h-9 flex-1 rounded-[0.5rem] border border-forest-700/40 text-[0.75rem] font-bold text-forest-700 disabled:opacity-50"
+                  >
+                    Uang lebih
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

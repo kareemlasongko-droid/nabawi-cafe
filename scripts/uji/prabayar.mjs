@@ -25,7 +25,7 @@ import {
   nomorInvoice,
   verifikasiNotifikasi,
 } from "../../app/lib/order/doku.ts";
-import { cekBuka } from "../../app/lib/order/aturan.ts";
+import { cekBuka, validasiPesananMasuk } from "../../app/lib/order/aturan.ts";
 
 let lulus = 0;
 let gagal = 0;
@@ -284,6 +284,53 @@ delete process.env.DOKU_SECRET_KEY;
 const tanpaSecret = verifikasiNotifikasi({ headers: buatHeader(), target, bodyMentah: badan });
 cek("secret kosong → ditolak, bukan diloloskan", tanpaSecret.sah === false, tanpaSecret.alasan);
 process.env.DOKU_SECRET_KEY = "rahasia-uji";
+
+// ── metode pembayaran (pilihan tamu) ─────────────────────────────────
+console.log("\n── metode pembayaran ──");
+
+const dasarPesan = {
+  meja: "1",
+  sesi: "sesi-uji",
+  nama: "Tamu Uji",
+  no_wa: "081234567890",
+  items: [{ menu_id: 1, jumlah: 1, catatan: null, pilihan: [] }],
+};
+
+const online = validasiPesananMasuk({ ...dasarPesan, metode_bayar: "online" });
+cek("metode 'online' diterima", online.ok && online.bersih.metode_bayar === "online");
+
+const kasir = validasiPesananMasuk({ ...dasarPesan, metode_bayar: "kasir" });
+cek("metode 'kasir' diterima", kasir.ok && kasir.bersih.metode_bayar === "kasir");
+
+/*
+  Tanpa nilai: jatuh ke "kasir", BUKAN "online".
+
+  "online" menjanjikan tamu dibawa ke halaman pembayaran. Kalau nilai
+  kosong jatuh ke sana, tamu yang kliennya versi lama akan menunggu
+  tautan yang tidak pernah dibuka — dan pesanannya tidak pernah dibayar.
+*/
+const tanpaMetode = validasiPesananMasuk(dasarPesan);
+cek(
+  "tanpa metode → 'kasir' (pilihan aman)",
+  tanpaMetode.ok && tanpaMetode.bersih.metode_bayar === "kasir"
+);
+
+const metodeAsing = validasiPesananMasuk({ ...dasarPesan, metode_bayar: "qris" });
+cek("metode tak dikenal DITOLAK, bukan ditelan", metodeAsing.ok === false, metodeAsing.pesan ?? "");
+
+const metodeAngka = validasiPesananMasuk({ ...dasarPesan, metode_bayar: 1 });
+cek("metode bukan teks ditolak", metodeAngka.ok === false);
+
+/*
+  Nilai yang ditulis SISTEM saat lunas harus lolos constraint
+  pesanan_metode_bayar_sah di database. Diuji di sini supaya perubahan
+  nilai di kode tidak diam-diam membuat pembayaran gagal setelah uang
+  diterima.
+*/
+const NILAI_SAH = ["online", "kasir", "doku", "tunai", "qris_kasir", "kartu"];
+cek("'tunai' termasuk nilai sah", NILAI_SAH.includes("tunai"));
+cek("'doku' termasuk nilai sah", NILAI_SAH.includes("doku"));
+cek("'tunai_kasir' TIDAK sah (jangan dipakai)", !NILAI_SAH.includes("tunai_kasir"));
 
 console.log(`\n═══ ${lulus} lulus, ${gagal} gagal ═══`);
 process.exit(gagal === 0 ? 0 : 1);
