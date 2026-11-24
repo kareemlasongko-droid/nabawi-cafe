@@ -73,6 +73,7 @@ jobs:
         run: |
           npm run uji:aturan
           npm run uji:jalur
+          npm run uji:env
           npm run uji:menu
 
       - name: Bangun bundel OpenNext

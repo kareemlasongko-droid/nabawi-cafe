@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import { ambilMeja } from "@/app/lib/order/data";
 import { buatPanggilan } from "@/app/lib/order/data";
-import { PUNYA_KUNCI_SERVER, db } from "@/app/lib/order/db";
+import { punyaKunciServer, db } from "@/app/lib/order/db";
 import { demoPanggilan, demoPanggilanSemua, demoMeja } from "@/app/lib/order/demo";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   if (!mejaNomor) return NextResponse.json({ pesan: "Nomor meja kosong." }, { status: 400 });
   if (!jenis) return NextResponse.json({ pesan: "Jenis panggilan tidak dikenal." }, { status: 400 });
 
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     const meja = demoMeja().find((m) => m.nomor === mejaNomor);
     if (!meja) return NextResponse.json({ pesan: "Nomor meja tidak dikenali." }, { status: 404 });
     // demoPanggilan mengembalikan panggilan yang sudah ada bila sama,

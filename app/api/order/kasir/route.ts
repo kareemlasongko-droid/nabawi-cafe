@@ -15,7 +15,7 @@ import {
   ambilPesananAktif,
   type BarisStruk,
 } from "@/app/lib/order/data";
-import { db, PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
+import { db, punyaKunciServer } from "@/app/lib/order/db";
 import {
   demoMeja,
   demoPanggilanSemua,
@@ -34,7 +34,7 @@ import type { Meja, Panggilan, Tagihan } from "@/app/lib/order/tipe";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     /*
       Menu dibaca dari database walau sedang mode demo. Menu memang publik
       (policy SELECT terbuka), jadi tidak butuh kunci server. Yang tidak
@@ -164,7 +164,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ pesan: "Status ketersediaan tidak sah." }, { status: 400 });
     }
 
-    if (!PUNYA_KUNCI_SERVER) {
+    if (!punyaKunciServer()) {
       const daftar = await ambilMenu();
       const menuSah = daftar.ok ? daftar.data.menu : MENU_CONTOH.menu;
       if (!menuSah.some((m) => m.id === id)) {
@@ -205,7 +205,7 @@ export async function POST(req: Request) {
     data sungguhan.
   */
   if (badan.aksi === "reset_demo") {
-    if (PUNYA_KUNCI_SERVER) {
+    if (punyaKunciServer()) {
       return NextResponse.json({ pesan: "Aksi tidak dikenal." }, { status: 400 });
     }
     demoReset();
@@ -218,7 +218,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ pesan: "Panggilan tidak sah." }, { status: 400 });
     }
 
-    if (!PUNYA_KUNCI_SERVER) {
+    if (!punyaKunciServer()) {
       const g = demoPanggilanSemua().find((x) => x.id === id);
       if (g) g.ditangani_at = new Date().toISOString();
       return NextResponse.json({ ok: true, demo: true });

@@ -15,7 +15,7 @@
 import { NextResponse } from "next/server";
 import { cekBuka, validasiPesananMasuk } from "@/app/lib/order/aturan";
 import { buatPesanan } from "@/app/lib/order/data";
-import { PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
+import { punyaKunciServer } from "@/app/lib/order/db";
 import {
   demoBuatPesanan,
   demoAmbilPesanan,
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     flag ini diabaikan sepenuhnya, jadi tidak ada jalan memesan di luar jam.
   */
   const bolehLewati =
-    !PUNYA_KUNCI_SERVER &&
+    !punyaKunciServer() &&
     badan !== null &&
     typeof badan === "object" &&
     (badan as { lewatiJamBuka?: boolean }).lewatiJamBuka === true;
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
   }
 
   // 3-4. Simpan
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     /*
       Mode demo: menu dibaca dari database lebih dulu (menu memang publik,
       tidak butuh kunci server), dan MENU_CONTOH hanya jadi cadangan bila
@@ -132,7 +132,7 @@ export async function GET(req: Request) {
   const sesi = new URL(req.url).searchParams.get("sesi") ?? "";
   if (!sesi) return NextResponse.json({ pesanan: [] });
 
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     return NextResponse.json({ pesanan: demoAmbilPesanan(sesi), demo: true });
   }
 

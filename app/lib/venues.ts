@@ -6,14 +6,18 @@
  * Kenapa ada salinan lokal? Supabase bisa di-pause (proyek ini pernah
  * berstatus INACTIVE saat dicek) atau jaringan sedang putus. Tanpa
  * fallback, seluruh halaman tour akan kosong hanya karena satu request
- * gagal. Salinan ini juga membuat build Vercel tetap berhasil walau env
- * belum diisi.
+ * gagal.
+ *
+ * TAPI: salinan lokal TIDAK dipakai saat env kosong. Bedanya penting —
+ * lihat `ambilVenues()`. Dulu baris terakhir paragraf ini berbunyi "supaya
+ * build tetap berhasil walau env belum diisi", dan itu justru masalahnya:
+ * env kosong jadi tidak terlihat sama sekali.
  *
  * Saat Supabase hidup, SELALU data Supabase yang dipakai — termasuk kalau
  * pemilik menambah atau mengubah tempat lewat dashboard.
  */
 
-import { supabaseSelect } from "./supabase";
+import { envSupabaseSiap, PESAN_ENV_SUPABASE, supabaseSelect } from "./supabase";
 
 export type Aksen = "forest" | "clay" | "cream";
 
@@ -243,13 +247,28 @@ export const VENUES_LOKAL: Venue[] = [
 
 /**
  * Ambil semua tempat, urut sesuai `urutan`.
- * Tidak pernah melempar error: kalau Supabase gagal, kembalikan salinan lokal
- * supaya halaman tetap utuh.
+ *
+ * Tiga keadaan, dibedakan dengan sengaja karena akibatnya berbeda:
+ *
+ *   "supabase"  — data sungguhan dari database.
+ *   "lokal"     — database DIHUBUNGI tapi menjawab kosong. Salinan lokal
+ *                 dipakai supaya halaman tidak kosong.
+ *   "tanpa-env" — env tidak diisi, jadi database TIDAK dihubungi sama
+ *                 sekali. Ini BUKAN kegagalan jaringan, dan menyamakannya
+ *                 dengan "lokal" akan menyembunyikan salah konfigurasi
+ *                 yang paling mudah diperbaiki.
+ *
+ * Tidak pernah melempar error: halaman tour harus tetap terbuka.
  */
 export async function ambilVenues(): Promise<{
   venues: Venue[];
-  sumber: "supabase" | "lokal";
+  sumber: "supabase" | "lokal" | "tanpa-env";
 }> {
+  if (!envSupabaseSiap()) {
+    console.warn(`[venues] ${PESAN_ENV_SUPABASE} Memakai salinan lokal.`);
+    return { venues: VENUES_LOKAL, sumber: "tanpa-env" };
+  }
+
   try {
     const baris = await supabaseSelect<BarisSupabase>(
       "tour_venues",

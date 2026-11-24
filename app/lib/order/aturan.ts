@@ -173,7 +173,7 @@ export function hitungTagihan(subtotal: number, a: AturanBiaya = ATURAN_BAWAAN):
 
 /**
  * Jam buka berbeda weekday vs weekend/hari libur.
- * Waktu dihitung pada zona Asia/Jakarta, BUKAN zona server — server Vercel
+ * Waktu dihitung pada zona Asia/Jakarta, BUKAN zona server — server produksi
  * berjalan di UTC, jadi tanpa konversi ini jam buka akan meleset 7 jam.
  */
 export const ZONA = "Asia/Jakarta";

@@ -48,6 +48,7 @@ const GAYA_KARTU = {
 export default async function TourPage() {
   const { venues, sumber } = await ambilVenues();
   const totalMenit = venues.reduce((n, v) => n + v.durasiMenit, 0);
+  const tanpaEnv = sumber === "tanpa-env";
 
   return (
     <main className="flex min-h-dvh justify-center bg-forest-950">
@@ -100,6 +101,27 @@ export default async function TourPage() {
               {venues.length} tempat bisa dijelajahi · sekitar {totalMenit} menit
               jalan santai
             </p>
+
+            {/*
+              Pemberitahuan env kosong.
+
+              Tanpa ini, halaman tampak normal: 10 tempat, panorama, peta —
+              padahal semuanya berasal dari salinan di dalam kode, bukan
+              database. Perbedaan itu tidak terlihat oleh siapa pun kecuali
+              yang membandingkan isi berkas dengan dashboard. Saya sendiri
+              sempat salah menyimpulkan karena persis hal ini.
+
+              Warna memakai clay (terrakota), bukan merah menyala: ini
+              kondisi yang perlu diperbaiki, bukan kegagalan sistem.
+            */}
+            {tanpaEnv && (
+              <p className="mx-auto mt-[0.625rem] max-w-[21rem] rounded-[0.625rem] border border-clay-300/60 bg-clay-600/25 px-[0.625rem] py-[0.5rem] text-[0.625rem] leading-[1.5] text-cream-100">
+                <strong className="font-bold">Data contoh.</strong>{" "}
+                SUPABASE_URL / SUPABASE_ANON_KEY belum diisi di environment,
+                jadi 10 tempat di bawah dibaca dari salinan di kode — bukan
+                dari database.
+              </p>
+            )}
           </header>
 
           {/* Peta mini — menampilkan posisi 10 titik dalam satu bidang.

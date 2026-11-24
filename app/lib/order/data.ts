@@ -5,7 +5,7 @@
  * exception), sesuai PRD bagian 4: sinyal di area terbuka tidak selalu
  * kuat, jadi kegagalan harus ditangani sebagai keadaan biasa.
  */
-import { db, PUNYA_KUNCI_SERVER } from "./db";
+import { db, punyaKunciServer } from "./db";
 import {
   ATURAN_BAWAAN,
   bacaPilihan,
@@ -130,7 +130,7 @@ export async function buatPesanan(masuk: {
   nama: string | null;
   items: { menu_id: number; jumlah: number; catatan: string | null; pilihan: string[] }[];
 }): Promise<Hasil<HasilBuatPesanan>> {
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     return {
       ok: false,
       pesan:

@@ -16,13 +16,13 @@
  */
 import { NextResponse } from "next/server";
 import { ambilMenu } from "@/app/lib/order/data";
-import { PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
+import { punyaKunciServer } from "@/app/lib/order/db";
 import { demoMenuDenganStatus, MENU_CONTOH } from "@/app/lib/order/demo";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     // Menu publik: tetap dibaca dari database walau mode demo.
     const asli = await ambilMenu();
     return NextResponse.json({

@@ -699,7 +699,7 @@ export function PortalKasir() {
         <div className="border-t border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
           <p className="text-[0.6875rem] text-clay-800">
             <strong>Mode demo.</strong> Data pesanan tidak tersimpan permanen. Pasang
-            SUPABASE_SERVICE_KEY di Vercel agar pesanan sungguhan tersimpan.
+            SUPABASE_SERVICE_KEY di Cloudflare agar pesanan sungguhan tersimpan.
           </p>
         </div>
       )}

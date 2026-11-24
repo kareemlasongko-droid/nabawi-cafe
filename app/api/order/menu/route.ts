@@ -12,13 +12,13 @@
  * Halaman admin tetap terbuka untuk dilihat, tetapi tidak bisa menyimpan.
  */
 import { NextResponse } from "next/server";
-import { PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
+import { punyaKunciServer } from "@/app/lib/order/db";
 import { simpanMenu, tambahMenu } from "@/app/lib/order/menu-admin";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     return NextResponse.json(
       { pesan: "Kunci server database belum dipasang, jadi menu tidak bisa disimpan." },
       { status: 503 }
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     return NextResponse.json(
       { pesan: "Kunci server database belum dipasang, jadi menu tidak bisa diubah." },
       { status: 503 }

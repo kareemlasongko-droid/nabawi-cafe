@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 import { catatPembayaran } from "@/app/lib/order/data";
 import { pembayaranCukup } from "@/app/lib/order/aturan";
-import { PUNYA_KUNCI_SERVER, db } from "@/app/lib/order/db";
+import { punyaKunciServer, db } from "@/app/lib/order/db";
 import { demoBayar, demoTagihan } from "@/app/lib/order/demo";
 import type { MetodeBayar, Tagihan } from "@/app/lib/order/tipe";
 
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ pesan: "Nominal tidak sah." }, { status: 400 });
   }
 
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     const tag = demoTagihan().find((t) => t.id === id);
     if (!tag) return NextResponse.json({ pesan: "Tagihan tidak ditemukan." }, { status: 404 });
     if (!pembayaranCukup(metode, tag.total, diterima)) {

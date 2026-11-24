@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PortalPelanggan } from "../components/order/PortalPelanggan";
 import { cekBuka } from "../lib/order/aturan";
 import { ambilAturan, ambilMenu, ambilMeja } from "../lib/order/data";
-import { PUNYA_KUNCI_SERVER } from "../lib/order/db";
+import { PESAN_ENV_KOSONG, punyaEnvBaca, punyaKunciServer } from "../lib/order/db";
 import { demoMeja, MENU_CONTOH } from "../lib/order/demo";
 import type { Meja } from "../lib/order/tipe";
 
@@ -47,7 +47,7 @@ export default async function HalamanOrder({
   }
 
   // Validasi meja
-  const hasilMeja = PUNYA_KUNCI_SERVER
+  const hasilMeja = punyaKunciServer()
     ? await ambilMeja(nomor)
     : (() => {
         const m = demoMeja().find((x) => x.nomor === nomor);
@@ -81,7 +81,28 @@ export default async function HalamanOrder({
     "Mode demo" sudah memberi tahu bahwa menu ini bukan menu sungguhan,
     dan kasir/dapur membaca sumber yang sama sehingga tidak ada selisih.
   */
-  if (!menuRes.ok && PUNYA_KUNCI_SERVER) {
+  /*
+    BEDAKAN dua sebab kegagalan, jangan digabung.
+
+    Sebelumnya keduanya jatuh ke "koneksi sedang bermasalah", padahal
+    memperbaikinya sama sekali berbeda:
+      · env kosong      -> isi SUPABASE_URL / SUPABASE_ANON_KEY, tidak ada
+                           yang perlu ditunggu.
+      · database gagal  -> benar-benar gangguan; tunggu dan muat ulang.
+
+    Menyuruh orang "coba sebentar lagi" untuk env yang kosong berarti
+    menyuruhnya menunggu selamanya.
+  */
+  if (!menuRes.ok && !punyaEnvBaca()) {
+    return (
+      <LayarPesan
+        judul="Menu belum bisa dimuat"
+        isi={`${PESAN_ENV_KOSONG} Ini urusan pemasangan environment di server, bukan gangguan sementara — silakan panggil pelayan untuk dibantu memesan.`}
+      />
+    );
+  }
+
+  if (!menuRes.ok) {
     return (
       <LayarPesan
         judul="Menu belum bisa dimuat"
@@ -90,6 +111,9 @@ export default async function HalamanOrder({
     );
   }
 
+  /* Sampai di sini menuRes SELALU ok (dua kegagalan sudah ditangani di
+     atas). MENU_CONTOH dipertahankan sebagai cadangan tipe saja, supaya
+     perubahan aturan di atas tidak diam-diam menelan halaman ini. */
   const data = menuRes.ok ? menuRes.data : MENU_CONTOH;
 
   return (
@@ -102,7 +126,7 @@ export default async function HalamanOrder({
       jamHariIni={buka.jamHariIni}
       bukaSekarang={buka.buka}
       alasanTutup={buka.alasan}
-      demo={!PUNYA_KUNCI_SERVER}
+      demo={!punyaKunciServer()}
     />
   );
 }

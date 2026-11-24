@@ -8,14 +8,14 @@
 import { NextResponse } from "next/server";
 import { ambilPesananAktif } from "@/app/lib/order/data";
 import { bacaPilihan } from "@/app/lib/order/aturan";
-import { db, PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
+import { db, punyaKunciServer } from "@/app/lib/order/db";
 import { demoAmbilPesanan, demoItemPesanan, demoMeja, demoPanggilanSemua } from "@/app/lib/order/demo";
 import type { Panggilan } from "@/app/lib/order/tipe";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     const meja = demoMeja();
     const siap = demoAmbilPesanan()
       .filter((p) => p.status === "siap")

@@ -7,7 +7,7 @@
  */
 import { NextResponse } from "next/server";
 import { ubahStatus } from "@/app/lib/order/data";
-import { PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
+import { punyaKunciServer } from "@/app/lib/order/db";
 import { demoUbahStatus } from "@/app/lib/order/demo";
 import type { StatusPesanan } from "@/app/lib/order/tipe";
 
@@ -48,7 +48,7 @@ export async function PATCH(req: Request) {
     );
   }
 
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     const hasil = demoUbahStatus(id, ke, badan.alasan);
     if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });
     return NextResponse.json({ ok: true, pesanan: hasil.pesanan, demo: true });

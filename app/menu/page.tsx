@@ -12,6 +12,7 @@ import {
 import { SaringanKategori } from "../components/menu/SaringanKategori";
 import { Navbar } from "../components/Navbar";
 import { ambilMenu } from "../lib/order/data";
+import { punyaEnvBaca } from "../lib/order/db";
 import { MENU_CONTOH } from "../lib/order/demo";
 import { bacaPilihan, urutkanMenu } from "../lib/order/aturan";
 import { aturanSaring, kelompokkanMenu } from "../lib/order/saring";
@@ -185,6 +186,20 @@ export default async function MenuPage() {
     harga lama. /order mengambil sikap yang sama.
   */
   const data = res.ok ? res.data : MENU_CONTOH;
+
+  /*
+    Kenapa salinan lokal dipakai: `res` gagal berarti database tidak
+    terjangkau. Menyembunyikan seluruh menu karena satu kueri gagal membuat
+    tamu tidak bisa melihat apa pun padahal datanya kami punya. Yang WAJIB
+    adalah memberi tahu bahwa ini salinan, bukan database — dan itu diurus
+    `tanpaEnv` di bawah.
+
+    Bedanya dengan versi sebelumnya: kegagalan karena ENV KOSONG sekarang
+    dipisahkan dari kegagalan jaringan. Env kosong berarti database tidak
+    pernah dihubungi, jadi memakai salinan tanpa sepatah kata pun membuat
+    salah konfigurasi tidak terlihat.
+  */
+  const tanpaEnv = !punyaEnvBaca();
   const kelompok = kelompokkanMenu(data.kategori as KategoriMenu[], data.menu as Menu[]);
 
   /* Jumlah HANYA menu yang tersedia. Menyebut "126 menu" padahal 8 sedang
@@ -308,6 +323,25 @@ export default async function MenuPage() {
             <p className="mx-auto max-w-[19rem] text-[0.6875rem] leading-[1.5] text-white/80">
               Ketuk kategori untuk menyaring
             </p>
+
+            {/*
+              Pemberitahuan env kosong — lihat alasan lengkap di /tour.
+
+              Ditaruh di kepala (latar clay-600), memakai pil gelap
+              `forest-950/45` supaya tetap terbaca di atas terrakota:
+              krem di atas campuran itu jauh di atas ambang kontras,
+              sedangkan teks putih/80 di sini hanya 4.64:1 — cukup untuk
+              satu baris petunjuk, tapi tidak untuk paragraf peringatan
+              yang perlu dibaca saat ada masalah.
+            */}
+            {tanpaEnv && (
+              <p className="mx-auto mt-[0.625rem] max-w-[21rem] rounded-[0.625rem] bg-forest-950/45 px-[0.625rem] py-[0.5rem] text-[0.625rem] leading-[1.5] text-cream-100">
+                <strong className="font-bold">Data contoh.</strong>{" "}
+                SUPABASE_URL / SUPABASE_ANON_KEY belum diisi di environment,
+                jadi daftar ini dibaca dari salinan di kode — bukan dari
+                database.
+              </p>
+            )}
           </header>
 
           {/*

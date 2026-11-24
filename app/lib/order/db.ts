@@ -15,17 +15,21 @@
  * di kertas").
  */
 
-export const SUPABASE_URL =
-  process.env.SUPABASE_URL ?? "https://mvuqdakfzffhrnzxnmke.supabase.co";
+const bersih = (v: string | undefined) => (v ?? "").trim();
 
-/** Kunci publishable: hanya untuk membaca menu publik dari server. */
-export const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY ??
-  "sb_publishable_gBDLdz_xr_2zGA85dWaAvg_8k0pXMVz";
-
+/**
+ * Dibaca lewat fungsi, bukan `export const`.
+ *
+ * Alasannya konkret, bukan gaya: `scripts/uji/jalur-pilihan.mjs` menyetel
+ * `process.env.SUPABASE_URL` ke server PostgREST tiruan SETELAH modul ini
+ * diimpor. Dengan `export const`, nilai itu terkurung pada "" selamanya
+ * dan seluruh uji gagal — bukan karena kode salah, tapi karena urutan impor.
+ */
+export const ambilSupabaseUrl = () => bersih(process.env.SUPABASE_URL);
+export const ambilAnonKey = () => bersih(process.env.SUPABASE_ANON_KEY);
 /** Kunci server. Tidak pernah dikirim ke browser. */
-const SERVICE_KEY =
-  process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+export const ambilServiceKey = () =>
+  bersih(process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 /**
  * true bila kunci server tersedia.
@@ -35,10 +39,56 @@ const SERVICE_KEY =
  * tidak bertahan dan TIDAK boleh dipakai di produksi. Halaman menampilkan
  * pemberitahuan jelas saat mode ini aktif, bukan diam-diam.
  */
-export const PUNYA_KUNCI_SERVER = SERVICE_KEY.length > 0;
+/**
+ * true bila kunci server tersedia.
+ *
+ * FUNGSI, bukan `export const`. Alasannya urutan impor: berkas uji
+ * `jalur-pilihan.mjs` menyetel `process.env.SUPABASE_URL` dan
+ * `SUPABASE_SERVICE_KEY` SETELAH modul ini diimpor. Konstanta yang dihitung
+ * saat impor akan membekukan nilai kosong dan menggagalkan seluruh uji —
+ * bukan karena kode salah.
+ *
+ * Ini sengaja TIDAK dibuat objek dengan `valueOf`, yang sempat terlintas:
+ * objek selalu truthy, jadi `if (!PUNYA_KUNCI_SERVER)` tidak akan pernah
+ * bernilai benar dan mode demo diam-diam mati. Fungsi memaksa setiap
+ * pemakaian ditulis `PUNYA_KUNCI_SERVER()` — tidak bisa salah tanpa
+ * ketahuan.
+ */
+export const punyaKunciServer = () => ambilServiceKey().length > 0;
+
+/**
+ * true bila env baca (URL + kunci publik) tersedia.
+ *
+ * Dipisah dari `punyaKunciServer()` dengan sengaja: keduanya menjawab
+ * pertanyaan berbeda, dan menggabungkannya pernah membuat diagnosis salah.
+ *   · Tanpa env baca     -> tidak ada yang bisa dibaca sama sekali.
+ *   · Hanya env baca     -> menu terbaca, pesanan DITOLAK (mode demo).
+ *   · Env baca + server  -> semua jalan.
+ *
+ * Kunci server ikut diterima sebagai pengganti kunci publik: kalau kunci
+ * server ada, `db()` memakainya untuk SEMUA permintaan dan kunci publik
+ * tidak pernah dikirim. Mensyaratkan kunci publik dalam keadaan itu akan
+ * menolak konfigurasi yang sebenarnya lengkap.
+ */
+export const punyaEnvBaca = () =>
+  ambilSupabaseUrl().length > 0 &&
+  (ambilAnonKey().length > 0 || ambilServiceKey().length > 0);
+
+/**
+ * Pesan tunggal untuk "env baca belum diisi".
+ *
+ * Dulu kedua env ini punya nilai cadangan di dalam kode (`?? "https://..."`),
+ * jadi aplikasi tetap tersambung walau dashboard kosong. Akibatnya "env
+ * kosong" dan "env terisi" tidak bisa dibedakan dari luar — dan itu memang
+ * pernah menyesatkan. Nilai cadangan sudah dihapus; pesan ini menggantikannya
+ * supaya kegagalan terbaca, bukan tersamar.
+ */
+export const PESAN_ENV_KOSONG =
+  "SUPABASE_URL dan SUPABASE_ANON_KEY belum diisi di environment. " +
+  "Halaman tidak bisa membaca database sampai keduanya dipasang.";
 
 function authHeader(): string {
-  const key = PUNYA_KUNCI_SERVER ? SERVICE_KEY : SUPABASE_ANON_KEY;
+  const key = punyaKunciServer() ? ambilServiceKey() : ambilAnonKey();
   return `Bearer ${key}`;
 }
 
@@ -74,11 +124,18 @@ export async function db<T>(
   tabel: string,
   opsi: Opsi = {}
 ): Promise<HasilDb<T>> {
+  // Gagal CEPAT: env kosong bukan kesalahan jaringan, dan tidak boleh
+  // dilaporkan sebagai "tidak bisa menghubungi database" — pesan itu
+  // mengirim orang memeriksa koneksi padahal yang kurang adalah env.
+  if (!punyaEnvBaca()) {
+    return { ok: false, pesan: PESAN_ENV_KOSONG };
+  }
+
   const { q = "select=*", method = "GET", body, prefer, headers: tambahan } = opsi;
-  const url = `${SUPABASE_URL}/rest/v1/${tabel}${q ? `?${q}` : ""}`;
+  const url = `${ambilSupabaseUrl()}/rest/v1/${tabel}${q ? `?${q}` : ""}`;
 
   const headers: Record<string, string> = {
-    apikey: PUNYA_KUNCI_SERVER ? SERVICE_KEY : SUPABASE_ANON_KEY,
+    apikey: punyaKunciServer() ? ambilServiceKey() : ambilAnonKey(),
     Authorization: authHeader(),
     "Content-Type": "application/json",
   };

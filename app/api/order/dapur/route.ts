@@ -7,7 +7,7 @@
  */
 import { NextResponse } from "next/server";
 import { ambilMenu, ambilPesananAktif, ambilAturan } from "@/app/lib/order/data";
-import { db, PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
+import { db, punyaKunciServer } from "@/app/lib/order/db";
 import { bacaPilihan } from "@/app/lib/order/aturan";
 import {
   demoAmbilPesanan,
@@ -25,7 +25,7 @@ export async function GET() {
   let kuning = 10;
   let merah = 15;
 
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     // Menu tetap dibaca dari database (publik): dapur harus melihat menu
     // asli, bukan daftar contoh, supaya penandaan "habis" mengenai menu
     // yang benar-benar dijual.
@@ -140,7 +140,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ pesan: "Status ketersediaan tidak sah." }, { status: 400 });
   }
 
-  if (!PUNYA_KUNCI_SERVER) {
+  if (!punyaKunciServer()) {
     /*
       Periksa dulu menunya ada. Tanpa ini, mode demo menerima id apa pun
       dan menyimpannya di store — perilakunya berbeda dari mode sungguhan,

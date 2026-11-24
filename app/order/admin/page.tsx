@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PortalAdmin } from "../../components/order/PortalAdmin";
 import { ambilAturan, ambilMenu } from "../../lib/order/data";
-import { PUNYA_KUNCI_SERVER } from "../../lib/order/db";
+import { punyaKunciServer } from "../../lib/order/db";
 import { MENU_CONTOH } from "../../lib/order/demo";
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default async function HalamanAdmin() {
     <PortalAdmin
       awal={data}
       aturanAwal={aturan}
-      bisaUbah={PUNYA_KUNCI_SERVER}
+      bisaUbah={punyaKunciServer()}
       galatAwal={menuRes.ok ? "" : menuRes.pesan}
     />
   );

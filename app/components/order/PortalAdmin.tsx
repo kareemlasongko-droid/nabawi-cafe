@@ -218,7 +218,7 @@ export function PortalAdmin({
         <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
           <p className="text-[0.6875rem] leading-snug text-clay-800">
             <strong>Hanya-baca.</strong> Perubahan menu memerlukan kunci server database
-            (SUPABASE_SERVICE_KEY) yang dipasang di Vercel. Tanpa itu, halaman ini hanya
+            (SUPABASE_SERVICE_KEY) yang dipasang di Cloudflare. Tanpa itu, halaman ini hanya
             menampilkan data.
           </p>
         </div>

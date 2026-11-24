@@ -129,7 +129,7 @@ export function PitaDemo({ pesan }: { pesan?: string }) {
       <p className="text-[0.6875rem] leading-snug text-clay-800">
         <strong className="font-bold">Mode demo.</strong>{" "}
         {pesan ??
-          "Pesanan yang dibuat di sini hanya tersimpan sementara di server dan hilang saat server dimulai ulang. Pasang SUPABASE_SERVICE_KEY di Vercel untuk menyimpan sungguhan."}
+          "Pesanan yang dibuat di sini hanya tersimpan sementara di server dan hilang saat server dimulai ulang. Pasang SUPABASE_SERVICE_KEY di Cloudflare untuk menyimpan sungguhan."}
       </p>
     </div>
   );
