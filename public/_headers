@@ -1,0 +1,11 @@
+# Header cache untuk aset statis Next.
+#
+# Wajib ada menurut dokumentasi adapter: berkas di /_next/static/ punya
+# nama ber-hash (mis. chunks/4bd1b696-c023c6e3521b1417.js), jadi isinya
+# tidak akan pernah berubah untuk nama yang sama. `immutable` +
+# max-age satu tahun membuat peramban tidak perlu menanyakan ulang.
+#
+# Tanpa ini setiap kunjungan mengirim permintaan validasi untuk ~7 berkas
+# JS + CSS + font, padahal isinya identik.
+/_next/static/*
+  Cache-Control: public,max-age=31536000,immutable

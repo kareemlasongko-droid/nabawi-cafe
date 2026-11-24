@@ -30,5 +30,13 @@ yarn-error.log*
 # vercel
 .vercel
 
+# cloudflare / opennext
+.open-next
+.wrangler
+cloudflare-env.d.ts
+# .dev.vars berisi rahasia lokal (NEXTJS_ENV dsb.). Contohnya di-commit
+# sebagai .dev.vars.example.
+.dev.vars
+
 # screenshot verifikasi lokal (tidak perlu masuk repo)
 /.arena

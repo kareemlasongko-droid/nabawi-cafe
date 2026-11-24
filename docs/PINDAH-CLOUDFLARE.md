@@ -1,0 +1,156 @@
+# Pindah dari Vercel ke Cloudflare (database tetap Supabase)
+
+Dokumen ini ditulis untuk keadaan repo **per commit ini**: konfigurasi
+Cloudflare sudah siap dan **sudah diuji lokal di runtime Workers**, tetapi
+**belum ada yang di-deploy** dan **Vercel masih menjadi produksi**.
+
+Prinsipnya satu: **jangan cabut Vercel sebelum Cloudflare terbukti**.
+Keduanya bisa hidup bersamaan tanpa saling ganggu.
+
+---
+
+## 1. Yang sudah disiapkan (status: selesai, teruji lokal)
+
+| Berkas | Isi | Kenapa |
+|---|---|---|
+| `wrangler.jsonc` | nama Worker, `nodejs_compat`, binding `ASSETS`, `WORKER_SELF_REFERENCE`, **`IMAGES`** | `IMAGES` inilah yang membuat `next/image` tetap bekerja (**opsi 1: pakai adapter**) |
+| `open-next.config.ts` | konfigurasi minimal | belum butuh cache; satu override lebih sedikit yang bisa salah |
+| `next.config.mjs` | `initOpenNextCloudflareForDev()` di dalam `catch` | `next dev`/`next build` tetap jalan walau adapter tidak ada |
+| `public/_headers` | cache `immutable` untuk `/_next/static/*` | tanpa ini tiap kunjungan mengirim ~7 permintaan validasi |
+| `.dev.vars.example` | contoh env lokal | `.dev.vars` sungguhan tidak masuk repo |
+| `.github/workflows/cloudflare.yml` | CI: PR → `versions upload`, main → `deploy` | **nonaktif sampai digerbangi** |
+| `package.json` | `next` 15.5.29, `@opennextjs/cloudflare` 1.20.18, `wrangler` 4.166.0, script `preview`/`deploy:cf` | adapter 1.20.16+ mensyaratkan Next ≥15.5.29 |
+
+### Hasil uji lokal (runtime Workers, bukan Node)
+
+Dijalankan dengan `npx wrangler dev --local`, binding `IMAGES`/`ASSETS`
+`WORKER_SELF_REFERENCE` aktif:
+
+| Halaman | Status |
+|---|---|
+| `/`, `/fitur`, `/menu`, `/tour`, `/order?meja=1`, `/order/admin` | **200** |
+| `/menu` isi | 126 kartu, 6 kategori, 7 pil, 12 aturan saring — **identik** dengan versi Node |
+| `/api/order/menu/tersedia` | 200, data menu |
+| `POST /api/order/pesanan` (keranjang kosong) | 400 dengan pesan benar — validasi jalan |
+| `/_next/image?url=…fitur-bg.jpg&w=640` | 200 · **723 KB → 119 KB** JPEG, **51 KB** AVIF |
+| Bundel Worker | 5,2 MB mentah / **1,08 MB gzip** (batas gratis 3 MB) |
+
+---
+
+## 2. Yang harus Anda lakukan (butuh akun, tidak bisa saya lakukan dari sini)
+
+### 2.1 Buat akun & ambil kredensial
+
+1. Daftar di **dash.cloudflare.com** (gratis, tanpa kartu kredit untuk Workers).
+2. Salin **Account ID** (kanan bawah halaman Workers).
+3. Buat **API Token**: My Profile → API Tokens → Create Token →
+   template **"Edit Cloudflare Workers"**. Simpan tokennya.
+
+### 2.2 Deploy pertama dari komputer Anda
+
+```bash
+npx wrangler login          # sekali saja, membuka browser
+npm run deploy:cf           # build + deploy
+```
+
+Alamat gratis yang muncul saat deploy pertama:
+
+```
+https://nabawi-cafe.<subdomain-akun>.workers.dev
+```
+
+> **Nama menentukan alamat.** `name` di `wrangler.jsonc` adalah
+> `nabawi-cafe`. Kalau diubah **setelah** deploy pertama, Worker baru
+> dibuat dan alamat lama tetap hidup — dua salinan aplikasi. Putuskan
+> sebelum deploy pertama.
+
+### 2.3 Pasang variabel environment
+
+Dua lapis, dan ini yang paling sering tertukar:
+
+```bash
+# rahasia — tidak masuk repo, tidak tampil sebagai teks di dashboard
+npx wrangler secret put SUPABASE_SERVICE_KEY
+
+# nilainya bisa diimpor dari .env lokal:
+#   cat .env | npx wrangler secret bulk
+```
+
+Untuk yang bukan rahasia (`SUPABASE_URL`, `SUPABASE_ANON_KEY`), boleh
+lewat dashboard Worker → Settings → Variables, atau `vars` di
+`wrangler.jsonc`.
+
+**Selama transisi, isi di Vercel DAN Cloudflare.** Jangan cabut Vercel.
+
+### 2.4 Nyalakan CI (opsional)
+
+Kalau ingin setiap PR otomatis dapat URL preview:
+
+1. GitHub → Settings → Secrets and variables → Actions
+2. **Secrets**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
+3. **Variables**: `CLOUDFLARE_ENABLED=true`, `CF_WORKER_NAME=nabawi-cafe`,
+   `SUPABASE_URL`, `SUPABASE_ANON_KEY`
+
+Selama `CLOUDFLARE_ENABLED` tidak ada, alur ini **dilewati** — bukan merah.
+
+---
+
+## 3. Uji sebelum menyentuh domain
+
+Buka alamat `workers.dev` di HP, lalu periksa **satu per satu**:
+
+- [ ] `/menu` — 126 kartu, foto/ikon tampil, pil kategori menyaring
+- [ ] `/tour` — panorama dan latar sama seperti di Vercel
+- [ ] `/order?meja=1` — pesanan bisa dikirim
+- [ ] `/order/admin`, `/order/kasir`, `/order/dapur`, `/order/pelayan` — bisa dibuka
+- [ ] Gambar menu (kalau sudah ada foto di Supabase) tampil, bukan kotak kosong
+- [ ] Waktu muat terasa setara atau lebih cepat
+
+**Jangan lewati ini.** Lima portal staf belum punya autentikasi; kalau
+salah satu pecah di Workers, Anda ingin tahu sebelum domain pindah.
+
+---
+
+## 4. Pindah domain (hanya setelah semua di atas lolos)
+
+1. Tambahkan domain ke Cloudflare (atau pindahkan nameserver-nya).
+2. Worker → Settings → Domains & Routes → **Add Custom Domain**.
+3. Tes ulang daftar di bagian 3 memakai domain baru.
+4. **Baru** matikan Vercel.
+
+Yang paling mudah terlupa: **URL webhook** (DOKU nanti, atau apa pun)
+harus diarahkan ke domain baru. Cari semua yang menyebut domain lama.
+
+---
+
+## 5. Yang berbeda dan perlu diingat
+
+| | Vercel | Cloudflare Workers |
+|---|---|---|
+| Runtime | Node.js penuh | Workers + `nodejs_compat` |
+| `crypto` / `Buffer` | lengkap | **sebagian** — audit sebelum pakai |
+| Optimasi gambar | otomatis, termasuk | perlu binding `IMAGES`, **bisa berbiaya** |
+| Cache ISR | otomatis | perlu R2 (belum dipakai di sini) |
+| Cold start | ~0 | ada, biasanya singkat |
+| Biaya | per request | gratis 100k req/hari |
+
+### Kalau nanti biaya Images mengganggu
+
+Ada jalur mundur yang tidak membongkar kode: loader kustom ke
+`/cdn-cgi/image/...` (memakai transformasi zona, bukan Cloudflare
+Images). Lihat dokumentasi adapter bagian *"Use a custom loader"*.
+
+---
+
+## 6. Batasan yang harus jujur disebut
+
+- **Semua verifikasi di atas dilakukan di sandbox ini**, yang **tidak bisa
+  menjangkau Supabase**. Artinya halaman yang diuji memakai salinan menu
+  lokal (`MENU_CONTOH`), bukan data live. Uji dengan database sungguhan
+  tetap harus Anda lakukan di Workers sungguhan.
+- **Belum ada deploy.** Tidak ada akun Cloudflare di sesi ini, jadi semua
+  yang tertulis di sini berhenti di "siap deploy", bukan "sudah deploy".
+- **`vercel.json` sengaja belum dihapus.** Ia mematikan deploy `main` di
+  Vercel. Menghapusnya sebelum Cloudflare terbukti justru menghidupkan
+  deploy otomatis di Vercel saat `main` berubah — kebalikan dari yang
+  kita mau. Hapus **setelah** migrasi selesai.
