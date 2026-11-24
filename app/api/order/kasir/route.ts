@@ -15,71 +15,39 @@ import {
   ambilPesananAktif,
   type BarisStruk,
 } from "@/app/lib/order/data";
-import { db, PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
+import { db, PESAN_ENV_KOSONG, punyaEnvBaca, punyaKunciServer } from "@/app/lib/order/db";
 import {
-  demoMeja,
-  demoPanggilanSemua,
-  demoTagihan,
-  demoAmbilPesanan,
-  demoItemPesanan,
-  demoItemTagihan,
-  demoMenuDenganStatus,
   demoReset,
+  demoMenuDenganStatus,
   demoSetTersedia,
-  MENU_CONTOH,
 } from "@/app/lib/order/demo";
-import { ATURAN_BAWAAN } from "@/app/lib/order/aturan";
+import { pesanModeContoh, statusModeContoh } from "@/app/lib/order/mode-contoh";
 import type { Meja, Panggilan, Tagihan } from "@/app/lib/order/tipe";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!PUNYA_KUNCI_SERVER) {
-    /*
-      Menu dibaca dari database walau sedang mode demo. Menu memang publik
-      (policy SELECT terbuka), jadi tidak butuh kunci server. Yang tidak
-      bisa dilakukan tanpa kunci adalah MENYIMPAN pesanan.
+  const mode = await statusModeContoh(punyaKunciServer());
 
-      Ini penting: kalau di sini dipakai MENU_CONTOH, kasir melihat 14 menu
-      karangan sementara tamu melihat 126 menu asli — dan tombol "tandai
-      habis" akan menandai menu yang tidak pernah ada.
-    */
-    const menuAsli = await ambilMenu();
-    const meja = demoMeja().map((m) => ({
-      ...m,
-      tagihan: demoTagihan().find((t) => t.meja_id === m.id && t.status !== "lunas") ?? null,
-    }));
-    const pesanan = demoAmbilPesanan().filter((p) =>
-      ["menunggu_konfirmasi", "diterima", "diproses", "siap"].includes(p.status)
+  /*
+    MEJA, MENU, TAGIHAN, PESANAN — SEMUA DARI DATABASE.
+
+    Dulu, tanpa kunci server blok ini mengembalikan meja, tagihan, pesanan,
+    dan panggilan karangan dari `demo.ts`, bercampur dengan menu ASLI dari
+    database. Hasilnya: kasir melihat meja dan pesanan yang tidak pernah
+    ada, di sebelah menu yang benar — campuran yang paling menyesatkan
+    karena tampak masuk akal.
+
+    Sekarang tidak ada campuran. Yang tidak bisa dibaca dilaporkan gagal.
+
+    Kunci server hanya dibutuhkan untuk MENULIS. Membaca tetap mungkin
+    dengan kunci publik, jadi jangan menolak lebih awal dari seharusnya.
+  */
+  if (!punyaEnvBaca()) {
+    return NextResponse.json(
+      { pesan: PESAN_ENV_KOSONG, demo: mode.aktif, kode: "env" },
+      { status: 503 }
     );
-    const panggilan = demoPanggilanSemua().filter((g) => !g.ditangani_at);
-
-    return NextResponse.json({
-      pesanan: pesanan.map((p) => ({
-        ...p,
-        meja_nomor: meja.find((m) => m.id === p.meja_id)?.nomor ?? String(p.meja_id),
-        items: demoItemPesanan(p.id),
-      })),
-      // Item tiap tagihan dikirim bersama data meja: struk (K-10) butuh
-      // daftar item SETELAH lunas, saat pesanannya sudah tidak aktif lagi.
-      meja: meja.map((m) => ({
-        ...m,
-        items_tagihan: m.tagihan ? demoItemTagihan(m.id) : [],
-      })),
-      panggilan: panggilan.map((g) => ({
-        ...g,
-        meja_nomor: meja.find((m) => m.id === g.meja_id)?.nomor ?? "",
-      })),
-      // Tarif ikut dikirim: struk mencetak "PPN 11%" dan "Layanan 2.000".
-      // Angka ini tidak boleh ditulis di komponen, karena pemilik bisa
-      // mengubahnya di pengaturan tanpa menyentuh kode.
-      // Menu ikut dikirim: kasir harus bisa menandai habis tanpa membuka
-      // halaman lain (K-08). Membaca menu memang publik; yang dibatasi
-      // hanya penulisannya.
-      menu: demoMenuDenganStatus(menuAsli.ok ? menuAsli.data.menu : MENU_CONTOH.menu),
-      aturan: ATURAN_BAWAAN,
-      demo: true,
-    });
   }
 
   const [pesananRes, mejaRes, tagihanRes, panggilanRes, aturan, menuRes] = await Promise.all([
@@ -126,9 +94,15 @@ export async function GET() {
       ...g,
       meja_nomor: petaNomor.get(g.meja_id) ?? "",
     })),
-    menu: menuRes.ok ? menuRes.data.menu : [],
+    menu: menuRes.ok ? demoMenuDenganStatus(menuRes.data.menu) : [],
     aturan,
-    demo: false,
+    /*
+      `demo` tetap dikirim supaya portal tidak perlu tahu cara menentukan
+      sendiri. Artinya: "yang Anda lakukan di sesi ini tidak tersimpan".
+      Menu/meja tetap sungguhan — hanya aksi tulis yang tidak mendarat.
+    */
+    demo: mode.aktif,
+    pesanDemo: pesanModeContoh(mode),
   });
 }
 
@@ -164,10 +138,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ pesan: "Status ketersediaan tidak sah." }, { status: 400 });
     }
 
-    if (!PUNYA_KUNCI_SERVER) {
+    if (!punyaKunciServer()) {
+      /*
+        Tanpa kunci server tidak ada yang bisa DITULIS ke database, jadi
+        penandaan habis hanya berlaku di memori Worker dan hilang saat
+        Worker restart. Itu tetap berguna untuk mencoba alur, tetapi menu
+        yang diperiksa harus tetap menu DATABASE — dulu di sini ada
+        MENU_CONTOH, sehingga id menu yang tidak ada di database pun bisa
+        "ditandai habis".
+      */
       const daftar = await ambilMenu();
-      const menuSah = daftar.ok ? daftar.data.menu : MENU_CONTOH.menu;
-      if (!menuSah.some((m) => m.id === id)) {
+      if (!daftar.ok) {
+        return NextResponse.json({ pesan: daftar.pesan }, { status: 503 });
+      }
+      if (!daftar.data.menu.some((m) => m.id === id)) {
         return NextResponse.json({ pesan: `Menu ${id} tidak dikenal.` }, { status: 400 });
       }
       demoSetTersedia(id, badan.tersedia);
@@ -205,9 +189,10 @@ export async function POST(req: Request) {
     data sungguhan.
   */
   if (badan.aksi === "reset_demo") {
-    if (PUNYA_KUNCI_SERVER) {
-      return NextResponse.json({ pesan: "Aksi tidak dikenal." }, { status: 400 });
-    }
+    /*
+      Menghapus penandaan "habis" yang tersimpan di memori Worker.
+      Tidak menyentuh database sama sekali.
+    */
     demoReset();
     return NextResponse.json({ ok: true, demo: true });
   }
@@ -218,10 +203,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ pesan: "Panggilan tidak sah." }, { status: 400 });
     }
 
-    if (!PUNYA_KUNCI_SERVER) {
-      const g = demoPanggilanSemua().find((x) => x.id === id);
-      if (g) g.ditangani_at = new Date().toISOString();
-      return NextResponse.json({ ok: true, demo: true });
+    if (!punyaKunciServer()) {
+      /*
+        Menandai panggilan "ditangani" HARUS mengubah database, karena
+        panggilan itu sendiri dibaca dari database. Dulu di sini statusnya
+        diubah di memori: pelayan melihat kartu panggilan hilang dari
+        layarnya, padahal panggilan sungguhan masih terbuka untuk semua
+        perangkat lain.
+      */
+      return NextResponse.json(
+        { pesan: "Kunci server belum dipasang, panggilan tidak bisa ditandai ditangani." },
+        { status: 503 }
+      );
     }
 
     const res = await db("panggilan", {

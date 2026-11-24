@@ -8,10 +8,20 @@ import { ambilVenues, type Aksen } from "../../lib/venues";
 
 type Params = { params: Promise<{ slug: string }> };
 
-export async function generateStaticParams() {
-  const { venues } = await ambilVenues();
-  return venues.map((v) => ({ slug: v.slug }));
-}
+/*
+  Halaman detail TIDAK dibekukan saat build.
+
+  `generateStaticParams` memanggil Supabase di waktu BUILD; di sana env
+  biasanya belum ada (Cloudflare Git build tidak membawa rahasia), jadi
+  hasilnya daftar kosong dan seluruh /tour/<slug> menjadi 404 — bukan
+  karena kodenya salah, tapi karena daftarnya dibekukan pada saat yang
+  salah.
+
+  Dengan `dynamic` + `dynamicParams`, setiap slug diperiksa saat diminta:
+  slug yang memang tidak ada tetap 404, yang ada tetap tampil.
+*/
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;

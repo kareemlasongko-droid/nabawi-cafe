@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { BilahStaf } from "../../components/order/Kerangka";
-import { PUNYA_KUNCI_SERVER } from "../../lib/order/db";
+import { punyaKunciServer } from "../../lib/order/db";
 
 export const metadata: Metadata = {
   title: "Masuk staf — Nabawi Cafe",
@@ -50,7 +50,7 @@ export default function HalamanMasuk() {
           </p>
           <p className="mt-2 text-[0.75rem] leading-relaxed text-clay-800">
             Status database:{" "}
-            {PUNYA_KUNCI_SERVER ? (
+            {punyaKunciServer() ? (
               <strong>kunci server terpasang — data tersimpan sungguhan.</strong>
             ) : (
               <strong>

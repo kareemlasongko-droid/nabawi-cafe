@@ -99,7 +99,13 @@ https://nabawi-cafe.<subdomain-akun>.workers.dev
 
 ### 2.4 Pasang variabel environment
 
-Dua lapis, dan ini yang paling sering tertukar:
+Tiga variabel, dan **ketiganya wajib**:
+
+| Variabel | Jenis | Tanpa ini |
+|---|---|---|
+| `SUPABASE_URL` | biasa | tidak ada yang bisa dibaca |
+| `SUPABASE_ANON_KEY` | biasa | tidak ada yang bisa dibaca |
+| `SUPABASE_SERVICE_KEY` | **rahasia** | menu terbaca, **pesanan ditolak** |
 
 ```bash
 # rahasia — tidak masuk repo, tidak tampil sebagai teks di dashboard
@@ -114,6 +120,38 @@ lewat dashboard Worker → Settings → Variables, atau `vars` di
 `wrangler.jsonc`.
 
 **Selama transisi, isi di Vercel DAN Cloudflare.** Jangan cabut Vercel.
+
+#### Kenapa dulu terlihat "sudah jalan" padahal env kosong
+
+`app/lib/supabase.ts` dan `app/lib/order/db.ts` dulu menyimpan alamat
+database dan kunci publik sebagai **nilai cadangan di dalam kode**
+(`process.env.SUPABASE_URL ?? "https://…"`). Akibatnya aplikasi tetap
+tersambung ke database yang sama walau dashboard kosong, dan halaman
+tampil normal tanpa satu pun tanda.
+
+Ini bukan teori — pernah menimbulkan diagnosis yang salah di sesi ini:
+situs tampil dengan 126 menu dan 10 venue, sehingga disimpulkan env sudah
+terpasang. Yang membongkarnya baru perbandingan **rentang id**
+(database 15–140, salinan lokal 1–126). Respons
+`/api/order/menu/tersedia` berakhir `"demo":true` — bukti
+`SUPABASE_SERVICE_KEY` tidak ada.
+
+Nilai cadangan itu **sudah dihapus**. Sekarang:
+
+| Keadaan | Yang terlihat |
+|---|---|
+| env kosong | `/menu` & `/tour` bertanda **"Data contoh"**; `/order` menolak dengan pesan env mana yang kurang |
+| env baca saja | menu & tour asli, pesanan ditolak (PitaDemo) |
+| ketiganya ada | semuanya jalan |
+
+Cara memastikan dari luar, tanpa membuka dashboard:
+
+```bash
+curl -s https://<worker>.workers.dev/api/order/menu/tersedia | grep -o '"demo":[a-z]*'
+```
+
+`"demo":false` berarti kunci server terpasang. `"demo":true` berarti
+belum — pesanan pelanggan akan ditolak.
 
 ### 2.5 Nyalakan CI (opsional)
 
@@ -200,10 +238,12 @@ Images). Lihat dokumentasi adapter bagian *"Use a custom loader"*.
 
 ## 6. Batasan yang harus jujur disebut
 
-- **Semua verifikasi di atas dilakukan di sandbox ini**, yang **tidak bisa
-  menjangkau Supabase**. Artinya halaman yang diuji memakai salinan menu
-  lokal (`MENU_CONTOH`), bukan data live. Uji dengan database sungguhan
-  tetap harus Anda lakukan di Workers sungguhan.
+- **Sandbox ini tidak bisa menjangkau Supabase.** Salinan menu lokal sudah
+  dihapus, jadi halaman tidak lagi bisa "tampak benar" tanpa database. Untuk
+  menguji jalur baca dan tulis secara utuh, dipakai server tiruan PostgREST
+  di dalam sandbox: kode aplikasi yang sama, alamat database yang berbeda.
+  Yang belum diuji: perilaku Supabase sungguhan (izin RLS, bentuk data asli).
+  Uji dengan database sungguhan tetap harus Anda lakukan di Workers sungguhan.
 - **Belum ada deploy.** Tidak ada akun Cloudflare di sesi ini, jadi semua
   yang tertulis di sini berhenti di "siap deploy", bukan "sudah deploy".
 - **Node di build Cloudflare = 24, bukan 22.** `package.json` mensyaratkan

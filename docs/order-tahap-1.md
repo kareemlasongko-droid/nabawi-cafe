@@ -48,14 +48,17 @@ Aturan sekarang:
 
 | Keadaan | Yang ditampilkan |
 |---|---|
-| Kunci server ada, database terbaca | Menu asli dari database |
-| Kunci server ada, database gagal | Layar "Menu belum bisa dimuat" + saran panggil pelayan |
-| Belum ada kunci server (mode demo) | Database bila terbaca; `MENU_CONTOH` hanya bila database tak terjangkau |
+| Database terbaca | Menu asli dari database |
+| Database gagal / env kosong | Layar "Menu belum bisa dimuat" + saran panggil pelayan |
+| Belum ada kunci server (`mode demo`) | **Menu yang sama dari database**; hanya aksi tulis yang ditolak |
 
-Menu contoh tetap disediakan untuk mode demo supaya halaman bisa dicoba tanpa
-database — pita "Mode demo" sudah memberi tahu bahwa itu bukan menu sungguhan.
-Yang dijaga: **pelanggan dan kasir selalu melihat sumber menu yang sama**, jadi
-harga yang dilihat tamu = harga yang dihitung tagihan.
+`MENU_CONTOH` sudah **dihapus dari kode**. Mode demo sekarang hanya saklar
+untuk aksi tulis (melunasi, menandai siap, memesan); datanya — menu, kategori,
+meja, venue — selalu dari database. Tidak ada lagi jalur di mana halaman
+tampak normal padahal database tidak pernah dibaca.
+
+Yang dijaga: **pelanggan, kasir, dan dapur selalu melihat sumber menu yang
+sama**, jadi harga yang dilihat tamu = harga yang dihitung tagihan.
 
 Cara memastikannya di produksi: buka portal pelanggan, lalu periksa ada
 `Nasi Goreng Kebuli` dan `Cappuccino Dingin`. Kalau yang muncul `Harira`, berarti

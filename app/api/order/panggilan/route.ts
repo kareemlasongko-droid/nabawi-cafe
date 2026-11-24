@@ -8,8 +8,8 @@
 import { NextResponse } from "next/server";
 import { ambilMeja } from "@/app/lib/order/data";
 import { buatPanggilan } from "@/app/lib/order/data";
-import { PUNYA_KUNCI_SERVER, db } from "@/app/lib/order/db";
-import { demoPanggilan, demoPanggilanSemua, demoMeja } from "@/app/lib/order/demo";
+import { punyaKunciServer, db } from "@/app/lib/order/db";
+import { pesanModeContoh, statusModeContoh } from "@/app/lib/order/mode-contoh";
 
 export const dynamic = "force-dynamic";
 
@@ -27,15 +27,21 @@ export async function POST(req: Request) {
   if (!mejaNomor) return NextResponse.json({ pesan: "Nomor meja kosong." }, { status: 400 });
   if (!jenis) return NextResponse.json({ pesan: "Jenis panggilan tidak dikenal." }, { status: 400 });
 
-  if (!PUNYA_KUNCI_SERVER) {
-    const meja = demoMeja().find((m) => m.nomor === mejaNomor);
-    if (!meja) return NextResponse.json({ pesan: "Nomor meja tidak dikenali." }, { status: 404 });
-    // demoPanggilan mengembalikan panggilan yang sudah ada bila sama,
-    // jadi kita bandingkan waktu buatnya untuk menandai "sudahAda".
-    const sebelum = demoPanggilanSemua().length;
-    const p = demoPanggilan(meja.id, jenis);
-    const sudahAda = demoPanggilanSemua().length === sebelum;
-    return NextResponse.json({ ok: true, panggilan: p, sudahAda, demo: true });
+  const mode = await statusModeContoh(punyaKunciServer());
+
+  /*
+    Panggilan pelayan HARUS sampai ke orangnya.
+
+    Dulu, tanpa kunci server, panggilan "berhasil" dicatat ke memori dan
+    pelanggan melihat konfirmasi — sementara portal pelayan tidak pernah
+    menerimanya. Tamu menunggu, pelayan tidak tahu ada yang memanggil.
+    Lebih baik menolak dengan pesan jelas: tamu bisa melambaikan tangan.
+  */
+  if (!punyaKunciServer()) {
+    return NextResponse.json(
+      { pesan: pesanModeContoh(mode) || "Kunci server belum dipasang, panggilan tidak bisa dikirim.", demo: true },
+      { status: 503 }
+    );
   }
 
   const mejaRes = await ambilMeja(mejaNomor);

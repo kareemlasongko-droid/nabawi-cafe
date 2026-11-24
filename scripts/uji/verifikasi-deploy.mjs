@@ -4,8 +4,10 @@
  * KENAPA ADA SKRIP INI
  * Setelah pindah runtime, "halaman terbuka" bukan bukti cukup. Tiga hal
  * yang biasa lolos dari pemeriksaan mata:
- *   1. Halaman tampil, tapi isinya salinan lokal (MENU_CONTOH) karena
- *      environment Supabase belum terpasang → menu basi, diam-diam.
+ *   1. Halaman tampil, tapi isinya salinan lokal karena environment
+ *      Supabase belum terpasang → menu basi, diam-diam. (Sekarang salinan
+ *      itu sudah DIHAPUS dari kode, jadi keadaan ini terdeteksi sebagai
+ *      halaman "Menu belum bisa dimuat" — dan skrip ini memeriksanya.)
  *   2. Gambar tampil, tapi tidak lewat optimasi → 723 KB per gambar.
  *   3. API menjawab 200, tapi dengan bentuk data yang salah.
  *
@@ -103,13 +105,29 @@ if (!menu) {
   ok("ikon per kategori terkirim", ikon >= 126, String(ikon));
   ok("aturan saring ikut terkirim", (menu.match(/body\[data-saring=/g) ?? []).length === 12);
 
-  // Indikator data basi: kalau Supabase tidak terpasang, /menu memakai
-  // MENU_CONTOH. Keduanya bertanda harga yang sama, jadi jumlah kartu
-  // tidak bisa membedakan. Yang bisa: tabel `menu` live punya kolom
-  // tersedia yang bisa berubah. Kita tidak memaksa, hanya mengingatkan.
+  /*
+    SUMBER MENU — sekarang bisa dinilai, tidak lagi "LEWAT".
+
+    Dulu halaman /menu bisa menampilkan salinan dari kode saat database
+    gagal, jadi jumlah kartu yang benar TIDAK membuktikan apa pun; skrip
+    ini menulis "LEWAT" dengan jujur.
+
+    Sesudah salinan dihapus, aturannya berubah total:
+      · database terbaca  -> 126 kartu, 6 kategori
+      · database gagal    -> halaman "Menu belum bisa dimuat", 0 kartu
+
+    Jadi jumlah kartu yang benar sekarang memang membuktikan database
+    dipakai. Yang tetap tidak bisa dibuktikan dari luar: apakah isinya
+    SAMA dengan dashboard Supabase (harga bisa sudah diubah pemilik).
+  */
+  ok(
+    "menu benar-benar dari database (bukan layar gagal)",
+    kartu === 126 && kategori === 6,
+    `kartu ${kartu}, kategori ${kategori}`,
+  );
   belumBisa(
-    "menu dari database (bukan salinan lokal)",
-    "butuh perbandingan dengan Supabase; periksa apakah harga sama dengan dashboard"
+    "harga menu sama dengan dashboard Supabase",
+    "butuh perbandingan manual dengan dashboard; skrip ini hanya memastikan menunya ada"
   );
 }
 

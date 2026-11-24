@@ -3,7 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
 import { Navbar } from "../components/Navbar";
+import { LayarMasalah } from "../components/LayarMasalah";
 import { ambilVenues } from "../lib/venues";
+
+/*
+  Sama seperti /menu: dibaca saat DIMINTA. Daftar tempat boleh berubah dari
+  dashboard Supabase kapan saja, dan env hanya tersedia saat runtime.
+*/
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Virtual Tour 360 — Nabawi Cafe & Resto",
@@ -46,8 +53,32 @@ const GAYA_KARTU = {
 } as const;
 
 export default async function TourPage() {
-  const { venues, sumber } = await ambilVenues();
+  const { venues, sumber, pesan } = await ambilVenues();
   const totalMenit = venues.reduce((n, v) => n + v.durasiMenit, 0);
+
+  /*
+    TIDAK ADA LAGI SALINAN 10 TEMPAT DI KODE.
+
+    Dulu, bila Supabase gagal — atau environment kosong — halaman ini
+    menampilkan 10 tempat dari `VENUES_LOKAL`. Tamu melihat tur yang tampak
+    normal; pemilik menyimpulkan semuanya berjalan. Padahal tidak ada satu
+    baris pun yang datang dari database, dan perubahan di dashboard tidak
+    akan pernah terlihat.
+
+    Pemilik meminta data yang menempel di kode dihapus. Jadi sekarang
+    kegagalan ditampilkan apa adanya.
+  */
+  if (sumber !== "supabase") {
+    return (
+      <LayarMasalah
+        judul="Tur belum bisa dimuat"
+        pesan="Daftar tempat sedang tidak bisa diambil. Coba muat ulang sebentar lagi."
+        teknis={pesan}
+        kembaliKe="/fitur"
+        labelKembali="Kembali ke Fitur"
+      />
+    );
+  }
 
   return (
     <main className="flex min-h-dvh justify-center bg-forest-950">
@@ -100,6 +131,7 @@ export default async function TourPage() {
               {venues.length} tempat bisa dijelajahi · sekitar {totalMenit} menit
               jalan santai
             </p>
+
           </header>
 
           {/* Peta mini — menampilkan posisi 10 titik dalam satu bidang.

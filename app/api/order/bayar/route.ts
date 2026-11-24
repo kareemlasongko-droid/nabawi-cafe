@@ -9,8 +9,8 @@
 import { NextResponse } from "next/server";
 import { catatPembayaran } from "@/app/lib/order/data";
 import { pembayaranCukup } from "@/app/lib/order/aturan";
-import { PUNYA_KUNCI_SERVER, db } from "@/app/lib/order/db";
-import { demoBayar, demoTagihan } from "@/app/lib/order/demo";
+import { punyaKunciServer, db } from "@/app/lib/order/db";
+import { pesanModeContoh, statusModeContoh } from "@/app/lib/order/mode-contoh";
 import type { MetodeBayar, Tagihan } from "@/app/lib/order/tipe";
 
 export const dynamic = "force-dynamic";
@@ -40,18 +40,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ pesan: "Nominal tidak sah." }, { status: 400 });
   }
 
-  if (!PUNYA_KUNCI_SERVER) {
-    const tag = demoTagihan().find((t) => t.id === id);
-    if (!tag) return NextResponse.json({ pesan: "Tagihan tidak ditemukan." }, { status: 404 });
-    if (!pembayaranCukup(metode, tag.total, diterima)) {
-      return NextResponse.json(
-        { pesan: `Nominal kurang. Tagihan ${tag.total}.` },
-        { status: 400 }
-      );
-    }
-    const hasil = demoBayar(id, metode, diterima, kasir);
-    if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });
-    return NextResponse.json({ ok: true, tagihan: hasil.tagihan, demo: true });
+  const mode = await statusModeContoh(punyaKunciServer());
+
+  /*
+    Tagihan yang dibayar SELALU dari database.
+
+    Dulu, tanpa kunci server, pembayaran dicatat ke tagihan karangan di
+    memori: kasir melihat "Lunas" dan struk tercetak, sementara pemilik
+    tidak menerima satu rupiah pun di catatan mana pun. Itu jenis
+    kesalahan yang baru ketahuan saat tutup buku.
+
+    Tanpa kunci server kita tidak bisa menulis, jadi jawabannya jelas:
+    tolak, dan sebutkan sebabnya. Nominal tetap diperiksa lebih dulu
+    supaya pesan "nominal kurang" tidak tertutup oleh masalah env.
+  */
+  if (!punyaKunciServer()) {
+    return NextResponse.json(
+      { pesan: pesanModeContoh(mode) || "Kunci server belum dipasang, pembayaran tidak bisa dicatat.", demo: true },
+      { status: 503 }
+    );
   }
 
   const t = await db<Tagihan[]>("tagihan", { q: `select=*&id=eq.${id}&limit=1` });

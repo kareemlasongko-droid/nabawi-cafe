@@ -8,38 +8,29 @@
 import { NextResponse } from "next/server";
 import { ambilPesananAktif } from "@/app/lib/order/data";
 import { bacaPilihan } from "@/app/lib/order/aturan";
-import { db, PUNYA_KUNCI_SERVER } from "@/app/lib/order/db";
-import { demoAmbilPesanan, demoItemPesanan, demoMeja, demoPanggilanSemua } from "@/app/lib/order/demo";
+import { db, punyaKunciServer } from "@/app/lib/order/db";
+import { PESAN_ENV_KOSONG, punyaEnvBaca } from "@/app/lib/order/db";
+import { pesanModeContoh, statusModeContoh } from "@/app/lib/order/mode-contoh";
 import type { Panggilan } from "@/app/lib/order/tipe";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!PUNYA_KUNCI_SERVER) {
-    const meja = demoMeja();
-    const siap = demoAmbilPesanan()
-      .filter((p) => p.status === "siap")
-      .map((p) => ({
-        id: p.id,
-        nomor: p.nomor,
-        meja_nomor: meja.find((m) => m.id === p.meja_id)?.nomor ?? String(p.meja_id),
-        nama_pemesan: p.nama_pemesan,
-        created_at: p.created_at,
-        siap_at: p.siap_at,
-        items: demoItemPesanan(p.id).map((i) => ({
-          id: i.id,
-          nama_saat_pesan: i.nama_saat_pesan,
-          jumlah: i.jumlah,
-          pilihan: i.pilihan ?? [],
-        })),
-      }));
-    const panggilan = demoPanggilanSemua()
-      .filter((g) => !g.ditangani_at)
-      .map((g) => ({
-        ...g,
-        meja_nomor: meja.find((m) => m.id === g.meja_id)?.nomor ?? "",
-      }));
-    return NextResponse.json({ siap, panggilan, demo: true });
+  const mode = await statusModeContoh(punyaKunciServer());
+
+  /*
+    Pesanan siap dan panggilan meja SELALU dari database.
+
+    Dulu, tanpa kunci server, pelayan menerima daftar pesanan siap antar
+    dan panggilan karangan. Itu paling berbahaya di antara semua portal:
+    pelayan akan berjalan ke meja yang tidak memanggil, sementara panggilan
+    sungguhan tidak pernah muncul.
+  */
+  if (!punyaEnvBaca()) {
+    return NextResponse.json(
+      { pesan: PESAN_ENV_KOSONG, demo: mode.aktif, kode: "env" },
+      { status: 503 }
+    );
   }
 
   const [pesananRes, panggilanRes, mejaRes] = await Promise.all([
