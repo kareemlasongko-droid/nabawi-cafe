@@ -41,7 +41,16 @@ export function PortalAdmin({
   const [menu, setMenu] = useState<Menu[]>(awal.menu);
   const [aturan, setAturan] = useState<AturanBiaya>(aturanAwal);
   const [galat, setGalat] = useState(galatAwal);
-  const [tab, setTab] = useState<"menu" | "biaya">("menu");
+  const [tab, setTab] = useState<"menu" | "biaya" | "jam">("menu");
+  /** Jam buka yang sedang berlaku (dibaca dari database, bukan konstanta). */
+  const [jam, setJam] = useState<{
+    buka24Jam: boolean;
+    mentah: string;
+    contoh24Jam: string;
+    catatan: string;
+  } | null>(null);
+  const [sibukJam, setSibukJam] = useState(false);
+  const [pesanJam, setPesanJam] = useState("");
   const [sunting, setSunting] = useState<Menu | null>(null);
   const [baru, setBaru] = useState(false);
   const [sibuk, setSibuk] = useState(false);
@@ -105,6 +114,49 @@ export function PortalAdmin({
     setHanyaRekomendasi(false);
   }
 
+
+  /*
+    Jam buka dibaca saat tab dibuka, bukan saat halaman dimuat: pemilik
+    yang membuka tab ini ingin nilai TERKINI (mungkin baru diubah orang
+    lain lewat dashboard), bukan nilai dari waktu halaman dibuka.
+  */
+  async function muatJam() {
+    try {
+      const res = await fetch("/api/order/jam-buka", { cache: "no-store" });
+      const j = await res.json();
+      if (!res.ok) {
+        setPesanJam(j.pesan ?? "Gagal memuat jam buka.");
+        return;
+      }
+      setJam(j);
+      if (j.catatan) setPesanJam(j.catatan);
+    } catch {
+      setPesanJam("Koneksi terputus. Jam yang berlaku tidak bisa dipastikan.");
+    }
+  }
+
+  async function simpanJam(nilai: string) {
+    setSibukJam(true);
+    setPesanJam("");
+    try {
+      const res = await fetch("/api/order/jam-buka", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nilai }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        setPesanJam(j.pesan ?? "Jam gagal disimpan.");
+        return;
+      }
+      setJam(j);
+      setPesanJam("Jam buka tersimpan. Berlaku untuk pesanan berikutnya.");
+    } catch {
+      setPesanJam("Koneksi terputus. Jam belum tersimpan.");
+    } finally {
+      setSibukJam(false);
+    }
+  }
 
   async function ubahMenu(m: Menu, patch: Partial<Menu>) {
     setSibuk(true);
@@ -209,6 +261,19 @@ export function PortalAdmin({
             >
               <span className="sm:hidden">Pajak</span>
               <span className="hidden sm:inline">Pajak &amp; layanan</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab("jam");
+                muatJam();
+              }}
+              className={[
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
+                tab === "jam" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
+              ].join(" ")}
+            >
+              Jam buka
             </button>
           </div>
         }
@@ -579,6 +644,87 @@ export function PortalAdmin({
             Untuk mengubah nilai ini, ubah tabel <code className="font-mono">pengaturan</code> di
             database atau hubungi pengembang. Halaman ini sengaja menampilkan nilainya agar kasir
             dan pemilik memakai angka yang sama.
+          </p>
+        </div>
+      )}
+
+      {tab === "jam" && (
+        <div className="max-w-xl p-4 sm:p-6">
+          {/*
+            ── JAM BUKA ──
+            Pemilik meminta 24 jam "sementara". Dua tombol di bawah membuat
+            "sementara" itu benar-benar sementara: kembali ke jam normal
+            juga satu tekan, tanpa deploy dan tanpa mengedit database.
+          */}
+          <div className="rounded-[0.875rem] bg-bersih-0 p-4 shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)]">
+            <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
+              Berlaku sekarang
+            </p>
+
+            {!jam ? (
+              <p className="mt-2 text-[0.875rem] text-tinta-500">Memuat…</p>
+            ) : (
+              <>
+                <p className="mt-1 text-[1.25rem] font-extrabold text-tinta-900">
+                  {jam.buka24Jam ? "Buka 24 jam" : "Jam terbatas"}
+                </p>
+                <p className="mt-0.5 font-mono text-[0.8125rem] text-tinta-500">
+                  {jam.mentah}
+                </p>
+
+                {/*
+                  Catatan ini HANYA muncul bila nilai tersimpan tidak
+                  terbaca. Tanpa ini, pemilik yang salah ketik melihat jam
+                  lama tetap berlaku dan menyimpulkan aplikasinya rusak.
+                */}
+                {jam.catatan && (
+                  <p className="mt-2 rounded-[0.5rem] bg-clay-600/10 p-2 text-[0.75rem] font-semibold leading-snug text-clay-800">
+                    {jam.catatan}
+                  </p>
+                )}
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => simpanJam(jam.contoh24Jam)}
+                    disabled={sibukJam || jam.buka24Jam}
+                    className="h-10 rounded-[0.625rem] bg-forest-700 px-3 text-[0.8125rem] font-extrabold text-bersih-0 disabled:opacity-45"
+                  >
+                    Buka 24 jam
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => simpanJam("09.00-20.00,08.00-21.00")}
+                    disabled={sibukJam}
+                    className="h-10 rounded-[0.625rem] border border-bersih-200 px-3 text-[0.8125rem] font-bold text-tinta-700 disabled:opacity-45"
+                  >
+                    Kembali ke jam normal
+                  </button>
+                </div>
+
+                {pesanJam && (
+                  <p
+                    role="status"
+                    className="mt-2 text-[0.75rem] font-semibold leading-snug text-tinta-700"
+                  >
+                    {pesanJam}
+                  </p>
+                )}
+
+                <p className="mt-3 text-[0.6875rem] leading-relaxed text-tinta-500">
+                  Jam normal: Senin–Kamis 09.00–20.00, Jumat–Minggu 08.00–21.00.
+                  Perubahan berlaku langsung untuk pesanan berikutnya — tidak
+                  perlu deploy, dan tamu yang sedang memesan tidak terputus.
+                </p>
+              </>
+            )}
+          </div>
+
+          <p className="mt-3 text-[0.6875rem] leading-relaxed text-tinta-500">
+            Nilai disimpan di tabel <code className="font-mono">pengaturan</code> baris{" "}
+            <code className="font-mono">jam_mingguan</code>. Formatnya{" "}
+            <code className="font-mono">HH.MM-HH.MM,HH.MM-HH.MM</code> — sisi pertama
+            Senin–Kamis, sisi kedua Jumat–Minggu.
           </p>
         </div>
       )}

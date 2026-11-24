@@ -120,6 +120,34 @@ export async function ambilAturan(): Promise<AturanBiaya> {
   return bacaAturan(r.data.filter((x) => x.kunci !== "mode_contoh"));
 }
 
+/**
+ * Batas waktu bayar (menit) — bisa diubah pemilik dari dashboard Supabase.
+ *
+ * Kenapa di database dan bukan konstanta: batas ini keputusan operasional
+ * yang bisa berubah (jam ramai vs sepi), dan mengubahnya tidak seharusnya
+ * menuntut deploy. Nilai 0 atau tidak sah jatuh ke 15 menit — batas 0 akan
+ * membatalkan pesanan sebelum tamu sempat membuka halaman pembayaran.
+ */
+export async function ambilBatasBayarMenit(): Promise<number> {
+  if (!punyaEnvBaca()) return 15;
+  const r = await db<{ nilai: string }[]>("pengaturan", {
+    q: "select=nilai&kunci=eq.batas_bayar_menit&limit=1",
+  });
+  if (!r.ok || r.data.length === 0) return 15;
+  const n = Number(r.data[0].nilai);
+  return Number.isFinite(n) && n >= 1 && n <= 120 ? Math.round(n) : 15;
+}
+
+/** Apakah bayar tunai di kasir diizinkan. Default: ya (keputusan pemilik). */
+export async function bolehBayarTunai(): Promise<boolean> {
+  if (!punyaEnvBaca()) return true;
+  const r = await db<{ nilai: string }[]>("pengaturan", {
+    q: "select=nilai&kunci=eq.bayar_tunai_kasir&limit=1",
+  });
+  if (!r.ok || r.data.length === 0) return true;
+  return (r.data[0].nilai ?? "").trim().toLowerCase() !== "off";
+}
+
 /** Dipisah supaya bisa diuji tanpa jaringan. */
 export function bacaAturan(baris: { kunci: string; nilai: string }[]): AturanBiaya {
   const peta = new Map(baris.map((x) => [x.kunci, x.nilai]));

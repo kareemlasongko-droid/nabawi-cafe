@@ -10,6 +10,7 @@ import {
   ATURAN_BAWAAN,
   bacaPilihan,
   hitungTagihan,
+  pembayaranCukup,
   periksaPilihan,
   type AturanBiaya,
 } from "./aturan";
@@ -50,7 +51,7 @@ export {
 } from "./katalog";
 export type { MenuLengkap } from "./katalog";
 
-// Dipakai juga DI DALAM berkas ini (buatPesanan, hitungUlangTagihan), jadi
+// Dipakai juga DI DALAM berkas ini (buatPesanan, hitungTagihanPesanan), jadi
 // perlu diimpor, bukan hanya diekspor ulang.
 import { ambilAturan, ambilMeja } from "./katalog";
 
@@ -89,8 +90,13 @@ export type HasilBuatPesanan = {
 export async function buatPesanan(masuk: {
   meja: string;
   sesi: string;
-  nama: string | null;
+  /** Wajib — divalidasi di aturan.ts sebelum sampai ke sini. */
+  nama: string;
+  /** Sudah dinormalkan ke +62… */
+  no_wa: string;
   items: { menu_id: number; jumlah: number; catatan: string | null; pilihan: string[] }[];
+  /** Menit sampai pesanan dianggap kedaluwarsa bila belum dibayar. */
+  batasBayarMenit: number;
 }): Promise<Hasil<HasilBuatPesanan>> {
   if (!punyaKunciServer()) {
     return {
@@ -158,25 +164,23 @@ export async function buatPesanan(masuk: {
     });
   }
 
-  // 4. Tagihan terbuka untuk meja ini
-  const tagihanAda = await db<Tagihan[]>("tagihan", {
-    q: `select=*&meja_id=eq.${m.id}&status=neq.lunas&limit=1`,
-  });
-  if (!tagihanAda.ok) return { ok: false, pesan: tagihanAda.pesan };
+  /*
+    4. TAGIHAN PER PESANAN (bukan per meja).
 
-  let tagihan: Tagihan;
-  if (tagihanAda.data.length > 0) {
-    tagihan = tagihanAda.data[0];
-  } else {
-    const baru = await db<Tagihan[]>("tagihan", {
-      method: "POST",
-      prefer: "return=representation",
-      q: "select=*",
-      body: { meja_id: m.id, status: "terbuka" },
-    });
-    if (!baru.ok) return { ok: false, pesan: baru.pesan };
-    tagihan = baru.data[0];
-  }
+    Dulu satu tagihan per meja, menumpuk, dibayar di akhir. Dengan
+    prabayar, setiap checkout adalah transaksi tersendiri: tamu memesan 2
+    item lalu bayar, 20 menit kemudian memesan lagi dan bayar lagi. Satu
+    tagihan per meja tidak bisa mewakili dua pembayaran itu — dan biaya
+    layanan akan terhitung ganda.
+  */
+  const tagihanBaru = await db<Tagihan[]>("tagihan", {
+    method: "POST",
+    prefer: "return=representation",
+    q: "select=*",
+    body: { meja_id: m.id, status: "terbuka" },
+  });
+  if (!tagihanBaru.ok) return { ok: false, pesan: tagihanBaru.pesan };
+  const tagihan = tagihanBaru.data[0];
 
   /*
     5. Pesanan + item.
@@ -188,6 +192,8 @@ export async function buatPesanan(masuk: {
     Sekarang ditambahkan dua digit acak, dan bila toh bentrok, dicoba ulang
     sekali dengan angka baru sebelum menyerah.
   */
+  const kedaluwarsa = new Date(Date.now() + masuk.batasBayarMenit * 60_000).toISOString();
+
   let pesananRes: Hasil<Pesanan[]> = { ok: false, pesan: "belum dicoba" };
   let nomor = nomorPesanan(m.nomor);
   for (let percobaan = 0; percobaan < 2; percobaan++) {
@@ -198,8 +204,26 @@ export async function buatPesanan(masuk: {
       body: {
         nomor,
         meja_id: m.id,
-        status: "menunggu_konfirmasi",
+        /*
+          `status` TIDAK dikirim. Nilainya tetap 'menunggu_konfirmasi' dari
+          default database — dan itu memang yang diinginkan saat pesanan
+          lunas nanti.
+
+          Kenapa tidak dikirim eksplisit: kalau suatu saat default database
+          berubah, dua tempat akan berbeda pendapat tentang status awal
+          sebuah pesanan, dan yang menang adalah yang tidak terlihat di
+          kode ini. Membiarkannya di satu tempat (skema) membuat perubahan
+          skema berlaku menyeluruh.
+
+          Pesanan BELUM terlihat kasir maupun dapur pada titik ini. Yang
+          membuatnya terlihat adalah `status_bayar` berubah menjadi 'lunas'
+          (lihat tandaiLunas di doku.ts) — bukan status dapur.
+        */
+        status_bayar: "menunggu",
+        kedaluwarsa_at: kedaluwarsa,
+        tagihan_id: tagihan.id,
         nama_pemesan: masuk.nama,
+        no_wa: masuk.no_wa,
         sesi_id: masuk.sesi,
         total_item: itemFinal.reduce((n, i) => n + i.jumlah, 0),
       },
@@ -231,22 +255,22 @@ export async function buatPesanan(masuk: {
   });
   if (!itemRes.ok) return { ok: false, pesan: itemRes.pesan };
 
-  // Tandai meja ada pesanan
+  // Tandai meja ada pesanan (kasir melihat denah meja terisi).
   await db("meja", {
     method: "PATCH",
     q: `id=eq.${m.id}`,
     body: { status: "ada_pesanan" },
   });
 
-  const tagihanBaru = await hitungUlangTagihan(m.id, tagihan.id);
-  if (!tagihanBaru.ok) return { ok: false, pesan: tagihanBaru.pesan };
+  const hitung = await hitungTagihanPesanan(pesanan.id, tagihan.id);
+  if (!hitung.ok) return { ok: false, pesan: hitung.pesan };
 
   return {
     ok: true,
     data: {
       pesanan,
       items: itemRes.data,
-      tagihan: tagihanBaru.data,
+      tagihan: hitung.data,
       layananSudahAda: false,
     },
   };
@@ -257,34 +281,36 @@ export async function buatPesanan(masuk: {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Hitung tagihan dari semua pesanan yang tidak ditolak/dibatalkan.
+ * Hitung tagihan DARI SATU PESANAN.
  *
- * Biaya layanan hanya dikenakan SEKALI per tagihan, bukan per pesanan.
- * Kalau dikenakan per pesanan, pelanggan yang menambah minuman di tengah
- * makan akan ditagih biaya layanan dua kali — itu keluhan yang pasti muncul.
+ * Sebelumnya fungsi ini menjumlahkan semua pesanan aktif di satu MEJA.
+ * Dengan tagihan per-pesanan, itu akan menagihkan pesanan lain ke tagihan
+ * yang salah — tamu A membayar makanan tamu B.
+ *
+ * Biaya layanan dikenakan sekali per tagihan, dan karena sekarang satu
+ * tagihan melayani satu pesanan, itu berarti sekali per pesanan. Itu
+ * memang yang diinginkan: dua kali checkout adalah dua kali transaksi.
  */
-export async function hitungUlangTagihan(
-  mejaId: number,
+export async function hitungTagihanPesanan(
+  pesananId: number,
   tagihanId: number
 ): Promise<Hasil<Tagihan>> {
-  const pesananRes = await db<{ id: number }[]>("pesanan", {
-    q: `select=id&meja_id=eq.${mejaId}&status=not.in.(ditolak,dibatalkan)&status=not.is.null`,
+  const itemRes = await db<{ jumlah: number; harga_satuan: number }[]>("item_pesanan", {
+    q: `select=jumlah,harga_satuan&pesanan_id=eq.${pesananId}`,
   });
-  if (!pesananRes.ok) return { ok: false, pesan: pesananRes.pesan };
+  if (!itemRes.ok) return { ok: false, pesan: itemRes.pesan };
 
-  const ids = pesananRes.data.map((p) => p.id);
-  let subtotal = 0;
+  const subtotal = itemRes.data.reduce((n, i) => n + i.jumlah * i.harga_satuan, 0);
 
-  if (ids.length > 0) {
-    const itemRes = await db<{ jumlah: number; harga_satuan: number }[]>("item_pesanan", {
-      q: `select=jumlah,harga_satuan&pesanan_id=in.(${ids.join(",")})`,
-    });
-    if (!itemRes.ok) return { ok: false, pesan: itemRes.pesan };
-    subtotal = itemRes.data.reduce((n, i) => n + i.jumlah * i.harga_satuan, 0);
-  }
+  /*
+    PESANAN TANPA ITEM TIDAK BOLEH MENGHASILKAN TAGIHAN BERISI BIAYA.
 
+    Kalau semua item gagal tersimpan, subtotal = 0 tetapi layanan tetap
+    Rp2.000. Tamu lalu diminta membayar biaya layanan untuk pesanan kosong.
+  */
   const aturan = await ambilAturan();
   const r = hitungTagihan(subtotal, aturan);
+  const kosong = subtotal === 0;
 
   const upd = await db<Tagihan[]>("tagihan", {
     method: "PATCH",
@@ -292,10 +318,10 @@ export async function hitungUlangTagihan(
     q: `id=eq.${tagihanId}&select=*`,
     body: {
       subtotal: r.subtotal,
-      layanan: r.layanan,
-      pajak: r.pajak,
-      pembulatan: r.pembulatan,
-      total: r.total,
+      layanan: kosong ? 0 : r.layanan,
+      pajak: kosong ? 0 : r.pajak,
+      pembulatan: kosong ? 0 : r.pembulatan,
+      total: kosong ? 0 : r.total,
     },
   });
   if (!upd.ok) return { ok: false, pesan: upd.pesan };
@@ -397,7 +423,7 @@ export async function ubahStatus(
     /*
       TAGIHAN WAJIB DIHITUNG ULANG.
 
-      hitungUlangTagihan hanya dipanggil saat pesanan DIBUAT. Akibatnya
+      hitungTagihanPesanan hanya dipanggil saat pesanan DIBUAT. Akibatnya
       pesanan yang ditolak atau dibatalkan tetap menempel di tagihan: tamu
       yang memesan Rp46.600 lalu dibatalkan melihat tagihan Rp46.600 di
       meja kasir padahal struknya kosong. Kalau kasir menagihnya, tamu
@@ -410,11 +436,14 @@ export async function ubahStatus(
       yang tidak cocok dengan daftar item — lebih mudah ditemukan daripada
       pesanan yang statusnya tidak berubah.
     */
-    const tagihan = await db<Tagihan[]>("tagihan", {
-      q: `select=id&meja_id=eq.${p.meja_id}&status=neq.lunas&limit=1`,
-    });
-    if (tagihan.ok && tagihan.data.length > 0) {
-      await hitungUlangTagihan(p.meja_id, tagihan.data[0].id);
+    /*
+      Dengan tagihan per-pesanan, tagihan yang dihitung ulang adalah
+      tagihan MILIK pesanan ini — bukan tagihan mana pun milik mejanya.
+      Menghitung ulang tagihan tetangga akan mengubah total yang sedang
+      dibayar orang lain.
+    */
+    if (p.tagihan_id) {
+      await hitungTagihanPesanan(p.id, p.tagihan_id);
     }
   }
 
@@ -472,6 +501,19 @@ export async function catatPembayaran(masuk: {
     return { ok: false, pesan: "Tagihan ini sudah lunas." };
   }
 
+  /*
+    Sejak tagihan per-pesanan, "lunas"-nya tagihan bukan lagi akhir cerita:
+    kasir dan dapur menyaring lewat `pesanan.status_bayar`. Kalau baris ini
+    tidak ikut diperbarui, uangnya sudah masuk tetapi pesanannya tetap
+    tidak muncul di dapur — tamu membayar lalu menunggu selamanya.
+  */
+  const pesananTagihan = await db<Pesanan[]>("pesanan", {
+    q: `select=*&tagihan_id=eq.${tagihan.id}`,
+  });
+  const belumLunas = (pesananTagihan.ok ? pesananTagihan.data : []).filter(
+    (p) => p.status_bayar !== "lunas" && p.status !== "dibatalkan"
+  );
+
   const bayar = await db("pembayaran", {
     method: "POST",
     body: {
@@ -496,6 +538,15 @@ export async function catatPembayaran(masuk: {
     },
   });
   if (!upd.ok) return { ok: false, pesan: upd.pesan };
+
+  const kini = new Date().toISOString();
+  for (const p of belumLunas) {
+    await db("pesanan", {
+      method: "PATCH",
+      q: `id=eq.${p.id}`,
+      body: { status_bayar: "lunas", dibayar_at: kini, metode_bayar: masuk.metode },
+    });
+  }
 
   // Meja kembali kosong setelah kasir menutupnya (PRD K-11).
   await db("meja", {
@@ -540,7 +591,7 @@ export type BarisStruk = {
  * bersama tagihan.
  *
  * Pesanan yang ditolak/dibatalkan tidak dihitung, sama seperti
- * hitungUlangTagihan, supaya jumlah baris struk selalu cocok dengan
+ * hitungTagihanPesanan, supaya jumlah baris struk selalu cocok dengan
  * subtotalnya.
  */
 export async function ambilItemTagihan(mejaId: number): Promise<Hasil<BarisStruk[]>> {
@@ -604,9 +655,19 @@ export async function ambilItemTagihan(mejaId: number): Promise<Hasil<BarisStruk
 
 export type PesananDenganItem = Pesanan & { items: ItemPesanan[]; meja_nomor: string };
 
+/**
+ * Pesanan yang boleh dilihat kasir dan dapur: HANYA YANG SUDAH LUNAS.
+ *
+ * Ini keputusan pemilik, dan konsekuensinya disengaja: pesanan yang belum
+ * dibayar tidak muncul di dapur sama sekali. Kalau filter ini lupa
+ * dipasang di salah satu portal, dapur akan memasak makanan yang belum
+ * tentu dibayar — kerugian yang langsung terasa dan tidak bisa ditarik.
+ */
 export async function ambilPesananAktif(): Promise<Hasil<PesananDenganItem[]>> {
   const res = await db<Pesanan[]>("pesanan", {
-    q: "select=*&status=in.(menunggu_konfirmasi,diterima,diproses,siap)&order=created_at.asc",
+    q:
+      "select=*&status_bayar=eq.lunas" +
+      "&status=in.(menunggu_konfirmasi,diterima,diproses,siap)&order=created_at.asc",
   });
   if (!res.ok) return { ok: false, pesan: res.pesan };
   if (res.data.length === 0) return { ok: true, data: [] };
@@ -639,4 +700,191 @@ export async function ambilPesananAktif(): Promise<Hasil<PesananDenganItem[]>> {
       meja_nomor: petaMeja.get(p.meja_id) ?? String(p.meja_id),
     })),
   };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Bayar tunai di kasir (keputusan pemilik: tetap diizinkan)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Kasir mencatat pembayaran tunai untuk SATU pesanan.
+ *
+ * Alurnya tetap sama dengan prabayar: pesanan tidak masuk dapur sebelum
+ * `status_bayar` menjadi 'lunas'. Bedanya hanya siapa yang menandai.
+ *
+ * Kenapa menerima `pesanan_id`, bukan `tagihan_id`: kasir bekerja dari
+ * daftar pesanan yang belum dibayar, dan yang ia lihat adalah nomor
+ * pesanan. Meminta id tagihan membuat staf harus menebak angka internal.
+ */
+export async function bayarTunaiKasir(masuk: {
+  pesanan_id: number;
+  /**
+   * Uang yang diserahkan tamu. Diabaikan bila `uang_pas` benar — dan itu
+   * memang yang diinginkan: nominal yang "pas" hanya bisa ditentukan
+   * dengan membaca total dari database, bukan dari angka yang dikirim
+   * browser. Angka besar dari browser akan menghasilkan kembalian palsu
+   * yang merusak laporan kas.
+   */
+  diterima: number;
+  /** True bila tamu membayar uang pas; nominal dihitung server. */
+  uang_pas?: boolean;
+  kasir: string;
+}): Promise<Hasil<{ pesanan: Pesanan; kembalian: number }>> {
+  const ada = await db<Pesanan[]>("pesanan", {
+    q: `select=*&id=eq.${masuk.pesanan_id}&limit=1`,
+  });
+  if (!ada.ok) return { ok: false, pesan: ada.pesan };
+  if (ada.data.length === 0) return { ok: false, pesan: "Pesanan tidak ditemukan." };
+
+  const p = ada.data[0];
+  if (p.status_bayar === "lunas") return { ok: false, pesan: "Pesanan ini sudah lunas." };
+  if (p.status === "dibatalkan" || p.status === "ditolak") {
+    return { ok: false, pesan: "Pesanan ini sudah dibatalkan dan tidak bisa dibayar." };
+  }
+  if (!p.tagihan_id) return { ok: false, pesan: "Pesanan ini tidak punya tagihan." };
+
+  const t = await db<Tagihan[]>("tagihan", {
+    q: `select=*&id=eq.${p.tagihan_id}&limit=1`,
+  });
+  if (!t.ok) return { ok: false, pesan: t.pesan };
+  if (t.data.length === 0) return { ok: false, pesan: "Tagihan tidak ditemukan." };
+
+  const tagihan = t.data[0];
+
+  // Uang pas: nominalnya TOTAL, bukan angka dari browser.
+  const diterima = masuk.uang_pas ? tagihan.total : Math.round(Number(masuk.diterima));
+
+  if (!pembayaranCukup("tunai", tagihan.total, diterima)) {
+    return {
+      ok: false,
+      pesan: `Uang diterima kurang dari total ${tagihan.total.toLocaleString("id-ID")}.`,
+    };
+  }
+
+  const kembalian = Math.max(0, diterima - tagihan.total);
+  const kini = new Date().toISOString();
+
+  const bayar = await db("pembayaran", {
+    method: "POST",
+    body: {
+      tagihan_id: tagihan.id,
+      metode: "tunai",
+      diterima,
+      kembalian,
+      gerbang: "kasir",
+      status: "settlement",
+      kasir: masuk.kasir,
+    },
+  });
+  if (!bayar.ok) return { ok: false, pesan: bayar.pesan };
+
+  const upd = await db<Pesanan[]>("pesanan", {
+    method: "PATCH",
+    prefer: "return=representation",
+    q: `id=eq.${p.id}&select=*`,
+    body: {
+      status_bayar: "lunas",
+      dibayar_at: kini,
+      metode_bayar: "tunai_kasir",
+    },
+  });
+  if (!upd.ok) return { ok: false, pesan: upd.pesan };
+
+  await db("tagihan", {
+    method: "PATCH",
+    q: `id=eq.${tagihan.id}`,
+    body: { status: "lunas", ditutup_at: kini, kasir: masuk.kasir },
+  });
+
+  await db("log_perubahan", {
+    method: "POST",
+    body: {
+      siapa: masuk.kasir,
+      aksi: "lunas_tunai",
+      entitas: "pesanan",
+      entitas_id: String(p.id),
+      sebelum: { status_bayar: p.status_bayar },
+      sesudah: { status_bayar: "lunas", total: tagihan.total, diterima, kembalian },
+    },
+  });
+
+  return { ok: true, data: { pesanan: upd.data[0], kembalian } };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Penyapu kedaluwarsa
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Batalkan pesanan yang lewat batas bayar.
+ *
+ * Dipanggil webhook cron Cloudflare (setiap menit) dan juga saat portal
+ * kasir dibuka — yang kedua penting karena cron bisa gagal tanpa ada yang
+ * melihat, sedangkan kasir membuka layarnya sepanjang jam buka.
+ *
+ * KENAPA HARUS ADA: tanpa ini, pesanan yang tak pernah dibayar menahan
+ * meja berstatus `ada_pesanan` selamanya. Pelayan mendatangi meja kosong,
+ * dan kasir melihat daftar yang makin panjang.
+ *
+ * Mengembalikan jumlah yang dibatalkan agar bisa dicatat di log cron.
+ */
+export async function sapuKedaluwarsa(sekarang: Date = new Date()): Promise<number> {
+  const batas = sekarang.toISOString();
+
+  const r = await db<Pesanan[]>("pesanan", {
+    q:
+      "select=*&status_bayar=eq.menunggu" +
+      `&kedaluwarsa_at=lt.${encodeURIComponent(batas)}&limit=50`,
+  });
+  if (!r.ok) return 0;
+
+  let dibatalkan = 0;
+  for (const p of r.data) {
+    // Pesanan yang sudah dibayar di antara query dan loop ini tidak boleh
+    // disentuh. Penjagaan ganda: penyapu berjalan tiap menit, sedangkan
+    // webhook DOKU bisa masuk kapan saja.
+    const bayar = await db<Pesanan[]>("pesanan", {
+      q: `select=status_bayar&id=eq.${p.id}&limit=1`,
+    });
+    if (!bayar.ok || bayar.data[0]?.status_bayar !== "menunggu") continue;
+
+    const upd = await db("pesanan", {
+      method: "PATCH",
+      q: `id=eq.${p.id}`,
+      body: {
+        status: "dibatalkan",
+        status_bayar: "kedaluwarsa",
+        alasan_batal: "Tidak dibayar sampai batas waktu.",
+        dibatalkan_oleh: "sistem",
+      },
+    });
+    if (!upd.ok) continue;
+
+    if (p.tagihan_id) {
+      await db("tagihan", {
+        method: "PATCH",
+        q: `id=eq.${p.tagihan_id}`,
+        body: { status: "lunas", ditutup_at: batas },
+      });
+    }
+
+    /*
+      Meja dikosongkan HANYA bila tidak ada pesanan aktif lain di meja itu.
+      Tanpa syarat ini, satu pesanan kedaluwarsa mengosongkan meja yang
+      masih dipakai tamu lain — pelayan lalu mengantar pesanan ke meja yang
+      menurut sistem kosong.
+    */
+    const lain = await db<Pesanan[]>("pesanan", {
+      q:
+        `select=id&meja_id=eq.${p.meja_id}&id=neq.${p.id}` +
+        "&status=in.(menunggu_konfirmasi,diterima,diproses,siap,diantar)&limit=1",
+    });
+    if (lain.ok && lain.data.length === 0) {
+      await db("meja", { method: "PATCH", q: `id=eq.${p.meja_id}`, body: { status: "kosong" } });
+    }
+
+    dibatalkan++;
+  }
+
+  return dibatalkan;
 }

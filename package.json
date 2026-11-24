@@ -13,6 +13,7 @@
     "uji:jalur": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/jalur-pilihan.mjs",
     "uji:env": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/env-kosong.mjs",
     "uji:saring": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/saring-admin.mjs",
+    "uji:prabayar": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/prabayar.mjs",
     "uji:http": "node scripts/uji/regresi.mjs && node scripts/uji/kepala-portal.mjs && node scripts/uji/bug-audit.mjs && node scripts/uji/pilihan.mjs && npm run uji:sampai --silent",
     "uji:sampai": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/pilihan-sampai.ts",
     "uji:kepala": "node scripts/uji/kepala-portal.mjs",

@@ -13,6 +13,8 @@ import {
   ambilItemTagihan,
   ambilMenu,
   ambilPesananAktif,
+  bayarTunaiKasir,
+  sapuKedaluwarsa,
   type BarisStruk,
 } from "@/app/lib/order/data";
 import { db, PESAN_ENV_KOSONG, punyaEnvBaca, punyaKunciServer } from "@/app/lib/order/db";
@@ -21,8 +23,9 @@ import {
   demoMenuDenganStatus,
   demoSetTersedia,
 } from "@/app/lib/order/demo";
+import { bolehBayarTunai } from "@/app/lib/order/katalog";
 import { pesanModeContoh, statusModeContoh } from "@/app/lib/order/mode-contoh";
-import type { Meja, Panggilan, Tagihan } from "@/app/lib/order/tipe";
+import type { Meja, Panggilan, Pesanan, Tagihan } from "@/app/lib/order/tipe";
 
 export const dynamic = "force-dynamic";
 
@@ -50,13 +53,35 @@ export async function GET() {
     );
   }
 
-  const [pesananRes, mejaRes, tagihanRes, panggilanRes, aturan, menuRes] = await Promise.all([
+  /*
+    Penyapu dijalankan saat kasir membuka layarnya.
+
+    Cron Cloudflare bisa mati tanpa ada yang melihat; kasir membuka layar
+    ini sepanjang jam buka, jadi ini titik yang paling pasti untuk
+    membersihkan pesanan yang tak pernah dibayar. Dijalankan sebelum
+    membaca pesanan supaya daftar yang tampil sudah bersih — kalau
+    sesudahnya, kasir masih melihat pesanan kedaluwarsa satu kali lagi.
+  */
+  if (punyaKunciServer()) await sapuKedaluwarsa();
+
+  const [pesananRes, mejaRes, tagihanRes, panggilanRes, aturan, menuRes, menungguRes] =
+    await Promise.all([
     ambilPesananAktif(),
     db<Meja[]>("meja", { q: "select=*&order=nomor.asc" }),
     db<Tagihan[]>("tagihan", { q: "select=*&status=neq.lunas&order=dibuka_at.asc" }),
     db<Panggilan[]>("panggilan", { q: "select=*&ditangani_at=is.null&order=dibuat_at.asc" }),
     ambilAturan(),
     ambilMenu(),
+    /*
+      Pesanan yang BELUM dibayar. Kasir perlu melihatnya untuk dua hal:
+      menagih tunai di meja, dan menjawab tamu yang bertanya "pesanan saya
+      masuk belum?". Dapur TIDAK menerima daftar ini — hanya yang lunas.
+    */
+    db<Pesanan[]>("pesanan", {
+      q:
+        "select=*&status_bayar=eq.menunggu" +
+        "&status=neq.dibatalkan&order=created_at.asc&limit=50",
+    }),
   ]);
 
   if (!pesananRes.ok) return NextResponse.json({ pesan: pesananRes.pesan }, { status: 500 });
@@ -83,8 +108,19 @@ export async function GET() {
     petaItem.set(m.id, r.ok ? r.data : []);
   });
 
+  /*
+    Pesanan menunggu bayar disertai nomor meja, supaya kasir bisa
+    mendatangi meja yang benar tanpa mencari id meja secara manual.
+  */
+  const petaNomorMeja = new Map(mejaRes.data.map((m) => [m.id, m.nomor]));
+  const menunggu = (menungguRes.ok ? menungguRes.data : []).map((p) => ({
+    ...p,
+    meja_nomor: petaNomorMeja.get(p.meja_id) ?? String(p.meja_id),
+  }));
+
   return NextResponse.json({
     pesanan: pesananRes.data,
+    menunggu_bayar: menunggu,
     meja: mejaRes.data.map((m) => ({
       ...m,
       tagihan: petaTagihan.get(m.id) ?? null,
@@ -113,6 +149,11 @@ export async function POST(req: Request) {
     menu_id?: number;
     tersedia?: boolean;
     oleh?: string;
+    /** Untuk aksi `bayar_tunai`. */
+    pesanan_id?: number;
+    diterima?: number;
+    /** Tamu membayar uang pas — nominal ditentukan server, bukan browser. */
+    uang_pas?: boolean;
   };
   try {
     badan = await req.json();
@@ -188,6 +229,55 @@ export async function POST(req: Request) {
     Tidak tersedia saat kunci server terpasang, jadi tidak bisa menghapus
     data sungguhan.
   */
+  /*
+    BAYAR TUNAI DI KASIR (keputusan pemilik: tetap diizinkan).
+
+    Kasir dan dapur hanya menerima pesanan yang LUNAS. Karena itu tunai
+    tidak "melewati" aturan — ia menandai lunas dengan cara lain. Setelah
+    aksi ini, pesanan muncul di daftar aktif kasir dan tiket dapur.
+
+    Bisa dimatikan pemilik lewat `pengaturan` → `bayar_tunai_kasir = off`.
+  */
+  if (badan.aksi === "bayar_tunai") {
+    if (!punyaKunciServer()) {
+      return NextResponse.json(
+        {
+          pesan:
+            "Kunci server belum dipasang, pembayaran tunai tidak bisa dicatat.",
+          demo: true,
+        },
+        { status: 503 }
+      );
+    }
+
+    const pesananId = Number(badan.pesanan_id);
+    if (!Number.isFinite(pesananId) || pesananId <= 0) {
+      return NextResponse.json({ pesan: "Pesanan tidak sah." }, { status: 400 });
+    }
+    if (!(await bolehBayarTunai())) {
+      return NextResponse.json(
+        { pesan: "Bayar tunai sedang dimatikan. Aktifkan di pengaturan." },
+        { status: 403 }
+      );
+    }
+
+    const uangPas = badan.uang_pas === true;
+    const diterima = uangPas ? 0 : Math.round(Number(badan.diterima));
+    if (!uangPas && (!Number.isFinite(diterima) || diterima < 0)) {
+      return NextResponse.json({ pesan: "Nominal tidak sah." }, { status: 400 });
+    }
+
+    const hasil = await bayarTunaiKasir({
+      pesanan_id: pesananId,
+      diterima,
+      uang_pas: uangPas,
+      kasir: String(badan.oleh ?? "kasir").slice(0, 40),
+    });
+    if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });
+
+    return NextResponse.json({ ok: true, ...hasil.data });
+  }
+
   if (badan.aksi === "reset_demo") {
     /*
       Menghapus penandaan "habis" yang tersimpan di memori Worker.

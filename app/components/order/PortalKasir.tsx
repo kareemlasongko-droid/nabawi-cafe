@@ -56,6 +56,9 @@ type ItemPesanan = {
 
 type PesananK = {
   id: number;
+  /** Sejak prabayar: 'menunggu' | 'lunas' | … — menentukan tampil di dapur. */
+  status_bayar?: string;
+  no_wa?: string | null;
   nomor: string;
   meja_id: number;
   meja_nomor: string;
@@ -82,8 +85,28 @@ type MejaKasir = Meja & {
   items_tagihan?: BarisStruk[];
 };
 
+/**
+ * Pesanan yang BELUM dibayar.
+ *
+ * Ditampilkan terpisah dari antrean dapur, dan hanya di kasir. Tujuannya
+ * satu: kasir bisa menagih tunai di meja tanpa berpindah aplikasi. Pesanan
+ * di sini TIDAK pernah masuk tiket dapur sampai uangnya diterima.
+ */
+type MenungguBayar = {
+  id: number;
+  nomor: string;
+  meja_id: number;
+  meja_nomor: string;
+  nama_pemesan: string | null;
+  no_wa: string | null;
+  total_item: number;
+  created_at: string;
+  kedaluwarsa_at: string | null;
+};
+
 type DataKasir = {
   pesanan: PesananK[];
+  menunggu_bayar?: MenungguBayar[];
   meja: MejaKasir[];
   panggilan: (Panggilan & { meja_nomor: string })[];
   menu?: Menu[];
@@ -132,6 +155,8 @@ export function PortalKasir() {
   const [menuHabisBuka, setMenuHabisBuka] = useState(false);
   const [menuSibuk, setMenuSibuk] = useState(0);
   const [struk, setStruk] = useState<StrukData | null>(null);
+  /** id pesanan yang sedang dicatat pembayarannya — mencegah ketuk ganda. */
+  const [memproses, setMemproses] = useState<number | null>(null);
 
   const jumlahLalu = useRef(0);
 
@@ -164,6 +189,53 @@ export function PortalKasir() {
     const t = setInterval(muat, 4000);
     return () => clearInterval(t);
   }, [muat]);
+
+  /**
+   * Catat pembayaran tunai untuk satu pesanan.
+   *
+   * `uang_pas: true` — kasir tidak memasukkan nominal di kartu ini; tombol
+   * ini untuk tamu yang sudah menyiapkan uang pas. Server yang membaca
+   * total dari database. JANGAN mengirim angka besar sebagai "nominal
+   * tak terbatas": kembalian yang tercatat akan ikut salah, dan itu
+   * merusak laporan kas di akhir hari.
+   */
+  const bayarTunai = useCallback(
+    async (p: MenungguBayar) => {
+      if (memproses !== null) return;
+
+      const teks = `${p.total_item} item · ${p.nama_pemesan ?? "tanpa nama"}`;
+      if (!window.confirm(`Terima pembayaran tunai untuk ${p.nomor} (${teks})?`)) return;
+
+      setMemproses(p.id);
+      try {
+        // Nominal uang pas: total tagihan tidak dikirim dari sini. Server
+        // yang membacanya dari database, lalu menolak bila kurang.
+        const res = await fetch("/api/order/kasir", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            aksi: "bayar_tunai",
+            pesanan_id: p.id,
+            uang_pas: true,
+            oleh: "kasir",
+          }),
+        });
+        const j = (await res.json()) as { pesan?: string };
+        if (!res.ok) {
+          setGalat(j.pesan ?? "Pembayaran tunai gagal dicatat.");
+          return;
+        }
+        setGalat("");
+        await muat();
+      } catch {
+        setGalat("Koneksi terputus. Pembayaran belum tercatat.");
+      } finally {
+        setMemproses(null);
+      }
+    },
+    [memproses, muat]
+  );
+
 
   // Bunyi untuk pesanan baru (K-01). Nada dibuat dengan WebAudio, bukan
   // file audio: tidak ada aset yang perlu diunduh di sinyal lemah.
@@ -247,6 +319,14 @@ export function PortalKasir() {
     () => (data?.pesanan ?? []).filter((p) => p.status === "menunggu_konfirmasi"),
     [data]
   );
+
+  /*
+    Pesanan yang belum dibayar. SENGAJA TIDAK digabung ke `antrean`:
+    antrean adalah pekerjaan yang boleh dikerjakan sekarang, sedangkan ini
+    adalah pekerjaan yang menunggu uang. Menggabungkannya membuat kasir
+    menerima pesanan yang belum lunas karena keduanya tampak sama.
+  */
+  const menungguBayar = data?.menunggu_bayar ?? [];
   const diproses = useMemo(
     () => (data?.pesanan ?? []).filter((p) => ["diterima", "diproses", "siap"].includes(p.status)),
     [data]
@@ -291,6 +371,75 @@ export function PortalKasir() {
         <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
           <p className="text-[0.8125rem] font-semibold text-clay-800">{galat}</p>
         </div>
+      )}
+
+      {/*
+        ── MENUNGGU BAYAR ──
+        Di atas segalanya karena ini satu-satunya daftar yang butuh
+        tindakan kasir SEKARANG: tamu sudah memesan, duduk, dan menunggu.
+        Pesanan di sini belum masuk dapur dan akan hilang sendiri setelah
+        batas waktu — jadi kalau kasir tidak melihatnya, tamu tidak dapat
+        makanan tanpa ada yang tahu kenapa.
+      */}
+      {menungguBayar.length > 0 && (
+        <section
+          aria-labelledby="menunggu-bayar"
+          className="border-b border-bersih-200 bg-bersih-100 px-4 py-3 sm:px-6"
+        >
+          <h2
+            id="menunggu-bayar"
+            className="mb-2 flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-clay-800"
+          >
+            Belum dibayar
+            <span className="rounded-full bg-clay-700 px-2 py-0.5 text-[0.6875rem] font-bold text-bersih-0">
+              {menungguBayar.length}
+            </span>
+          </h2>
+
+          <ul className="flex gap-2 overflow-x-auto pb-1">
+            {menungguBayar.map((p) => (
+              <li
+                key={p.id}
+                className="min-w-[15rem] shrink-0 rounded-[0.625rem] border border-clay-700/30 bg-bersih-0 p-2.5"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-[0.875rem] font-extrabold text-tinta-900">
+                    Meja {p.meja_nomor}
+                  </p>
+                  <span className="font-mono text-[0.6875rem] text-tinta-500">{p.nomor}</span>
+                </div>
+                <p className="mt-0.5 truncate text-[0.75rem] text-tinta-500">
+                  {p.nama_pemesan ?? "Tanpa nama"} · {p.total_item} item
+                </p>
+
+                {/*
+                  Nomor WA ditampilkan, bukan disimpan diam-diam. Kasir
+                  membutuhkannya untuk menagih/menghubungi tamu — dan data
+                  yang tidak pernah terlihat tidak akan pernah dipakai.
+                */}
+                {p.no_wa && (
+                  <a
+                    href={`https://wa.me/${p.no_wa.replace(/[^0-9]/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-0.5 block font-mono text-[0.6875rem] text-forest-700 underline"
+                  >
+                    {p.no_wa}
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => bayarTunai(p)}
+                  disabled={memproses === p.id}
+                  className="mt-2 h-9 w-full rounded-[0.5rem] bg-forest-700 text-[0.75rem] font-extrabold text-bersih-0 disabled:opacity-50"
+                >
+                  {memproses === p.id ? "Menyimpan…" : "Bayar tunai"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
