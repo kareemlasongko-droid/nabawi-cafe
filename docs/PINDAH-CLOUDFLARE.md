@@ -46,7 +46,40 @@ Dijalankan dengan `npx wrangler dev --local`, binding `IMAGES`/`ASSETS`
 3. Buat **API Token**: My Profile → API Tokens → Create Token →
    template **"Edit Cloudflare Workers"**. Simpan tokennya.
 
-### 2.2 Deploy pertama dari komputer Anda
+### 2.2 Setelan build di dashboard Cloudflare (INI YANG MEMBUAT DEPLOY GAGAL)
+
+Kalau repo sudah terhubung ke Cloudflare lewat GitHub, Cloudflare
+menanyakan build command. Nilai defaultnya **salah** untuk proyek ini.
+
+| Setelan | Default (salah) | Yang benar |
+|---|---|---|
+| Build command | `npm run build` | `npx opennextjs-cloudflare build` |
+| Deploy command | `npx wrangler deploy` | tetap — sudah benar |
+
+**Kenapa `npm run build` gagal.** Perintah itu hanya menjalankan
+`next build`, yang menghasilkan `.next`. Yang dibutuhkan Worker adalah
+`.open-next/worker.js`. Deploy lalu berhenti dengan pesan yang
+menyesatkan:
+
+```
+ERROR Could not find compiled Open Next config, did you run the build command?
+```
+
+Padahal yang hilang bukan konfigurasi, melainkan artefak Worker.
+Direproduksi lokal: `npx wrangler deploy --dry-run` pada repo yang hanya
+di-`next build` menghasilkan
+`The entry-point file at ".open-next/worker.js" was not found.`
+Setelah `npx opennextjs-cloudflare build`, deploy berjalan.
+
+Catatan: `npx opennextjs-cloudflare build` **memanggil `next build`
+sendiri** — jangan dirangkai dua kali.
+
+Setel juga **`NODE_VERSION=22`** di environment variables. Log build
+Cloudflare memakai Node 24 sementara `package.json` mensyaratkan `22.x`
+(warning `EBADENGINE`). Tidak fatal hari ini, tapi berarti build berjalan
+di versi yang berbeda dari yang diuji.
+
+### 2.3 Deploy pertama dari komputer Anda
 
 ```bash
 npx wrangler login          # sekali saja, membuka browser
@@ -64,7 +97,7 @@ https://nabawi-cafe.<subdomain-akun>.workers.dev
 > dibuat dan alamat lama tetap hidup — dua salinan aplikasi. Putuskan
 > sebelum deploy pertama.
 
-### 2.3 Pasang variabel environment
+### 2.4 Pasang variabel environment
 
 Dua lapis, dan ini yang paling sering tertukar:
 
@@ -82,7 +115,7 @@ lewat dashboard Worker → Settings → Variables, atau `vars` di
 
 **Selama transisi, isi di Vercel DAN Cloudflare.** Jangan cabut Vercel.
 
-### 2.4 Nyalakan CI (opsional)
+### 2.5 Nyalakan CI (opsional)
 
 Kalau ingin setiap PR otomatis dapat URL preview:
 
@@ -96,6 +129,29 @@ Selama `CLOUDFLARE_ENABLED` tidak ada, alur ini **dilewati** — bukan merah.
 ---
 
 ## 3. Uji sebelum menyentuh domain
+
+### 3.1 Otomatis dulu
+
+```bash
+npm run verifikasi -- https://nabawi-cafe.<subdomain>.workers.dev
+```
+
+Skrip ini memeriksa 24 hal: semua halaman (termasuk kelima portal staf),
+isi `/menu` (126 kartu, 6 kategori, 7 pil, aturan saring), **optimasi
+gambar** (harus jauh di bawah 723 KB dan berformat AVIF/WebP), API
+(`/api/order/menu/tersedia` dan penolakan pesanan kosong), serta CSS.
+
+Ia juga **berhenti dengan kode gagal** kalau ada yang tidak beres, jadi
+bisa dipakai di CI. Yang tidak bisa dinilai dari luar ditulis eksplisit
+sebagai "LEWAT", bukan diam-diam dianggap lulus.
+
+Yang **tidak** bisa diperiksa skrip ini dan tetap harus Anda lihat:
+
+- [ ] menu benar-benar dari database (bandingkan satu harga dengan dashboard Supabase)
+- [ ] pesanan sungguhan terkirim dan muncul di portal dapur
+- [ ] waktu muat terasa setara atau lebih cepat dari Vercel
+
+### 3.2 Manual di HP
 
 Buka alamat `workers.dev` di HP, lalu periksa **satu per satu**:
 
@@ -150,6 +206,10 @@ Images). Lihat dokumentasi adapter bagian *"Use a custom loader"*.
   tetap harus Anda lakukan di Workers sungguhan.
 - **Belum ada deploy.** Tidak ada akun Cloudflare di sesi ini, jadi semua
   yang tertulis di sini berhenti di "siap deploy", bukan "sudah deploy".
+- **Node di build Cloudflare = 24, bukan 22.** `package.json` mensyaratkan
+  `22.x`, jadi build berjalan di versi berbeda dari yang diuji. Setel
+  `NODE_VERSION=22` di environment variables Worker, atau longgarkan
+  `engines` ke `>=22` setelah diuji.
 - **`vercel.json` sengaja belum dihapus.** Ia mematikan deploy `main` di
   Vercel. Menghapusnya sebelum Cloudflare terbukti justru menghidupkan
   deploy otomatis di Vercel saat `main` berubah — kebalikan dari yang
