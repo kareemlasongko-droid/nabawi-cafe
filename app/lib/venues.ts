@@ -82,168 +82,17 @@ function dariBaris(b: BarisSupabase): Venue {
  * Salinan lokal — isinya SAMA dengan yang ada di Supabase saat ini.
  * Dipakai hanya kalau Supabase tidak bisa dihubungi.
  */
-export const VENUES_LOKAL: Venue[] = [
-  {
-    slug: "gerbang-maroko",
-    urutan: 1,
-    nama: "Gerbang Maroko",
-    kategori: "Pintu Masuk",
-    ringkasan: "Pintu utama bernuansa lengkung Maroko, titik awal perjalanan.",
-    deskripsi:
-      "Berdiri di ambang gerbang ini, pengunjung disambut lengkungan batu bata dan lentera kuningan khas Maroko. Suara air dari sungai terdengar samar di balik pepohonan, jadi suasana kota langsung mengendur begitu kaki menapak.",
-    panoramaUrl: "/images/tour/gerbang-maroko.jpg",
-    petaX: 50,
-    petaY: 88,
-    aksen: "clay",
-    fasilitas: ["Area parkir", "Penyambut tamu", "Papan petunjuk"],
-    jamBuka: "Setiap Hari 09.00 – 21.00",
-    durasiMenit: 2,
-  },
-  {
-    slug: "taman-riverside",
-    urutan: 2,
-    nama: "Taman Riverside",
-    kategori: "Alam Terbuka",
-    ringkasan: "Hamparan rumput tepi sungai dengan gazebo dan ayunan.",
-    deskripsi:
-      "Bagian paling lapang dari Nabawi Cafe. Rumput hijau menurun ke tepi sungai, dihiasi gazebo beratap jerami dan ayunan gantung di antara pohon. Tempat favorit untuk duduk lama tanpa memesan apa pun selain udara sore.",
-    panoramaUrl: "/images/tour/taman-riverside.jpg",
-    petaX: 26,
-    petaY: 72,
-    aksen: "forest",
-    fasilitas: ["Gazebo", "Ayunan", "Pemandangan sungai", "Area piknik"],
-    jamBuka: "Setiap Hari 09.00 – 21.00",
-    durasiMenit: 4,
-  },
-  {
-    slug: "teras-lentera",
-    urutan: 3,
-    nama: "Teras Lentera",
-    kategori: "Semi Terbuka",
-    ringkasan: "Deretan lentera kuningan yang menyala saat senja.",
-    deskripsi:
-      "Teras beratap rendah dengan puluhan lentera kuningan bergantung. Menjelang magrib lenteranya dinyalakan satu per satu, dan cahaya hangatnya memantul di lantai batu — momen yang paling sering difoto pengunjung.",
-    panoramaUrl: "/images/tour/teras-lentera.jpg",
-    petaX: 61,
-    petaY: 66,
-    aksen: "cream",
-    fasilitas: ["Lentera kuningan", "Meja outdoor", "Colokan listrik"],
-    jamBuka: "Setiap Hari 09.00 – 21.00",
-    durasiMenit: 3,
-  },
-  {
-    slug: "pendopo-utama",
-    urutan: 4,
-    nama: "Pendopo Utama",
-    kategori: "Area Bersama",
-    ringkasan: "Balai terbuka beratap tinggi untuk berkumpul.",
-    deskripsi:
-      "Balai besar dengan tiang kayu dan ukiran geometris Maroko. Dipakai untuk acara keluarga, komunitas, dan live music akhir pekan. Sirkulasi udaranya baik meski siang, karena sisi-sisinya dibiarkan terbuka.",
-    panoramaUrl: "/images/tour/pendopo-utama.jpg",
-    petaX: 50,
-    petaY: 50,
-    aksen: "forest",
-    fasilitas: ["Kapasitas 60 orang", "Live music", "Proyektor"],
-    jamBuka: "Setiap Hari 09.00 – 21.00",
-    durasiMenit: 3,
-  },
-  {
-    slug: "kafe-indoor",
-    urutan: 5,
-    nama: "Kafe Indoor",
-    kategori: "Area Duduk",
-    ringkasan: "Ruang ber-AC dengan kursi empuk dan rak buku.",
-    deskripsi:
-      "Ruang utama ber-AC dengan jendela tinggi menghadap taman. Ada rak buku, colokan di tiap meja, dan Wi-Fi kencang — banyak yang menjadikannya tempat kerja setengah hari.",
-    panoramaUrl: "/images/tour/kafe-indoor.jpg",
-    petaX: 42,
-    petaY: 44,
-    aksen: "clay",
-    fasilitas: ["AC", "Wi-Fi", "Colokan listrik", "Rak buku", "Area non-rokok"],
-    jamBuka: "Setiap Hari 09.00 – 21.00",
-    durasiMenit: 3,
-  },
-  {
-    slug: "bar-kopi",
-    urutan: 6,
-    nama: "Bar Kopi",
-    kategori: "Counter",
-    ringkasan: "Bar tempat biji kopi disangrai dan diseduh terbuka.",
-    deskripsi:
-      "Counter panjang dari kayu jati. Barista menyangrai dan menyeduh di depan tamu, jadi aroma kopi menyebar ke seluruh ruangan. Ada kursi bar untuk yang ingin mengobrol sambil menunggu.",
-    panoramaUrl: "/images/tour/bar-kopi.jpg",
-    petaX: 34,
-    petaY: 38,
-    aksen: "cream",
-    fasilitas: ["Kursi bar", "Manual brew", "Biji kopi retail"],
-    jamBuka: "Setiap Hari 09.00 – 21.00",
-    durasiMenit: 3,
-  },
-  {
-    slug: "dapur-terbuka",
-    urutan: 7,
-    nama: "Dapur Terbuka",
-    kategori: "Counter",
-    ringkasan: "Dapur kaca tempat hidangan Maroko dimasak.",
-    deskripsi:
-      "Dapur dengan dinding kaca sehingga tamu bisa melihat langsung proses memasak. Tagine, couscous, dan roti khobz dibuat di sini setiap hari mulai pukul sembilan pagi.",
-    panoramaUrl: "/images/tour/dapur-terbuka.jpg",
-    petaX: 58,
-    petaY: 40,
-    aksen: "forest",
-    fasilitas: ["Dapur kaca", "Chef harian", "Pesanan khusus"],
-    jamBuka: "Setiap Hari 09.00 – 21.00",
-    durasiMenit: 2,
-  },
-  {
-    slug: "dek-sungai",
-    urutan: 8,
-    nama: "Dek Sungai",
-    kategori: "Alam Terbuka",
-    ringkasan: "Dek kayu menjorok ke atas air, terbaik saat senja.",
-    deskripsi:
-      "Dek kayu yang menjorok beberapa meter ke atas sungai. Duduk di tepinya, kaki menggantung, sambil menunggu matahari turun di balik pohon — bagian yang paling sering disebut tamu sebagai alasan mereka kembali.",
-    panoramaUrl: "/images/tour/dek-sungai.jpg",
-    petaX: 18,
-    petaY: 58,
-    aksen: "clay",
-    fasilitas: ["Dek kayu", "Pemandangan sungai", "Spot foto"],
-    jamBuka: "Setiap Hari 16.00 – 21.00",
-    durasiMenit: 4,
-  },
-  {
-    slug: "galeri-seni",
-    urutan: 9,
-    nama: "Galeri Seni",
-    kategori: "Budaya",
-    ringkasan: "Karya seniman lokal dan kerajinan tangan Maroko.",
-    deskripsi:
-      "Ruang pamer kecil berisi karya seniman lokal, kain tenun, dan keramik Maroko. Karya yang dipajang berganti tiap bulan, dan sebagian bisa dibeli langsung di kasir.",
-    panoramaUrl: "/images/tour/galeri-seni.jpg",
-    petaX: 72,
-    petaY: 52,
-    aksen: "cream",
-    fasilitas: ["Pameran bulanan", "Karya dijual", "Tur berpemandu"],
-    jamBuka: "Setiap Hari 10.00 – 20.00",
-    durasiMenit: 3,
-  },
-  {
-    slug: "toko-suvenir",
-    urutan: 10,
-    nama: "Toko Suvenir",
-    kategori: "Belanja",
-    ringkasan: "Biji kopi, keramik, dan oleh-oleh khas Nabawi.",
-    deskripsi:
-      "Toko kecil di dekat pintu keluar. Isinya biji kopi sangrai sendiri, keramik Maroko, dan kain tenun. Tempat terakhir yang hampir selalu disinggahi tamu sebelum pulang.",
-    panoramaUrl: "/images/tour/toko-suvenir.jpg",
-    petaX: 82,
-    petaY: 74,
-    aksen: "forest",
-    fasilitas: ["Biji kopi", "Keramik", "Kain tenun", "Kemasan hadiah"],
-    jamBuka: "Setiap Hari 09.00 – 21.00",
-    durasiMenit: 2,
-  },
-];
+
+/* ── VENUES_LOKAL DIHAPUS ──────────────────────────────────────────────
+ *
+ * Di sini dulu tinggal salinan 10 tempat (nama, deskripsi, fasilitas,
+ * panorama) sebagai cadangan bila Supabase tidak terjangkau. Pemilik
+ * meminta data yang menempel di kode dihapus dan semuanya masuk database.
+ * Isinya sudah ada di tabel `tour_venues` — 10 baris, slug dan teks yang
+ * sama persis, diperiksa sebelum penghapusan ini.
+ *
+ * Halaman /tour sekarang menampilkan masalah bila database tidak terbaca.
+ */
 
 /**
  * Ambil semua tempat, urut sesuai `urutan`.
@@ -262,11 +111,11 @@ export const VENUES_LOKAL: Venue[] = [
  */
 export async function ambilVenues(): Promise<{
   venues: Venue[];
-  sumber: "supabase" | "lokal" | "tanpa-env";
+  sumber: "supabase" | "gagal";
+  pesan: string;
 }> {
   if (!envSupabaseSiap()) {
-    console.warn(`[venues] ${PESAN_ENV_SUPABASE} Memakai salinan lokal.`);
-    return { venues: VENUES_LOKAL, sumber: "tanpa-env" };
+    return { venues: [], sumber: "gagal", pesan: PESAN_ENV_SUPABASE };
   }
 
   try {
@@ -275,18 +124,34 @@ export async function ambilVenues(): Promise<{
       "select=slug,urutan,nama,kategori,ringkasan,deskripsi,panorama_url,peta_x,peta_y,aksen,fasilitas,jam_buka,durasi_menit&is_published=eq.true&order=urutan.asc",
     );
 
+    /*
+      Kosong diperlakukan sebagai MASALAH, bukan "belum ada tempat".
+
+      Kalau tabel kosong, halaman akan tampil sebagai tur tanpa tempat —
+      yang terlihat seperti fitur belum diisi, padahal biasanya berarti
+      migrasi belum dijalankan atau `is_published` belum disetel.
+    */
     if (baris.length === 0) {
-      return { venues: VENUES_LOKAL, sumber: "lokal" };
+      return {
+        venues: [],
+        sumber: "gagal",
+        pesan:
+          "Belum ada tempat yang terbit di database. Periksa tabel " +
+          "tour_venues: pastikan is_published = true.",
+      };
     }
 
-    return { venues: baris.map(dariBaris), sumber: "supabase" };
+    return { venues: baris.map(dariBaris), sumber: "supabase", pesan: "" };
   } catch (e) {
-    /* Pesan dibedakan supaya saat membaca log tidak tertukar:
-       - 401/403  -> kunci ditolak (salah kunci / belum diisi)
-       - 42501    -> kunci benar tapi role `anon` belum diberi GRANT SELECT
-       - ECONN*   -> memang gangguan jaringan
-       Ketiganya sama-sama jatuh ke salinan lokal, tapi penyebabnya
-       berbeda dan perlu ditangani dengan cara berbeda. */
+    /*
+      Pesan dibedakan supaya saat membaca log tidak tertukar:
+        - 401/403  -> kunci ditolak (salah kunci)
+        - 42501    -> kunci benar tapi role anon belum diberi GRANT SELECT
+        - ECONN*   -> memang gangguan jaringan
+
+      Tidak ada lagi fallback ke salinan lokal: itulah yang dulu membuat
+      halaman tampak sehat padahal database tidak pernah dibaca.
+    */
     const pesan = String(e);
     const sebab = /\b401\b|\b403\b/.test(pesan)
       ? "kunci ditolak"
@@ -295,11 +160,13 @@ export async function ambilVenues(): Promise<{
         : /ECONN|ENOTFOUND|fetch failed|timeout/i.test(pesan)
           ? "jaringan tidak terjangkau"
           : "kesalahan lain";
-    console.warn(
-      `[venues] Supabase gagal (${sebab}), memakai salinan lokal:`,
-      e,
-    );
-    return { venues: VENUES_LOKAL, sumber: "lokal" };
+
+    console.warn(`[venues] Supabase gagal (${sebab}):`, e);
+    return {
+      venues: [],
+      sumber: "gagal",
+      pesan: `Data tempat tidak bisa dibaca dari database (${sebab}).`,
+    };
   }
 }
 

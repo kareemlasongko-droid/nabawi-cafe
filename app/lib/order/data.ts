@@ -30,67 +30,29 @@ import { nomorPesanan } from "./aturan";
 export type Hasil<T> = { ok: true; data: T } | { ok: false; pesan: string };
 
 // ─────────────────────────────────────────────────────────────
-// Menu
+// Menu, meja, pengaturan — PINDAH ke katalog.ts
 // ─────────────────────────────────────────────────────────────
 
-export type MenuLengkap = {
-  kategori: KategoriMenu[];
-  menu: Menu[];
-};
+/*
+  Menu, meja, dan pengaturan biaya sekarang tinggal di satu pintu:
+  `app/lib/order/katalog.ts`. Alasan pemindahan ada di berkas itu —
+  ringkasnya: satu tempat untuk "dari mana data ini datang" jauh lebih
+  mudah dijaga daripada definisi yang tersebar.
 
-export async function ambilMenu(): Promise<Hasil<MenuLengkap>> {
-  const [kat, mn] = await Promise.all([
-    db<KategoriMenu[]>("kategori_menu", { q: "select=*&order=urutan.asc" }),
-    db<Menu[]>("menu", { q: "select=*&order=urutan.asc" }),
-  ]);
+  Diekspor ulang di sini supaya pemanggil lama (rute API, halaman) tidak
+  perlu diubah sekaligus, dan supaya hanya ada SATU definisi `ambilMenu`.
+*/
+export {
+  ambilAturan,
+  ambilMeja,
+  ambilMenu,
+  bacaAturan,
+} from "./katalog";
+export type { MenuLengkap } from "./katalog";
 
-  if (!kat.ok) return { ok: false, pesan: kat.pesan };
-  if (!mn.ok) return { ok: false, pesan: mn.pesan };
-
-  return { ok: true, data: { kategori: kat.data, menu: mn.data } };
-}
-
-// ─────────────────────────────────────────────────────────────
-// Meja
-// ─────────────────────────────────────────────────────────────
-
-export async function ambilMeja(nomor?: string): Promise<Hasil<Meja | Meja[]>> {
-  if (nomor !== undefined) {
-    const r = await db<Meja[]>("meja", {
-      q: `select=*&nomor=eq.${encodeURIComponent(nomor)}&aktif=eq.true&limit=1`,
-    });
-    if (!r.ok) return { ok: false, pesan: r.pesan };
-    if (r.data.length === 0) return { ok: false, pesan: "Nomor meja tidak dikenali." };
-    return { ok: true, data: r.data[0] };
-  }
-  const r = await db<Meja[]>("meja", { q: "select=*&order=nomor.asc" });
-  if (!r.ok) return { ok: false, pesan: r.pesan };
-  return { ok: true, data: r.data };
-}
-
-// ─────────────────────────────────────────────────────────────
-// Pengaturan biaya
-// ─────────────────────────────────────────────────────────────
-
-export async function ambilAturan(): Promise<AturanBiaya> {
-  const r = await db<{ kunci: string; nilai: string }[]>("pengaturan", {
-    q: "select=kunci,nilai",
-  });
-  if (!r.ok) return ATURAN_BAWAAN;
-
-  const peta = new Map(r.data.map((x) => [x.kunci, x.nilai]));
-  const angka = (k: string, cadangan: number) => {
-    const v = Number(peta.get(k));
-    return Number.isFinite(v) ? v : cadangan;
-  };
-
-  return {
-    pajakPersen: angka("pajak_persen", ATURAN_BAWAAN.pajakPersen),
-    layananPersen: angka("layanan_persen", ATURAN_BAWAAN.layananPersen),
-    layananRp: angka("layanan_rp", ATURAN_BAWAAN.layananRp),
-    pembulatan: angka("pembulatan", ATURAN_BAWAAN.pembulatan),
-  };
-}
+// Dipakai juga DI DALAM berkas ini (buatPesanan, hitungUlangTagihan), jadi
+// perlu diimpor, bukan hanya diekspor ulang.
+import { ambilAturan, ambilMeja } from "./katalog";
 
 // ─────────────────────────────────────────────────────────────
 // Buat pesanan

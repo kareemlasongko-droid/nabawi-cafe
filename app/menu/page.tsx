@@ -11,9 +11,8 @@ import {
 } from "../components/menu/IkonKategori";
 import { SaringanKategori } from "../components/menu/SaringanKategori";
 import { Navbar } from "../components/Navbar";
+import { LayarMasalah } from "../components/LayarMasalah";
 import { ambilMenu } from "../lib/order/data";
-import { punyaEnvBaca } from "../lib/order/db";
-import { MENU_CONTOH } from "../lib/order/demo";
 import { bacaPilihan, urutkanMenu } from "../lib/order/aturan";
 import { aturanSaring, kelompokkanMenu } from "../lib/order/saring";
 import type { KategoriMenu, Menu } from "../lib/order/tipe";
@@ -39,6 +38,22 @@ import type { KategoriMenu, Menu } from "../lib/order/tipe";
  * Yang tetap dibuang dari /tour: peta mini, chevron ">" (tak ada halaman
  * detail), nomor urut 01–126, badge durasi, dan footer.
  */
+
+/*
+  WAJIB: halaman ini dibaca saat DIMINTA, bukan saat build.
+
+  Dulu halaman ini static (dibekukan saat `next build`) dan itu tidak
+  terlihat masalah — karena ada salinan menu di kode, hasil bekunya tetap
+  tampak benar. Setelah salinan dihapus, konsekuensinya jadi nyata:
+  environment dibaca saat BUILD, dan halaman yang dibekukan tanpa env akan
+  menampilkan "Menu belum bisa dimuat" SELAMANYA walau env dipasang
+  belakangan di runtime.
+
+  Selain itu, harga dan ketersediaan berubah dari /order/admin. Halaman
+  yang dibekukan berarti kasir menandai "habis" dan /menu tetap
+  menampilkannya sampai deploy berikutnya.
+*/
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Menu Kami — Nabawi Cafe & Resto",
@@ -166,45 +181,49 @@ export default async function MenuPage() {
   const res = await ambilMenu();
 
   /*
-    CADANGAN SAAT DATABASE TIDAK TERBACA: MENU_CONTOH.
+    TIDAK ADA LAGI SALINAN MENU DI KODE.
 
-    Saya sempat menulis di sini bahwa MENU_CONTOH berisi "hidangan
-    karangan", lalu memasang layar galat + pita "Mode demo" untuk
-    menutupinya. Setelah menghitung isinya, anggapan itu SALAH:
-    MENU_CONTOH adalah salinan menu Nabawi yang sebenarnya — 126 baris,
-    nama dan harga yang sama dengan database, termasuk 4 menu berpilihan.
-    Menu karangan (Harira, Tajine, Couscous) sudah lama dibuang dari
-    berkas ini.
+    Sampai sesi ini halaman ini punya `MENU_CONTOH` sebagai cadangan: 132
+    baris salinan menu yang menempel di `demo.ts`. Niatnya baik — tamu
+    tetap bisa melihat menu saat database gagal — tetapi akibatnya fatal
+    bagi kejujuran sistem: situs tampil berisi 126 menu walau environment
+    belum diisi sama sekali, dan pemilik (juga saya) menyimpulkan semuanya
+    berjalan.
 
-    Jadi yang benar: tampilkan salinan itu apa adanya, TANPA pita
-    peringatan. Peringatan "ini bukan menu kami" justru bohong, dan
-    menyembunyikan seluruh menu karena satu kueri gagal membuat tamu
-    tidak bisa melihat apa pun padahal kami punya datanya.
-
-    Yang perlu disadari: salinan ini bisa BASI. Kalau harga naik atau
-    sebuah hidangan habis setelah demo.ts disalin, tamu bisa membaca
-    harga lama. /order mengambil sikap yang sama.
+    Pemilik memutuskan: data harus masuk database, salinan di kode tidak
+    perlu. Jadi kalau database tidak terbaca, halaman ini MENGATAKANNYA.
+    Menu yang salah harga lebih berbahaya daripada halaman yang jujur
+    sedang bermasalah.
   */
-  const data = res.ok ? res.data : MENU_CONTOH;
+  if (!res.ok) {
+    return (
+      <LayarMasalah
+        judul="Menu belum bisa dimuat"
+        pesan="Daftar menu kami sedang tidak bisa diambil. Coba muat ulang sebentar lagi, atau panggil pelayan untuk dibantu."
+        teknis={res.pesan}
+        kembaliKe="/fitur"
+        labelKembali="Kembali ke Fitur"
+      />
+    );
+  }
 
-  /*
-    Kenapa salinan lokal dipakai: `res` gagal berarti database tidak
-    terjangkau. Menyembunyikan seluruh menu karena satu kueri gagal membuat
-    tamu tidak bisa melihat apa pun padahal datanya kami punya. Yang WAJIB
-    adalah memberi tahu bahwa ini salinan, bukan database — dan itu diurus
-    `tanpaEnv` di bawah.
-
-    Bedanya dengan versi sebelumnya: kegagalan karena ENV KOSONG sekarang
-    dipisahkan dari kegagalan jaringan. Env kosong berarti database tidak
-    pernah dihubungi, jadi memakai salinan tanpa sepatah kata pun membuat
-    salah konfigurasi tidak terlihat.
-  */
-  const tanpaEnv = !punyaEnvBaca();
+  const data = res.data;
   const kelompok = kelompokkanMenu(data.kategori as KategoriMenu[], data.menu as Menu[]);
 
-  /* Jumlah HANYA menu yang tersedia. Menyebut "126 menu" padahal 8 sedang
-     habis akan terasa seperti janji yang tidak ditepati. */
-  const tersedia = data.menu.filter((m) => m.tersedia).length;
+  /*
+    JUMLAH: SEMUA MENU, ditambah keterangan berapa yang habis.
+
+    Versi sebelumnya menyebut HANYA yang tersedia ("125 pilihan") padahal
+    kartu menu habis tetap ditampilkan lengkap dengan label "Habis".
+    Akibatnya hitungan di kepala tamu tidak pernah cocok dengan yang ia
+    lihat: 126 kartu, tapi tertulis 125. Angka yang tidak bisa dicocokkan
+    membuat seluruh daftar terasa tidak bisa dipercaya.
+
+    Sekarang angkanya sama dengan isi daftar, dan ketersediaan dijelaskan
+    terpisah — hanya bila memang ada yang habis.
+  */
+  const total = data.menu.length;
+  const habis = data.menu.filter((m) => !m.tersedia).length;
   const totalKategori = kelompok.length;
 
   return (
@@ -318,30 +337,13 @@ export default async function MenuPage() {
               teksnya tetap dua baris terpisah seperti yang diminta.
             */}
             <p className="mx-auto mt-[0.375rem] max-w-[19rem] text-[0.6875rem] leading-[1.5] text-white/80">
-              {tersedia} pilihan dari {totalKategori} kategori
+              {total} pilihan dari {totalKategori} kategori
+              {habis > 0 && ` · ${habis} sedang habis`}
             </p>
             <p className="mx-auto max-w-[19rem] text-[0.6875rem] leading-[1.5] text-white/80">
               Ketuk kategori untuk menyaring
             </p>
 
-            {/*
-              Pemberitahuan env kosong — lihat alasan lengkap di /tour.
-
-              Ditaruh di kepala (latar clay-600), memakai pil gelap
-              `forest-950/45` supaya tetap terbaca di atas terrakota:
-              krem di atas campuran itu jauh di atas ambang kontras,
-              sedangkan teks putih/80 di sini hanya 4.64:1 — cukup untuk
-              satu baris petunjuk, tapi tidak untuk paragraf peringatan
-              yang perlu dibaca saat ada masalah.
-            */}
-            {tanpaEnv && (
-              <p className="mx-auto mt-[0.625rem] max-w-[21rem] rounded-[0.625rem] bg-forest-950/45 px-[0.625rem] py-[0.5rem] text-[0.625rem] leading-[1.5] text-cream-100">
-                <strong className="font-bold">Data contoh.</strong>{" "}
-                SUPABASE_URL / SUPABASE_ANON_KEY belum diisi di environment,
-                jadi daftar ini dibaca dari salinan di kode — bukan dari
-                database.
-              </p>
-            )}
           </header>
 
           {/*

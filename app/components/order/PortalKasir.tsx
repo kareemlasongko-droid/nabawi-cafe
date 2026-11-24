@@ -695,11 +695,19 @@ export function PortalKasir() {
 
       {struk && <Struk data={struk} onTutup={() => setStruk(null)} />}
 
+      {/*
+        Peringatan ini dulu berbunyi "data pesanan tidak tersimpan permanen",
+        yang memberi kesan pesanan tetap tercatat sementara. Sekarang tidak:
+        tanpa kunci server, melunasi dan menandai siap akan DITOLAK. Staf
+        yang membaca peringatan ini harus tahu itu sebelum mencoba, bukan
+        sesudah gagal.
+      */}
       {data?.demo && (
         <div className="border-t border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
-          <p className="text-[0.6875rem] text-clay-800">
-            <strong>Mode demo.</strong> Data pesanan tidak tersimpan permanen. Pasang
-            SUPABASE_SERVICE_KEY di Cloudflare agar pesanan sungguhan tersimpan.
+          <p className="text-[0.6875rem] leading-snug text-clay-800">
+            <strong>Mode demo.</strong> Pelunasan dan penandaan siap belum bisa
+            dipakai: kunci server database belum dipasang di Cloudflare. Menu dan
+            meja tetap terbaca dari database.
           </p>
         </div>
       )}

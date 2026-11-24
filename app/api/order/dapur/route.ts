@@ -7,16 +7,10 @@
  */
 import { NextResponse } from "next/server";
 import { ambilMenu, ambilPesananAktif, ambilAturan } from "@/app/lib/order/data";
-import { db, punyaKunciServer } from "@/app/lib/order/db";
+import { db, PESAN_ENV_KOSONG, punyaEnvBaca, punyaKunciServer } from "@/app/lib/order/db";
 import { bacaPilihan } from "@/app/lib/order/aturan";
-import {
-  demoAmbilPesanan,
-  demoItemPesanan,
-  demoMeja,
-  demoMenuDenganStatus,
-  demoSetTersedia,
-  MENU_CONTOH,
-} from "@/app/lib/order/demo";
+import { demoSetTersedia } from "@/app/lib/order/demo";
+import { pesanModeContoh, statusModeContoh } from "@/app/lib/order/mode-contoh";
 
 export const dynamic = "force-dynamic";
 
@@ -25,38 +19,25 @@ export async function GET() {
   let kuning = 10;
   let merah = 15;
 
-  if (!punyaKunciServer()) {
-    // Menu tetap dibaca dari database (publik): dapur harus melihat menu
-    // asli, bukan daftar contoh, supaya penandaan "habis" mengenai menu
-    // yang benar-benar dijual.
-    const menuAsli = await ambilMenu();
-    const tiket = demoAmbilPesanan()
-      .filter((p) => ["diterima", "diproses", "siap"].includes(p.status))
-      .map((p) => ({
-        ...p,
-        meja_nomor: demoMeja().find((m) => m.id === p.meja_id)?.nomor ?? String(p.meja_id),
-        items: demoItemPesanan(p.id).map((i) => ({
-          id: i.id,
-          nama_saat_pesan: i.nama_saat_pesan,
-          jumlah: i.jumlah,
-          catatan: i.catatan,
-          /*
-            Pilihan WAJIB ikut. Sebelum ini, dapur menerima nama menu dan
-            catatan saja — sambal/saus yang dipilih pelanggan hilang tepat
-            sebelum sampai ke orang yang harus membuatnya. Portal dapur
-            sudah punya kode untuk menampilkannya dengan huruf besar; yang
-            hilang adalah datanya, bukan tampilannya.
-          */
-          pilihan: i.pilihan ?? [],
-        })),
-      }));
-    return NextResponse.json({
-      tiket,
-      ambang: { kuning, merah },
-      // D-07: dapur menandai bahan/menu habis langsung dari papan tiket.
-      menu: demoMenuDenganStatus(menuAsli.ok ? menuAsli.data.menu : MENU_CONTOH.menu),
-      demo: true,
-    });
+  const mode = await statusModeContoh(punyaKunciServer());
+
+  /*
+    TIKET DAPUR SELALU DARI DATABASE.
+
+    Dulu blok ini menghasilkan tiket, meja, dan menu karangan dari
+    `demo.ts` ketika kunci server belum dipasang. Dapur akan melihat
+    pesanan yang tidak pernah dipesan tamu, dengan meja yang nomornya
+    dikarang — dan tidak ada satu pun tanda bahwa itu bukan pesanan
+    sungguhan. Sekarang tidak ada jalur seperti itu.
+
+    Yang tetap "contoh" hanya aksi TULIS tanpa kunci server (lihat PATCH):
+    penandaan habis disimpan di memori Worker, bukan di database.
+  */
+  if (!punyaEnvBaca()) {
+    return NextResponse.json(
+      { pesan: PESAN_ENV_KOSONG, demo: mode.aktif, kode: "env" },
+      { status: 503 }
+    );
   }
 
   const [res, aturan, menuRes] = await Promise.all([
@@ -146,8 +127,11 @@ export async function POST(req: Request) {
       dan menyimpannya di store — perilakunya berbeda dari mode sungguhan,
       dan tombol yang salah kirim tidak akan pernah kelihatan salah saat uji.
     */
-    const daftarMenu = (await ambilMenu());
-    if (!(daftarMenu.ok ? daftarMenu.data.menu : MENU_CONTOH.menu).some((m) => m.id === id)) {
+    const daftarMenu = await ambilMenu();
+    if (!daftarMenu.ok) {
+      return NextResponse.json({ pesan: daftarMenu.pesan }, { status: 503 });
+    }
+    if (!daftarMenu.data.menu.some((m) => m.id === id)) {
       return NextResponse.json({ pesan: `Menu ${id} tidak dikenal.` }, { status: 400 });
     }
     demoSetTersedia(id, badan.tersedia);

@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import { ubahStatus } from "@/app/lib/order/data";
 import { punyaKunciServer } from "@/app/lib/order/db";
-import { demoUbahStatus } from "@/app/lib/order/demo";
+import { pesanModeContoh, statusModeContoh } from "@/app/lib/order/mode-contoh";
 import type { StatusPesanan } from "@/app/lib/order/tipe";
 
 export const dynamic = "force-dynamic";
@@ -48,10 +48,20 @@ export async function PATCH(req: Request) {
     );
   }
 
+  /*
+    Status pesanan HARUS berpindah di database.
+
+    Dulu, tanpa kunci server, status berpindah di memori: kasir melihat
+    pesanan "diterima", dapur "diproses", pelayan "diantar" — semua di
+    perangkat masing-masing, tidak ada yang benar-benar berubah. Tiga
+    portal bisa menampilkan tiga keadaan berbeda untuk pesanan yang sama.
+  */
   if (!punyaKunciServer()) {
-    const hasil = demoUbahStatus(id, ke, badan.alasan);
-    if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });
-    return NextResponse.json({ ok: true, pesanan: hasil.pesanan, demo: true });
+    const mode = await statusModeContoh(false);
+    return NextResponse.json(
+      { pesan: pesanModeContoh(mode) || "Kunci server belum dipasang, status tidak bisa diubah.", demo: true },
+      { status: 503 }
+    );
   }
 
   const hasil = await ubahStatus(id, ke, {

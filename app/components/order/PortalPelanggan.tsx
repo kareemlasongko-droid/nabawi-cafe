@@ -107,6 +107,7 @@ export function PortalPelanggan({
   bukaSekarang,
   alasanTutup,
   demo,
+  pesanDemo,
 }: {
   mejaNomor: string;
   mejaArea: string;
@@ -117,6 +118,8 @@ export function PortalPelanggan({
   bukaSekarang: boolean;
   alasanTutup: string;
   demo: boolean;
+  /** Kalimat yang menjelaskan MENGAPA mode contoh menyala. */
+  pesanDemo?: string;
 }) {
   const [sesi] = useState(() => (typeof window === "undefined" ? "" : ambilSesi()));
   const [cari, setCari] = useState("");
@@ -532,7 +535,7 @@ export function PortalPelanggan({
         {demo && (
           <div className="border-t border-bersih-200 bg-bersih-100 px-4 py-1.5">
             <p className="mx-auto max-w-[45rem] text-[0.6875rem] leading-snug text-tinta-500">
-              Mode demo: pesanan tidak tersimpan permanen.
+              {pesanDemo || "Mode contoh: pesanan tidak tersimpan permanen."}
             </p>
           </div>
         )}

@@ -16,13 +16,7 @@ import { NextResponse } from "next/server";
 import { cekBuka, validasiPesananMasuk } from "@/app/lib/order/aturan";
 import { buatPesanan } from "@/app/lib/order/data";
 import { punyaKunciServer } from "@/app/lib/order/db";
-import {
-  demoBuatPesanan,
-  demoAmbilPesanan,
-  demoMenuDenganStatus,
-  MENU_CONTOH,
-} from "@/app/lib/order/demo";
-import { ambilMenu } from "@/app/lib/order/data";
+import { pesanModeContoh, statusModeContoh } from "@/app/lib/order/mode-contoh";
 
 export const dynamic = "force-dynamic";
 
@@ -82,39 +76,30 @@ export async function POST(req: Request) {
   }
 
   // 3-4. Simpan
-  if (!punyaKunciServer()) {
-    /*
-      Mode demo: menu dibaca dari database lebih dulu (menu memang publik,
-      tidak butuh kunci server), dan MENU_CONTOH hanya jadi cadangan bila
-      database tidak terjangkau.
+  /*
+    PESANAN PELANGGAN WAJIB MENDARAT DI DATABASE.
 
-      Cadangan itu aman SELAMA halaman pelanggan memakai sumber yang sama:
-      offline → pelanggan melihat MENU_CONTOH, tagihan dihitung dari
-      MENU_CONTOH. Yang berbahaya adalah campuran — pelanggan melihat menu
-      asli tapi tagihan dihitung dari menu contoh. Karena itu halaman
-      pelanggan memilih sumbernya dengan aturan yang sama persis.
-    */
-    const menu = await ambilMenu();
-    const hasil = demoBuatPesanan({
-      ...v.bersih,
-      /*
-        Tanda "habis" dari kasir/dapur (K-08, D-07) hidup di store demo,
-        bukan di MENU_CONTOH. Tanpa demoMenuDenganStatus di sini, menu yang
-        sudah ditandai habis tetap bisa dipesan di mode demo — dan uji
-        otomatis akan melaporkannya lulus, padahal produksi menolaknya.
-      */
-      /*
-        demoMenuDenganStatus dulu TIDAK dipakai di sini — hanya di portal
-        dapur. Akibatnya penandaan "habis" dari dapur hilang tepat sebelum
-        validasi, dan mode demo tetap menerima pesanan untuk menu yang
-        sudah ditandai habis. Perilakunya berbeda dari produksi (di sana
-        `tersedia` dibaca dari database), jadi uji otomatis hijau untuk
-        hal yang akan ditolak sungguhan.
-      */
-      menu: demoMenuDenganStatus(menu.ok ? menu.data.menu : MENU_CONTOH.menu),
-    });
-    if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });
-    return NextResponse.json({ ...hasil, demo: true });
+    Dulu, tanpa kunci server, pesanan "berhasil" dikirim ke store di
+    memori: pelanggan melihat konfirmasi, nomor pesanan keluar, dan tidak
+    ada satu pun yang sampai ke kasir atau dapur. Itu kegagalan yang paling
+    mahal di sistem ini — tamu duduk menunggu makanan yang tidak pernah
+    masuk pesanan.
+
+    Karena itu tanpa kunci server pesanan DITOLAK, dengan pesan yang bisa
+    dibaca tamu ("panggil pelayan"), bukan pesan teknis soal env.
+  */
+  if (!punyaKunciServer()) {
+    const mode = await statusModeContoh(false);
+    return NextResponse.json(
+      {
+        pesan:
+          "Pesanan belum bisa dikirim lewat aplikasi. Silakan panggil pelayan " +
+          "untuk mencatat pesanan Anda.",
+        sebab: pesanModeContoh(mode),
+        demo: true,
+      },
+      { status: 503 }
+    );
   }
 
   const hasil = await buatPesanan(v.bersih);
@@ -133,7 +118,11 @@ export async function GET(req: Request) {
   if (!sesi) return NextResponse.json({ pesanan: [] });
 
   if (!punyaKunciServer()) {
-    return NextResponse.json({ pesanan: demoAmbilPesanan(sesi), demo: true });
+    /*
+      Tidak ada pesanan karangan. Tamu yang pesanannya ditolak memang tidak
+      punya pesanan, dan daftar kosong adalah jawaban yang benar.
+    */
+    return NextResponse.json({ pesanan: [], demo: true });
   }
 
   const { db } = await import("@/app/lib/order/db");

@@ -64,10 +64,18 @@ cek(
   r.ok === false && !/tidak bisa menghubungi database/i.test(r.pesan),
 );
 
-console.log("\n── Env kosong: halaman tetap utuh, tapi jujur ──");
+console.log("\n── Env kosong: TOUR TIDAK LAGI MENAMPILKAN SALINAN LOKAL ──");
+/*
+  Perilaku ini SENGAJA diubah. Dulu `ambilVenues()` mengembalikan
+  VENUES_LOKAL (10 tempat yang menempel di kode) sehingga halaman tour
+  tampak normal walau database tidak pernah dibaca. Pemilik meminta data
+  yang menempel di kode dihapus, jadi sekarang hasilnya kosong + pesan,
+  dan halaman menampilkan "Tur belum bisa dimuat".
+*/
 const v = await venues.ambilVenues();
-cek('sumber "tanpa-env", bukan "lokal"', v.sumber === "tanpa-env", v.sumber);
-cek("venue tetap ada (halaman tidak kosong)", v.venues.length > 0, String(v.venues.length));
+cek('sumber "gagal", bukan data palsu', v.sumber === "gagal", v.sumber);
+cek("TIDAK ada venue karangan", v.venues.length === 0, String(v.venues.length));
+cek("ada pesan untuk pengguna", v.pesan.length > 0, v.pesan);
 
 console.log("\n── Env kosong: supabaseSelect melempar, tidak menembak URL kosong ──");
 let pesanLembar = "";

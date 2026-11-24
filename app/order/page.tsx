@@ -3,7 +3,7 @@ import { PortalPelanggan } from "../components/order/PortalPelanggan";
 import { cekBuka } from "../lib/order/aturan";
 import { ambilAturan, ambilMenu, ambilMeja } from "../lib/order/data";
 import { PESAN_ENV_KOSONG, punyaEnvBaca, punyaKunciServer } from "../lib/order/db";
-import { demoMeja, MENU_CONTOH } from "../lib/order/demo";
+import { pesanModeContoh, statusModeContoh } from "../lib/order/mode-contoh";
 import type { Meja } from "../lib/order/tipe";
 
 export const metadata: Metadata = {
@@ -46,41 +46,43 @@ export default async function HalamanOrder({
     );
   }
 
-  // Validasi meja
-  const hasilMeja = punyaKunciServer()
-    ? await ambilMeja(nomor)
-    : (() => {
-        const m = demoMeja().find((x) => x.nomor === nomor);
-        return m ? ({ ok: true, data: m } as const) : ({ ok: false, pesan: "Nomor meja tidak dikenali." } as const);
-      })();
+  /*
+    MEJA SELALU DARI DATABASE.
 
+    Dulu, tanpa kunci server, nomor meja dicocokkan ke 20 meja karangan di
+    `demo.ts` — meja yang tidak ada di restoran ini. QR di meja sungguhan
+    bisa "dikenali" padahal nomornya tidak pernah terdaftar, dan pesanannya
+    (kalau bisa disimpan) akan mendarat di meja yang salah.
+  */
+  const hasilMeja = await ambilMeja(nomor);
+
+  /*
+    DUA SEBAB, DUA PESAN — jangan disamakan.
+
+    `ambilMeja` mengembalikan pesan berbeda untuk "nomor meja memang tidak
+    ada" dan "database tidak bisa dibaca". Dulu keduanya ditampilkan
+    sebagai "Meja 1 tidak dikenali", sehingga tamu yang QR-nya benar
+    disuruh memeriksa QR-nya sendiri — padahal yang bermasalah server.
+    Pesan yang menyalahkan tamu untuk kesalahan kita adalah kegagalan
+    tersendiri.
+  */
   if (!hasilMeja.ok) {
+    const mejaTakAda = hasilMeja.pesan.includes("tidak dikenali");
     return (
       <LayarPesan
-        judul={`Meja ${nomor} tidak dikenali`}
-        isi={`${hasilMeja.pesan} Periksa lagi QR di meja Anda, atau panggil pelayan untuk dibantu.`}
+        judul={mejaTakAda ? `Meja ${nomor} tidak dikenali` : "Meja belum bisa dibuka"}
+        isi={
+          mejaTakAda
+            ? `${hasilMeja.pesan} Periksa lagi QR di meja Anda, atau panggil pelayan untuk dibantu.`
+            : "Sistem sedang tidak bisa memeriksa nomor meja. Panggil pelayan untuk dibantu mencatat pesanan Anda."
+        }
+        teknis={mejaTakAda ? undefined : hasilMeja.pesan}
       />
     );
   }
 
   const meja = hasilMeja.data as Meja;
 
-  /*
-    Menu mana yang ditampilkan?
-
-    PRODUKSI (kunci server ada): WAJIB dari database. Kalau database tidak
-    terbaca, tampilkan layar "menu belum bisa dimuat" — jangan menu contoh.
-
-    Dulu halaman ini jatuh ke MENU_CONTOH (Harira, Tajine, Couscous dengan
-    harga karangan) saat database gagal. Sekarang menu asli sudah terisi,
-    perilaku itu berbahaya: tamu memesan makanan yang tidak dijual Nabawi
-    dengan harga yang tidak berlaku, lalu kecewa saat kasir menolak.
-
-    MODE DEMO (belum ada kunci server): MENU_CONTOH tetap dipakai sebagai
-    cadangan terakhir supaya halaman bisa dicoba tanpa database. Pita
-    "Mode demo" sudah memberi tahu bahwa menu ini bukan menu sungguhan,
-    dan kasir/dapur membaca sumber yang sama sehingga tidak ada selisih.
-  */
   /*
     BEDAKAN dua sebab kegagalan, jangan digabung.
 
@@ -111,10 +113,21 @@ export default async function HalamanOrder({
     );
   }
 
-  /* Sampai di sini menuRes SELALU ok (dua kegagalan sudah ditangani di
-     atas). MENU_CONTOH dipertahankan sebagai cadangan tipe saja, supaya
-     perubahan aturan di atas tidak diam-diam menelan halaman ini. */
-  const data = menuRes.ok ? menuRes.data : MENU_CONTOH;
+  /*
+    Sampai di sini menuRes SELALU ok — dua kegagalan di atas sudah
+    mengembalikan layar. Tidak ada salinan menu di kode lagi, jadi tidak ada
+    yang bisa dipakai sebagai cadangan; kalau aturan di atas diubah kelak,
+    TypeScript akan menolak, bukan diam-diam menampilkan menu lama.
+  */
+  const data = menuRes.data;
+
+  /*
+    Saklar mode contoh dibaca dari DATABASE (tabel pengaturan), bukan dari
+    ada/tidaknya env. Dua sebab tetap dibedakan supaya pesan di layar tamu
+    mengatakan hal yang benar: admin mematikannya, atau kunci server belum
+    dipasang.
+  */
+  const mode = await statusModeContoh(punyaKunciServer());
 
   return (
     <PortalPelanggan
@@ -126,13 +139,23 @@ export default async function HalamanOrder({
       jamHariIni={buka.jamHariIni}
       bukaSekarang={buka.buka}
       alasanTutup={buka.alasan}
-      demo={!punyaKunciServer()}
+      demo={mode.aktif}
+      pesanDemo={pesanModeContoh(mode)}
     />
   );
 }
 
 /** Layar pesan sederhana untuk keadaan yang tidak bisa dilanjutkan. */
-function LayarPesan({ judul, isi }: { judul: string; isi: string }) {
+function LayarPesan({
+  judul,
+  isi,
+  teknis,
+}: {
+  judul: string;
+  isi: string;
+  /** Keterangan untuk pemilik/staf; tidak ditampilkan ke tamu biasa. */
+  teknis?: string;
+}) {
   return (
     <main className="grid min-h-dvh place-items-center bg-cream-200 px-6">
       <div className="w-full max-w-sm">
@@ -144,6 +167,14 @@ function LayarPesan({ judul, isi }: { judul: string; isi: string }) {
             {judul}
           </h1>
           <p className="mt-2 text-[0.8125rem] leading-relaxed text-ink-700">{isi}</p>
+          {teknis && (
+            /* Kecil dan redup: gunanya untuk staf yang melapor ke pemilik,
+               bukan untuk tamu. Menaruhnya besar akan mengalihkan perhatian
+               dari satu-satunya hal yang perlu dilakukan tamu: panggil pelayan. */
+            <p className="mt-3 rounded-lg bg-ink-900/5 px-2.5 py-2 text-[0.6875rem] leading-snug text-ink-500">
+              {teknis}
+            </p>
+          )}
           <a
             href="/"
             className="mt-4 flex h-11 items-center justify-center rounded-xl border border-ink-900/15 text-[0.8125rem] font-bold text-ink-900"

@@ -3,7 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { BackLink } from "../../components/back-link";
 import { Navbar } from "../components/Navbar";
+import { LayarMasalah } from "../components/LayarMasalah";
 import { ambilVenues } from "../lib/venues";
+
+/*
+  Sama seperti /menu: dibaca saat DIMINTA. Daftar tempat boleh berubah dari
+  dashboard Supabase kapan saja, dan env hanya tersedia saat runtime.
+*/
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Virtual Tour 360 — Nabawi Cafe & Resto",
@@ -46,9 +53,32 @@ const GAYA_KARTU = {
 } as const;
 
 export default async function TourPage() {
-  const { venues, sumber } = await ambilVenues();
+  const { venues, sumber, pesan } = await ambilVenues();
   const totalMenit = venues.reduce((n, v) => n + v.durasiMenit, 0);
-  const tanpaEnv = sumber === "tanpa-env";
+
+  /*
+    TIDAK ADA LAGI SALINAN 10 TEMPAT DI KODE.
+
+    Dulu, bila Supabase gagal — atau environment kosong — halaman ini
+    menampilkan 10 tempat dari `VENUES_LOKAL`. Tamu melihat tur yang tampak
+    normal; pemilik menyimpulkan semuanya berjalan. Padahal tidak ada satu
+    baris pun yang datang dari database, dan perubahan di dashboard tidak
+    akan pernah terlihat.
+
+    Pemilik meminta data yang menempel di kode dihapus. Jadi sekarang
+    kegagalan ditampilkan apa adanya.
+  */
+  if (sumber !== "supabase") {
+    return (
+      <LayarMasalah
+        judul="Tur belum bisa dimuat"
+        pesan="Daftar tempat sedang tidak bisa diambil. Coba muat ulang sebentar lagi."
+        teknis={pesan}
+        kembaliKe="/fitur"
+        labelKembali="Kembali ke Fitur"
+      />
+    );
+  }
 
   return (
     <main className="flex min-h-dvh justify-center bg-forest-950">
@@ -102,26 +132,6 @@ export default async function TourPage() {
               jalan santai
             </p>
 
-            {/*
-              Pemberitahuan env kosong.
-
-              Tanpa ini, halaman tampak normal: 10 tempat, panorama, peta —
-              padahal semuanya berasal dari salinan di dalam kode, bukan
-              database. Perbedaan itu tidak terlihat oleh siapa pun kecuali
-              yang membandingkan isi berkas dengan dashboard. Saya sendiri
-              sempat salah menyimpulkan karena persis hal ini.
-
-              Warna memakai clay (terrakota), bukan merah menyala: ini
-              kondisi yang perlu diperbaiki, bukan kegagalan sistem.
-            */}
-            {tanpaEnv && (
-              <p className="mx-auto mt-[0.625rem] max-w-[21rem] rounded-[0.625rem] border border-clay-300/60 bg-clay-600/25 px-[0.625rem] py-[0.5rem] text-[0.625rem] leading-[1.5] text-cream-100">
-                <strong className="font-bold">Data contoh.</strong>{" "}
-                SUPABASE_URL / SUPABASE_ANON_KEY belum diisi di environment,
-                jadi 10 tempat di bawah dibaca dari salinan di kode — bukan
-                dari database.
-              </p>
-            )}
           </header>
 
           {/* Peta mini — menampilkan posisi 10 titik dalam satu bidang.

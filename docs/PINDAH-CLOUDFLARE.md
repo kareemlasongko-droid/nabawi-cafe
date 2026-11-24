@@ -238,10 +238,12 @@ Images). Lihat dokumentasi adapter bagian *"Use a custom loader"*.
 
 ## 6. Batasan yang harus jujur disebut
 
-- **Semua verifikasi di atas dilakukan di sandbox ini**, yang **tidak bisa
-  menjangkau Supabase**. Artinya halaman yang diuji memakai salinan menu
-  lokal (`MENU_CONTOH`), bukan data live. Uji dengan database sungguhan
-  tetap harus Anda lakukan di Workers sungguhan.
+- **Sandbox ini tidak bisa menjangkau Supabase.** Salinan menu lokal sudah
+  dihapus, jadi halaman tidak lagi bisa "tampak benar" tanpa database. Untuk
+  menguji jalur baca dan tulis secara utuh, dipakai server tiruan PostgREST
+  di dalam sandbox: kode aplikasi yang sama, alamat database yang berbeda.
+  Yang belum diuji: perilaku Supabase sungguhan (izin RLS, bentuk data asli).
+  Uji dengan database sungguhan tetap harus Anda lakukan di Workers sungguhan.
 - **Belum ada deploy.** Tidak ada akun Cloudflare di sesi ini, jadi semua
   yang tertulis di sini berhenti di "siap deploy", bukan "sudah deploy".
 - **Node di build Cloudflare = 24, bukan 22.** `package.json` mensyaratkan

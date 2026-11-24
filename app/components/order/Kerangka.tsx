@@ -106,7 +106,7 @@ export function BilahStaf({
           {demo && (
             <span
               className="hidden rounded-full bg-tanah-100 px-2.5 py-1 text-[0.6875rem] font-bold text-clay-800 sm:inline"
-              title="Kunci server database belum dipasang, jadi data tidak disimpan permanen."
+              title="Kunci server database belum dipasang, jadi pesanan dan pembayaran tidak bisa dicatat."
             >
               Mode demo
             </span>
@@ -118,19 +118,13 @@ export function BilahStaf({
   );
 }
 
-/**
- * Penanda status layar untuk mode demo.
- * Sengaja ditulis sebagai kalimat, bukan pita warna: pengguna harus paham
- * apa artinya, bukan sekadar melihat ada sesuatu yang berbeda.
- */
-export function PitaDemo({ pesan }: { pesan?: string }) {
-  return (
-    <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
-      <p className="text-[0.6875rem] leading-snug text-clay-800">
-        <strong className="font-bold">Mode demo.</strong>{" "}
-        {pesan ??
-          "Pesanan yang dibuat di sini hanya tersimpan sementara di server dan hilang saat server dimulai ulang. Pasang SUPABASE_SERVICE_KEY di Cloudflare untuk menyimpan sungguhan."}
-      </p>
-    </div>
-  );
-}
+/*
+  `PitaDemo` DIHAPUS.
+
+  Komponen itu menjelaskan "pesanan tersimpan sementara lalu hilang saat
+  server mulai ulang" — benar untuk penyimpanan di memori yang sekarang
+  sudah tidak ada. Sesudah itu dibuang, tanpa kunci server tidak ada
+  penyimpanan sama sekali: aksinya ditolak (503), bukan disimpan lalu
+  hilang. Membiarkan kalimat lamanya berarti menjanjikan sesuatu yang
+  tidak terjadi lagi.
+*/
