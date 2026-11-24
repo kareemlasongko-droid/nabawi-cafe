@@ -136,13 +136,19 @@ terpasang. Yang membongkarnya baru perbandingan **rentang id**
 `/api/order/menu/tersedia` berakhir `"demo":true` — bukti
 `SUPABASE_SERVICE_KEY` tidak ada.
 
-Nilai cadangan itu **sudah dihapus**. Sekarang:
+Nilai cadangan itu **sudah dihapus**. Salinan menu dan venue di kode
+(`MENU_CONTOH`, `VENUES_LOKAL`) juga sudah dihapus. Sekarang:
 
 | Keadaan | Yang terlihat |
 |---|---|
-| env kosong | `/menu` & `/tour` bertanda **"Data contoh"**; `/order` menolak dengan pesan env mana yang kurang |
-| env baca saja | menu & tour asli, pesanan ditolak (PitaDemo) |
+| env kosong | `/menu` & `/tour` menampilkan **"belum bisa dimuat"** (bukan menu karangan); API menjawab 503 dengan pesan env mana yang kurang |
+| env baca saja | menu, meja, tour asli dari database; pesanan/bayar/ubah status **ditolak (503)** dengan pesan yang bisa dibaca tamu |
 | ketiganya ada | semuanya jalan |
+
+Perhatikan perubahan penting di baris kedua: dulu tanpa kunci server pesanan
+"berhasil" lalu disimpan di memori Worker dan hilang tanpa jejak. Sekarang
+pesanan **ditolak sejak awal** — lebih baik tamu diberi tahu untuk memanggil
+pelayan daripada menunggu makanan yang tidak pernah masuk pesanan.
 
 Cara memastikan dari luar, tanpa membuka dashboard:
 
@@ -152,6 +158,9 @@ curl -s https://<worker>.workers.dev/api/order/menu/tersedia | grep -o '"demo":[
 
 `"demo":false` berarti kunci server terpasang. `"demo":true` berarti
 belum — pesanan pelanggan akan ditolak.
+Kalau jawabannya **503**, env baca belum terpasang sama sekali (atau Worker
+belum di-deploy ulang sesudah secret dipasang — secret tidak berlaku pada
+versi yang sudah jalan).
 
 ### 2.5 Nyalakan CI (opsional)
 
@@ -174,10 +183,16 @@ Selama `CLOUDFLARE_ENABLED` tidak ada, alur ini **dilewati** — bukan merah.
 npm run verifikasi -- https://nabawi-cafe.<subdomain>.workers.dev
 ```
 
-Skrip ini memeriksa 24 hal: semua halaman (termasuk kelima portal staf),
+Skrip ini memeriksa 25 hal: semua halaman (termasuk kelima portal staf),
 isi `/menu` (126 kartu, 6 kategori, 7 pil, aturan saring), **optimasi
 gambar** (harus jauh di bawah 723 KB dan berformat AVIF/WebP), API
 (`/api/order/menu/tersedia` dan penolakan pesanan kosong), serta CSS.
+
+Sejak salinan lokal dihapus, jumlah kartu yang benar di `/menu` juga
+membuktikan database benar-benar dipakai: kalau database gagal, halamannya
+berisi "Menu belum bisa dimuat" dengan **0 kartu**. Dulu angka yang sama
+bisa muncul dari `MENU_CONTOH`, jadi skrip ini menulis "LEWAT" — sekarang
+tidak lagi.
 
 Ia juga **berhenti dengan kode gagal** kalau ada yang tidak beres, jadi
 bisa dipakai di CI. Yang tidak bisa dinilai dari luar ditulis eksplisit
@@ -185,8 +200,8 @@ sebagai "LEWAT", bukan diam-diam dianggap lulus.
 
 Yang **tidak** bisa diperiksa skrip ini dan tetap harus Anda lihat:
 
-- [ ] menu benar-benar dari database (bandingkan satu harga dengan dashboard Supabase)
-- [ ] pesanan sungguhan terkirim dan muncul di portal dapur
+- [ ] harga satu menu sama dengan dashboard Supabase (skrip hanya memastikan menunya ada)
+- [ ] pesanan sungguhan terkirim dan muncul di portal dapur **dan** di tabel `pesanan` Supabase
 - [ ] waktu muat terasa setara atau lebih cepat dari Vercel
 
 ### 3.2 Manual di HP
@@ -195,7 +210,7 @@ Buka alamat `workers.dev` di HP, lalu periksa **satu per satu**:
 
 - [ ] `/menu` — 126 kartu, foto/ikon tampil, pil kategori menyaring
 - [ ] `/tour` — panorama dan latar sama seperti di Vercel
-- [ ] `/order?meja=1` — pesanan bisa dikirim
+- [ ] `/order?meja=1` — pesanan bisa dikirim, lalu barisnya muncul di tabel `pesanan` Supabase
 - [ ] `/order/admin`, `/order/kasir`, `/order/dapur`, `/order/pelayan` — bisa dibuka
 - [ ] Gambar menu (kalau sudah ada foto di Supabase) tampil, bukan kotak kosong
 - [ ] Waktu muat terasa setara atau lebih cepat
