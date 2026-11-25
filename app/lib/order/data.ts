@@ -6,6 +6,7 @@
  * kuat, jadi kegagalan harus ditangani sebagai keadaan biasa.
  */
 import { db, punyaKunciServer } from "./db";
+import { potongStokPesanan } from "./stok";
 import {
   ATURAN_BAWAAN,
   bacaPilihan,
@@ -918,6 +919,23 @@ export async function bayarTunaiKasir(masuk: {
     q: `id=eq.${tagihan.id}`,
     body: { status: "lunas", ditutup_at: kini, kasir: masuk.kasir },
   });
+
+  /*
+    POTONG STOK — titik kedua (dan terakhir) di seluruh sistem.
+
+    Ditaruh SETELAH pesanan & tagihan ditandai lunas, sejajar dengan
+    `tandaiLunas` di doku.ts. Kedua jalur pembayaran harus berperilaku
+    identik: uang masuk → status lunas → stok keluar → HPP dikunci.
+
+    Kegagalannya TIDAK dikembalikan sebagai galat: uang sudah diterima
+    kasir dan tercatat. Menolak respons di sini akan membuat kasir
+    mengira pembayaran gagal dan menagih tamu dua kali. Yang dilakukan
+    adalah mencatatnya di log server, tempat pemilik bisa memeriksanya.
+  */
+  const potong = await potongStokPesanan(p.id, masuk.kasir);
+  if (!potong.ok) {
+    console.error("stok gagal dipotong setelah bayar tunai", p.id, potong.pesan);
+  }
 
   await db("log_perubahan", {
     method: "POST",

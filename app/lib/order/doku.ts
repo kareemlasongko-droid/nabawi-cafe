@@ -27,6 +27,7 @@
  */
 import { createHmac, createHash } from "node:crypto";
 import { db } from "./db";
+import { potongStokPesanan } from "./stok";
 import type { Pesanan, Tagihan } from "./tipe";
 
 // ─────────────────────────────────────────────────────────────
@@ -365,7 +366,39 @@ export async function tandaiLunas(opts: {
     });
   }
 
-  // 4. Log. Tanpa ini, pertanyaan "siapa yang menandai lunas?" tidak bisa
+  /*
+    4. POTONG STOK — hanya di sini dan di `bayarTunaiKasir`.
+
+    Urutannya SESUDAH pesanan ditandai lunas, bukan sebelumnya. Kalau stok
+    dipotong lebih dulu lalu penandaan lunas gagal, bahan sudah keluar
+    untuk pesanan yang menurut database belum dibayar — dan tidak ada yang
+    tahu harus mengembalikannya.
+
+    Gagal di sini TIDAK membatalkan pembayaran. Uangnya sudah masuk; kalau
+    `tandaiLunas` mengembalikan galat, gerbang pembayaran akan mencoba
+    lagi dan mencatat pembayaran kedua.
+  */
+  const potong = await potongStokPesanan(opts.pesananId, opts.oleh);
+  if (!potong.ok) {
+    console.error("stok gagal dipotong setelah lunas", opts.pesananId, potong.pesan);
+  } else if (potong.data.baru && (potong.data.hargaKosong.length > 0 || potong.data.tanpaResep.length > 0)) {
+    /*
+      Dicatat, tidak disembunyikan: HPP pesanan ini UNDER-estimasi karena
+      ada bahan tanpa harga atau menu tanpa resep. Tanpa catatan ini,
+      laporan laba akan terlihat lebih baik daripada kenyataan dan tidak
+      ada jejak kenapa.
+    */
+    console.warn(
+      "HPP tidak lengkap untuk pesanan",
+      opts.pesananId,
+      "bahan tanpa harga:",
+      potong.data.hargaKosong.join(", ") || "-",
+      "menu tanpa resep:",
+      potong.data.tanpaResep.join(", ") || "-",
+    );
+  }
+
+  // 5. Log. Tanpa ini, pertanyaan "siapa yang menandai lunas?" tidak bisa
   //    dijawab saat ada sengketa.
   await db("log_perubahan", {
     method: "POST",
