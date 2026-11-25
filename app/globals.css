@@ -314,3 +314,97 @@ body[data-saring] [data-kat] {
 [id^="kategori-"] {
   scroll-margin-top: 6.5rem;
 }
+
+/* ────────────────────────────────────────────────────────────────
+   CETAK INVOICE
+
+   `window.print()` mencetak SELURUH halaman. Di portal kasir itu berarti
+   antrean pesanan, denah 20 meja, dan semua tombol ikut tercetak di atas
+   kertas struk — dan yang paling atas justru bukan invoice-nya.
+
+   Saat tombol "Cetak / PDF" ditekan, LembarInvoice memasang kelas
+   `mencetak-invoice` pada <body>. Aturan di bawah menyisakan HANYA elemen
+   `[data-invoice]`.
+
+   ── DUA LAPIS, DENGAN ALASAN ──────────────────────────────────────
+
+   Lapis 1 (dasar): `visibility`. Bekerja di semua browser dan tidak
+   butuh `:has()`. Kelemahannya: elemen tersembunyi tetap MEMAKAN RUANG,
+   jadi invoice bisa terdorong ke tengah halaman, dan induk ber-
+   `overflow-y-auto` (latar modal) bisa memotong isi yang lebih dari satu
+   halaman.
+
+   Lapis 2: `:has()`. Mematikan (display:none) setiap elemen yang bukan
+   invoice, bukan isi invoice, dan bukan leluhurnya; leluhur diratakan
+   jadi kotak biasa tanpa padding/overflow sehingga invoice mulai dari
+   atas kertas dan bisa lanjut ke halaman kedua.
+
+   Kalau browser tidak mengenal `:has()`, seluruh aturan Lapis 2
+   diabaikan — dan Lapis 1 tetap membuat hasil cetak hanya berisi invoice.
+   Itu degradasi yang benar: tidak ada keadaan di mana halaman kasir ikut
+   tercetak.
+   ──────────────────────────────────────────────────────────────── */
+@media print {
+  /* ── Lapis 1: sembunyikan semua, tampilkan invoice ── */
+  body.mencetak-invoice * {
+    visibility: hidden;
+  }
+  body.mencetak-invoice [data-invoice],
+  body.mencetak-invoice [data-invoice] * {
+    visibility: visible;
+  }
+
+  /*
+    Warna latar tidak dicetak browser secara bawaan, jadi stempel "LUNAS"
+    akan hilang dan invoice tampak sama dengan yang belum dibayar.
+    `print-color-adjust: exact` memaksa warna ikut tercetak — justru pada
+    dokumen bukti pembayaran, status adalah isi terpentingnya.
+  */
+  body.mencetak-invoice [data-invoice] * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Lapis 2: buang sisa tata letak layar ── */
+  body.mencetak-invoice
+    *:not([data-invoice], [data-invoice] *, *:has([data-invoice])) {
+    display: none !important;
+  }
+
+  /*
+    Leluhur invoice diratakan. `position: static` penting: latar modal
+    memakai `position: fixed`, dan anak `absolute` di dalamnya tidak akan
+    pernah terpotong halaman dengan benar.
+  */
+  body.mencetak-invoice *:has([data-invoice]) {
+    display: block !important;
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  body.mencetak-invoice [data-invoice] {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff;
+    color: #000;
+  }
+
+  /* Margin kertas tipis: struk 8 cm tidak punya ruang untuk margin lebar. */
+  @page {
+    margin: 6mm;
+  }
+}

@@ -211,3 +211,93 @@ dipastikan saat memasang:
 1. `POST /api/order/doku/invoice` mengembalikan `url` yang bisa dibuka.
 2. Setelah bayar di sandbox, webhook masuk dan pesanan berubah `lunas`.
 3. Notifikasi ganda tidak menghasilkan dua baris `pembayaran`.
+
+---
+
+# 10. Invoice yang bisa dicetak
+
+Sebelum ini "struk" hanya ada di portal kasir, muncul satu kali setelah
+lunas, dan tombol Cetak memanggil `window.print()` tanpa CSS cetak — jadi
+yang keluar di kertas adalah **seluruh layar kasir**: antrean, denah 20
+meja, dan semua tombol. Tamu pun tidak punya salinan apa pun, dan tidak ada
+nomor yang bisa ia sebutkan saat mempersoalkan tagihan.
+
+## Satu sumber data, satu komponen
+
+| Berkas | Peran |
+| --- | --- |
+| `app/lib/order/invoice.ts` | `ambilInvoice(pesananId, { sesi })` → bentuk invoice. Satu-satunya tempat yang tahu cara merakitnya. |
+| `app/components/order/LembarInvoice.tsx` | Tampilan + tombol cetak. Dipakai **kasir dan pelanggan**. |
+| `app/api/order/invoice/[id]/route.ts` | Jalur kasir (`?kunci=1`) dan pelanggan (`?sesi=…`). |
+| `app/order/invoice/[id]/page.tsx` | Halaman cetak milik tamu; bisa disimpan & dibuka ulang. |
+| `app/globals.css` → `@media print` | Yang membuat hanya invoice yang keluar di kertas. |
+
+Alasan digabung menjadi satu komponen: dua salinan akan menyimpang, dan
+tamu akan membawa pulang invoice yang tidak cocok dengan yang dipegang
+kasir.
+
+## Nomor invoice
+
+Dipakai `pesanan.nomor` (mis. `M9-1909-56`), **bukan**
+`pembayaran.invoice_number` milik DOKU. Pembayaran tunai tidak punya nomor
+DOKU sama sekali; invoice yang nomornya kosong untuk separuh transaksi
+bukan invoice. Nomor DOKU tetap dicetak sebagai `Ref. DOKU` bila ada.
+
+## Angka dari tagihan, bukan dihitung ulang
+
+Subtotal, layanan, pajak, pembulatan, dan total dibaca dari baris
+`tagihan`. Kalau dihitung ulang dari item, invoice bisa berbeda dari yang
+tercatat begitu tarif berubah — perbedaan yang paling sulit dijelaskan
+kepada tamu. Bila tagihannya tidak ada (pesanan lama), total dihitung dari
+item supaya tidak tercetak Rp0.
+
+## Keamanan
+
+- Jalur pelanggan **wajib** `?sesi=`; sesi lain → **403**, tanpa
+  membocorkan nama maupun nomor WhatsApp.
+- Jalur kasir (`?kunci=1`) hanya membuka pesanan yang **belum lunas** atau
+  dilunasi **≤ 24 jam** lalu. Tanpa batas ini, id pesanan bisa ditelusuri
+  satu per satu untuk memanen nomor WA seluruh arsip. Ini penutup
+  sementara sampai portal kasir punya PIN staf.
+- Halaman pelanggan `noindex` — invoice memuat nomor WhatsApp.
+
+## Cetak
+
+`window.print()` pada modal biasa akan mencetak seluruh halaman. Saat
+tombol ditekan, `LembarInvoice` memasang kelas `mencetak-invoice` di
+`<body>`; CSS mencetak menyisakan hanya `[data-invoice]`.
+
+Dipilih pendekatan ini, bukan `window.open` + `document.write`, karena
+pemblokir popup mematikan jendela baru tanpa gejala, jendela baru
+kehilangan CSS Tailwind, dan di ponsel tamu ia membuka tab nyasar.
+
+Dua lapis, dengan alasan:
+
+1. `visibility` — bekerja di semua browser. Elemen tersembunyi masih
+   memakan ruang, jadi ini jaring pengaman, bukan solusi penuh.
+2. `:has()` — mematikan elemen yang bukan invoice dan meratakan
+   leluhurnya (tanpa `overflow`, tanpa `position: fixed`) supaya invoice
+   mulai dari atas kertas dan bisa lanjut ke halaman kedua. Browser yang
+   tidak mengenal `:has()` mengabaikan lapis ini; lapis 1 tetap membuat
+   hasil cetak hanya berisi invoice.
+
+## Yang diuji
+
+| Perintah | Cakupan | Butuh server |
+| --- | --- | --- |
+| `npm run uji:invoice` | 35 cek `ambilInvoice`: nomor, angka dari tagihan, penggabungan item, sesi, pesanan tanpa tagihan, label, zona waktu | tidak |
+| `npm run uji:invoice:http` | 29 cek rantai: buat → bayar → invoice kasir → invoice pelanggan → halaman cetak | ya |
+
+Yang paling penting di `uji:invoice:http`: invoice jalur kasir dan jalur
+pelanggan dibandingkan **persis** (`JSON.stringify`). Dua jalur yang
+menghasilkan angka berbeda adalah cara tercepat kehilangan kepercayaan
+tamu.
+
+## Catatan jujur
+
+Hasil cetak **belum pernah dirender** di lingkungan ini: Chromium tidak
+bisa diunduh di sandbox pengembangan (`playwright install` gagal). Yang
+sudah dibuktikan: aturan `@media print` benar-benar tersaji di CSS hasil
+build, dan halaman memuat `data-invoice`, nomor, total, serta tombol cetak.
+Yang belum: pratinjau kertas sungguhan. Periksa sekali di tablet kasir
+(Chrome → Cetak → Simpan sebagai PDF) sebelum jam buka.

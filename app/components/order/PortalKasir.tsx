@@ -44,6 +44,8 @@ import {
   IkonSuara,
   IkonMatikanSuara,
 } from "./Ikon";
+import { LembarInvoice } from "./LembarInvoice";
+import type { Invoice } from "@/app/lib/order/invoice";
 
 type ItemPesanan = {
   id: number;
@@ -116,32 +118,6 @@ type DataKasir = {
   demo: boolean;
 };
 
-/**
- * Alamat yang tercetak di struk (PRD bagian 11: nama cafe, ALAMAT, nomor
- * meja, tanggal dan jam, nama kasir).
- *
- * Catatan jujur: alamat lengkap Nabawi belum ada di repo maupun di PRD,
- * jadi yang dicetak hanya wilayahnya. JANGAN mengarang nomor rumah pada
- * dokumen yang diserahkan ke tamu — alamat salah di struk lebih buruk
- * daripada alamat singkat yang benar.
- *
- * Nama kafe TIDAK diulang di sini: baris tepat di atasnya sudah
- * "Nabawi Cafe & Resto", dan struk kertas hanya selebar 8 cm.
- */
-const ALAMAT_STRUK = "Yogyakarta";
-
-type StrukData = {
-  tagihan: Tagihan;
-  meja: string;
-  metode: string;
-  diterima: number;
-  kembalian: number;
-  kasir: string;
-  waktu: string;
-  items: BarisStruk[];
-  pajakPersen: number;
-  layananPersen: number;
-};
 
 export function PortalKasir() {
   const [data, setData] = useState<DataKasir | null>(null);
@@ -156,20 +132,32 @@ export function PortalKasir() {
   const [bayar, setBayar] = useState<{ tagihan: Tagihan; meja: string } | null>(null);
   const [menuHabisBuka, setMenuHabisBuka] = useState(false);
   const [menuSibuk, setMenuSibuk] = useState(0);
-  const [struk, setStruk] = useState<StrukData | null>(null);
+  /**
+   * Invoice yang sedang dibuka.
+   *
+   * Isinya diambil dari /api/order/invoice/:id — bukan dirakit dari state
+   * layar ini. Struk lama dirakit dari `items_tagihan` milik meja, dan itu
+   * salah begitu satu meja punya dua pesanan: struk pesanan kedua memuat
+   * item pesanan pertama juga.
+   *
+   * `galat` menyimpan pesan bila pengambilan gagal, supaya kasir melihat
+   * sebabnya — bukan dialog kosong tanpa penjelasan.
+   */
+  const [struk, setStruk] = useState<{ invoice: Invoice } | { galat: string } | null>(null);
   /** id pesanan yang sedang dicatat pembayarannya — mencegah ketuk ganda. */
   const [memproses, setMemproses] = useState<number | null>(null);
 
   const jumlahLalu = useRef(0);
 
   /*
-    Persentase pajak & layanan untuk dicetak di struk ("PPN 11%").
-    Sumbernya tarif dari server (aturan), bukan angka yang ditulis di
-    komponen — kalau pemilik mengubah tarif, struk ikut berubah tanpa
-    menyentuh kode.
+    Persentase pajak & layanan TIDAK lagi dibaca di sini.
+
+    Dulu keduanya diteruskan ke struk supaya tercetak "PPN 11%". Sejak
+    invoice punya sumber datanya sendiri, komponen itu mencetak RUPIAH dari
+    baris `tagihan` — angka yang benar-benar ditagihkan. Persentase hanya
+    berguna bila tarif berubah dan invoice lama ikut berubah, dan itu justru
+    yang tidak boleh terjadi pada bukti pembayaran.
   */
-  const pajakPersen = data?.aturan?.pajakPersen ?? 11;
-  const layananPersen = data?.aturan?.layananPersen ?? 0;
 
   const muat = useCallback(async () => {
     try {
@@ -225,6 +213,29 @@ export function PortalKasir() {
     [data]
   );
 
+  /**
+   * Ambil invoice lalu tampilkan.
+   *
+   * Isinya diambil dari server, bukan dirakit dari state layar, karena
+   * satu-satunya sumber angka yang boleh tercetak adalah database. Kalau
+   * pengambilan gagal, kasir HARUS melihat sebabnya — invoice kosong yang
+   * diam-diam tidak muncul membuat kasir mengulang pembayaran.
+   */
+  const bukaInvoice = useCallback(async (pesananId: number) => {
+    setStruk(null);
+    try {
+      const res = await fetch(`/api/order/invoice/${pesananId}?kunci=1`, { cache: "no-store" });
+      const j = (await res.json()) as { invoice?: Invoice; pesan?: string };
+      if (!res.ok || !j.invoice) {
+        setStruk({ galat: j.pesan ?? "Invoice tidak bisa dibuka." });
+        return;
+      }
+      setStruk({ invoice: j.invoice });
+    } catch {
+      setStruk({ galat: "Koneksi terputus. Invoice belum bisa dibuka." });
+    }
+  }, []);
+
   const bayarTunai = useCallback(
     async (p: MenungguBayar) => {
       if (memproses !== null) return;
@@ -253,13 +264,19 @@ export function PortalKasir() {
         }
         setGalat("");
         await muat();
+        /*
+          Invoice dibuka SETELAH `muat()`: daftar di layar sudah bersih
+          dari pesanan yang barusan dibayar, jadi tidak ada tombol basi
+          yang masih bisa ditekan.
+        */
+        await bukaInvoice(p.id);
       } catch {
         setGalat("Koneksi terputus. Pembayaran belum tercatat.");
       } finally {
         setMemproses(null);
       }
     },
-    [memproses, muat]
+    [memproses, muat, bukaInvoice]
   );
 
 
@@ -501,6 +518,19 @@ export function PortalKasir() {
                     Uang lebih
                   </button>
                 </div>
+
+                {/*
+                  Invoice juga bisa dibuka SEBELUM dibayar. Tamu yang
+                  memilih "bayar di kasir" sering meminta rinciannya lebih
+                  dulu; kasir tidak perlu menghitung ulang di kepala.
+                */}
+                <button
+                  type="button"
+                  onClick={() => bukaInvoice(p.id)}
+                  className="mt-1.5 h-8 w-full rounded-[0.5rem] text-[0.75rem] font-bold text-tinta-500 underline"
+                >
+                  Lihat invoice
+                </button>
               </li>
             ))}
           </ul>
@@ -893,21 +923,40 @@ export function PortalKasir() {
         <DialogBayar
           tagihan={bayar.tagihan}
           meja={bayar.meja}
-          // Item diambil dari state SEBELUM pembayaran: setelah lunas,
-          // pesanan keluar dari daftar aktif dan itemnya tidak dikirim lagi.
-          items={data?.meja.find((m) => m.nomor === bayar.meja)?.items_tagihan ?? []}
-          pajakPersen={pajakPersen}
-          layananPersen={layananPersen}
           onTutup={() => setBayar(null)}
-          onSukses={(s) => {
+          onSukses={(pesananId) => {
             setBayar(null);
-            setStruk(s);
             muat();
+            /*
+              Invoice pesanan yang BARU dilunasi — bukan tagihan meja.
+              Satu meja bisa berisi dua pesanan yang ditagih bersamaan;
+              membuka berdasarkan meja bisa menampilkan invoice pesanan
+              yang salah.
+            */
+            if (pesananId) bukaInvoice(pesananId);
           }}
         />
       )}
 
-      {struk && <Struk data={struk} onTutup={() => setStruk(null)} />}
+      {/* ── Invoice (sama persis dengan yang dilihat pelanggan) ── */}
+      {struk && "invoice" in struk && (
+        <LembarInvoice invoice={struk.invoice} onTutup={() => setStruk(null)} />
+      )}
+      {struk && "galat" in struk && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-tinta-900/50 p-4">
+          <div className="w-full max-w-xs rounded-[0.875rem] bg-bersih-0 p-4 text-center">
+            <p className="text-[0.9375rem] font-extrabold text-tinta-900">Invoice gagal dibuka</p>
+            <p className="mt-1 text-[0.8125rem] text-tinta-500">{struk.galat}</p>
+            <button
+              type="button"
+              onClick={() => setStruk(null)}
+              className="mt-3 h-10 w-full rounded-[0.625rem] bg-tinta-900 text-[0.8125rem] font-bold text-bersih-0"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
 
       {/*
         Peringatan ini dulu berbunyi "data pesanan tidak tersimpan permanen",
@@ -981,22 +1030,26 @@ function Baris({ k, v }: { k: string; v: string }) {
   );
 }
 
+/**
+ * Dialog pelunasan meja.
+ *
+ * Sejak invoice punya sumber datanya sendiri (/api/order/invoice/:id),
+ * dialog ini TIDAK lagi merakit struk. Ia hanya mencatat pembayaran, lalu
+ * memberi tahu pesanan mana yang dilunasi — invoice-nya diambil ulang dari
+ * database. Dulu struk dirakit dari `items` yang dikirim ke sini, dan itu
+ * memuat item pesanan lain di meja yang sama.
+ */
 function DialogBayar({
   tagihan,
   meja,
-  items,
-  pajakPersen,
-  layananPersen,
   onTutup,
   onSukses,
 }: {
   tagihan: Tagihan;
   meja: string;
-  items: BarisStruk[];
-  pajakPersen: number;
-  layananPersen: number;
   onTutup: () => void;
-  onSukses: (s: StrukData) => void;
+  /** `null` bila server tidak menyebutkan pesanan yang dilunasi. */
+  onSukses: (pesananId: number | null) => void;
 }) {
   const [metode, setMetode] = useState<"tunai" | "qris_kasir" | "kartu">("tunai");
   const [diterima, setDiterima] = useState<string>(String(tagihan.total));
@@ -1028,18 +1081,8 @@ function DialogBayar({
         setGalat(j.pesan ?? "Pembayaran gagal dicatat.");
         return;
       }
-      onSukses({
-        tagihan: j.tagihan ?? tagihan,
-        meja,
-        metode,
-        diterima: nominal,
-        kembalian,
-        kasir,
-        waktu: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }),
-        items,
-        pajakPersen,
-        layananPersen,
-      });
+      const pesananId = Number(j.pesanan_id);
+      onSukses(Number.isFinite(pesananId) && pesananId > 0 ? pesananId : null);
     } catch {
       setGalat("Koneksi terputus. Pembayaran belum tercatat.");
     } finally {
@@ -1163,173 +1206,6 @@ function DialogBayar({
         >
           {proses ? "Menyimpan…" : cukup ? `Bayar ${rupiah(tagihan.total)}` : "Nominal kurang"}
         </button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Struk (K-10). Ditampilkan setelah lunas, dengan tata letak yang sengaja
- * menyerupai struk kertas: huruf monospace, garis putus-putus, rata kanan
- * untuk uang. Tujuannya supaya kasir dan pelanggan sama-sama bisa
- * mencocokkan angka secara vertikal, bukan membaca kalimat.
- */
-function Struk({ data, onTutup }: { data: StrukData; onTutup: () => void }) {
-  const labelMetode: Record<string, string> = {
-    tunai: "Tunai",
-    qris_kasir: "QRIS di kasir",
-    kartu: "Kartu",
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-tinta-900/50 p-4">
-      <div className="w-full max-w-xs rounded-[0.875rem] bg-bersih-0 p-4 shadow-2xl">
-        <div className="border-b border-dashed border-bersih-200 pb-2 text-center">
-          <p className="text-[0.9375rem] font-extrabold text-tinta-900">Nabawi Cafe &amp; Resto</p>
-          {/*
-            Alamat wajib ada di struk (PRD bagian 11). Sebelumnya baris ini
-            berisi teks pemasaran "berkonsep Maroko · riverside view" — tidak
-            berguna bagi tamu yang membawa pulang struk dan ingin tahu ini
-            tagihan tempat mana.
-          */}
-          <p className="text-[0.6875rem] leading-tight text-tinta-500">{ALAMAT_STRUK}</p>
-        </div>
-
-        <div className="mt-2 space-y-0.5 font-mono text-[0.6875rem] text-tinta-700">
-          <div className="flex justify-between">
-            <span>Meja</span>
-            <span className="font-bold text-tinta-900">{data.meja}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Waktu</span>
-            <span>{data.waktu}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Kasir</span>
-            <span>{data.kasir}</span>
-          </div>
-        </div>
-
-        <div className="my-2 border-t border-dashed border-bersih-200" />
-
-        {/*
-          Daftar item (PRD bagian 11): nama, jumlah, harga satuan, harga
-          baris. Tanpa ini struk hanya berisi angka akhir, dan tamu yang
-          merasa ditagih lebih besar tidak bisa mencocokkan sendiri — satu-
-          satunya jalan adalah memanggil kasir lagi.
-        */}
-        <ul className="space-y-1 font-mono text-[0.6875rem]">
-          {data.items.length === 0 ? (
-            <li className="text-tinta-500">Tidak ada item tercatat.</li>
-          ) : (
-            data.items.map((i) => (
-              <li key={`${i.nama}-${i.harga_satuan}-${(i.pilihan ?? []).map((p) => p.nama).sort().join(",")}`}>
-                <div className="flex justify-between gap-2">
-                  <span className="min-w-0 flex-1 break-words text-tinta-900">
-                    {i.jumlah}× {i.nama}
-                  </span>
-                  <span className="shrink-0 tabular-nums text-tinta-900">
-                    {rupiah(i.harga_baris)}
-                  </span>
-                </div>
-                {/*
-                  Pilihan dicetak di struk. Kalau tidak, tamu tidak bisa
-                  membuktikan saus mana yang ia pesan saat tagihan dipersoalkan,
-                  dan kasir tidak punya dasar untuk membela dapur.
-                */}
-                {Array.isArray(i.pilihan) && i.pilihan.length > 0 && (
-                  <div className="pl-3 text-[0.6875rem] font-bold uppercase tracking-wide text-tinta-700">
-                    {i.pilihan.map((p) => p.nama).join(" · ")}
-                  </div>
-                )}
-                {/*
-                  Harga satuan ditulis hanya bila jumlahnya lebih dari satu.
-                  Untuk 1 item angkanya sama persis dengan harga baris dan
-                  hanya menambah baris yang harus dibaca.
-                */}
-                {i.jumlah > 1 && (
-                  <div className="pl-3 text-[0.6875rem] text-tinta-500">
-                    @ {rupiah(i.harga_satuan)}
-                  </div>
-                )}
-              </li>
-            ))
-          )}
-        </ul>
-
-        <div className="my-2 border-t border-dashed border-bersih-200" />
-
-        <dl className="space-y-1 font-mono text-[0.6875rem]">
-          <div className="flex justify-between">
-            <dt className="text-tinta-500">Subtotal</dt>
-            <dd className="tabular-nums text-tinta-900">{rupiah(data.tagihan.subtotal)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-tinta-500">
-              Biaya layanan
-              {data.layananPersen > 0 ? ` ${data.layananPersen}%` : ""}
-            </dt>
-            <dd className="tabular-nums text-tinta-900">{rupiah(data.tagihan.layanan)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-tinta-500">
-              Pajak{data.pajakPersen > 0 ? ` ${data.pajakPersen}%` : ""}
-            </dt>
-            <dd className="tabular-nums text-tinta-900">{rupiah(data.tagihan.pajak)}</dd>
-          </div>
-          {data.tagihan.pembulatan !== 0 && (
-            <div className="flex justify-between">
-              <dt className="text-tinta-500">Pembulatan</dt>
-              <dd className="tabular-nums text-tinta-900">{rupiah(data.tagihan.pembulatan)}</dd>
-            </div>
-          )}
-          <div className="flex justify-between border-t border-bersih-200 pt-1">
-            <dt className="font-bold text-tinta-900">TOTAL</dt>
-            <dd className="text-[0.9375rem] font-extrabold tabular-nums text-tinta-900">
-              {rupiah(data.tagihan.total)}
-            </dd>
-          </div>
-        </dl>
-
-        <div className="my-2 border-t border-dashed border-bersih-200" />
-
-        <dl className="space-y-1 font-mono text-[0.6875rem]">
-          <div className="flex justify-between">
-            <dt className="text-tinta-500">Bayar</dt>
-            <dd className="tabular-nums text-tinta-900">{labelMetode[data.metode]}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-tinta-500">Diterima</dt>
-            <dd className="tabular-nums text-tinta-900">{rupiah(data.diterima)}</dd>
-          </div>
-          {data.kembalian > 0 && (
-            <div className="flex justify-between">
-              <dt className="text-tinta-500">Kembalian</dt>
-              <dd className="tabular-nums text-tinta-900">{rupiah(data.kembalian)}</dd>
-            </div>
-          )}
-        </dl>
-
-        <p className="mt-3 border-t border-dashed border-bersih-200 pt-2 text-center text-[0.6875rem] text-tinta-500">
-          Terima kasih. Meja sudah ditutup.
-        </p>
-
-        <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="h-10 flex-1 rounded-[0.625rem] border border-bersih-200 text-[0.8125rem] font-bold text-tinta-900"
-          >
-            Cetak
-          </button>
-          <button
-            type="button"
-            onClick={onTutup}
-            className="h-10 flex-1 rounded-[0.625rem] bg-tinta-900 text-[0.8125rem] font-bold text-bersih-0"
-          >
-            Selesai
-          </button>
-        </div>
       </div>
     </div>
   );

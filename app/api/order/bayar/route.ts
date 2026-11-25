@@ -82,5 +82,14 @@ export async function POST(req: Request) {
   });
   if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });
 
-  return NextResponse.json({ ok: true, tagihan: hasil.data.tagihan });
+  /*
+    `pesanan_id` ikut dikirim: setelah ini layar kasir membuka invoice, dan
+    invoice itu harus milik PESANAN yang baru dibayar — bukan pesanan lain
+    yang kebetulan berbagi meja.
+  */
+  return NextResponse.json({
+    ok: true,
+    tagihan: hasil.data.tagihan,
+    pesanan_id: hasil.data.pesanan_id,
+  });
 }
