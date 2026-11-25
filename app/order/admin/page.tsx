@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { PortalAdmin } from "../../components/order/PortalAdmin";
 import { ambilAturan, ambilMenu } from "../../lib/order/data";
+import { ambilMeja } from "../../lib/order/katalog";
+import type { Meja } from "../../lib/order/tipe";
 import { punyaKunciServer } from "../../lib/order/db";
 
 export const metadata: Metadata = {
@@ -19,7 +21,11 @@ export const dynamic = "force-dynamic";
  * berarti siapa pun bisa mengubah harga.
  */
 export default async function HalamanAdmin() {
-  const [menuRes, aturan] = await Promise.all([ambilMenu(), ambilAturan()]);
+  const [menuRes, aturan, mejaRes] = await Promise.all([
+    ambilMenu(),
+    ambilAturan(),
+    ambilMeja(),
+  ]);
 
   /*
     Admin TIDAK punya salinan menu sebagai cadangan.
@@ -40,6 +46,13 @@ export default async function HalamanAdmin() {
       aturanAwal={aturan}
       bisaUbah={punyaKunciServer()}
       galatAwal={menuRes.ok ? "" : menuRes.pesan}
+      /*
+        Meja kosong bila pembacaannya gagal: tab Meja menampilkan pesan
+        "belum ada meja" dengan jujur, bukan daftar karangan. Daftar meja
+        yang dikarang di sini akan tercetak jadi QR untuk meja yang tidak
+        pernah ada.
+      */
+      meja={mejaRes.ok ? (mejaRes.data as Meja[]) : []}
     />
   );
 }

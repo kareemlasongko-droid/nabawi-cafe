@@ -102,10 +102,13 @@ async function main() {
   const tambah = await kirim("12", nasi.id, 1, sesi + "-2");
   cek("pesanan tambahan masuk tagihan yang sama", tambah.data?.tagihan?.id === r1.data?.tagihan?.id);
 
+  /*
+    Fitur panggilan sudah dihapus. Yang diuji sekarang adalah KETIADAANnya:
+    endpoint lama harus benar-benar mati, bukan tinggal sebagai pintu yang
+    masih bisa menulis ke tabel yang tidak lagi dibaca siapa pun.
+  */
   const pang = await post("/api/order/panggilan", { meja: "12", jenis: "bill" });
-  cek("panggilan bill tercatat", pang.status === 200);
-  const pang2 = await post("/api/order/panggilan", { meja: "12", jenis: "bill" });
-  cek("panggilan ganda tidak menumpuk", pang2.data?.sudahAda === true);
+  cek("endpoint panggilan sudah dihapus", pang.status === 404, `status ${pang.status}`);
 
   const sekarang = await api("/api/order/kasir");
   const m12 = (sekarang.data.meja ?? []).find((m) => m.nomor === "12");

@@ -49,7 +49,6 @@ const TABEL = {
   pesanan: [],
   item_pesanan: [],
   pembayaran: [],
-  panggilan: [],
   log_perubahan: [],
   pengaturan: [
     { kunci: "pajak_persen", nilai: "11" },

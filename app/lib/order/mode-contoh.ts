@@ -20,7 +20,7 @@
  *
  * Hanya `atribut bersifat mengajar` yang boleh tidak ada di database:
  * pesanan yang tidak tersimpan (tamu bisa mencoba alur tanpa mengotori
- * data sungguhan), dan tagihan/panggilan yang tidak pernah sampai ke kasir.
+ * data sungguhan), dan tagihan yang tidak pernah sampai ke kasir.
  *
  * Menu, meja, dan venue TETAP dari database. Mode contoh tidak pernah
  * mengarang menu.
@@ -109,7 +109,7 @@ export function pesanModeContoh(m: ModeContoh): string {
   if (!m.aktif) return "";
   if (m.disengaja) {
     return (
-      "Mode contoh menyala. Pesanan, tagihan, dan panggilan dari sesi ini " +
+      "Mode contoh menyala. Pesanan dan tagihan dari sesi ini " +
       "TIDAK tersimpan dan tidak sampai ke kasir. Menu dan meja tetap dari " +
       "database."
     );

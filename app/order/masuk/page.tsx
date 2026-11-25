@@ -30,8 +30,8 @@ export default function HalamanMasuk() {
   const portal = [
     { href: "/order/kasir", nama: "Kasir", ket: "Antrean pesanan, meja, tagihan, pembayaran." },
     { href: "/order/dapur", nama: "Dapur & Bar", ket: "Papan tiket Baru, Diproses, Siap." },
-    { href: "/order/pelayan", nama: "Pelayan", ket: "Siap diantar dan panggilan meja." },
-    { href: "/order/admin", nama: "Admin", ket: "Menu, harga, ketersediaan, pajak." },
+    { href: "/order/pelayan", nama: "Pelayan", ket: "Pesanan yang siap diantar." },
+    { href: "/order/admin", nama: "Admin", ket: "Menu, harga, ketersediaan, pajak, QR meja." },
   ];
 
   return (

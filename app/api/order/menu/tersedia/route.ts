@@ -2,7 +2,7 @@
  * GET /api/order/menu/tersedia — status ketersediaan menu (publik, baca saja).
  *
  * Kenapa terpisah dari /api/order/kasir: portal pelanggan tidak boleh
- * membaca data kasir (tagihan, panggilan, nama tamu lain). Yang dibutuhkan
+ * membaca data kasir (tagihan, nama tamu lain). Yang dibutuhkan
  * hanya "menu mana yang masih ada", dan itu memang informasi publik.
  *
  * Kenapa tidak memuat ulang seluruh halaman: K-08 meminta tanda habis

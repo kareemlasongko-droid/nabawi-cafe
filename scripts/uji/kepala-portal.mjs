@@ -113,14 +113,21 @@ async function main() {
     /<span>Meja<\/span>\s*<span class="[^"]*tabular-nums"[^>]*>/.test(kepalaPelanggan) &&
       !kepalaPelanggan.includes("text-bersih-0/70"),
   );
+  /*
+    Fitur panggil/bill sudah dihapus, jadi kepala pelanggan hanya memuat
+    identitas dan kotak meja. Dulu uji ini menghitung DUA tombol 40px di
+    dalam kepala; sekarang yang benar justru NOL — dan uji yang tidak
+    diperbarui akan terus "lulus" untuk tombol yang sudah tidak ada.
+  */
   const tinggiTombol = [...kepalaPelanggan.matchAll(/<button[^>]*class="[^"]*h-10/g)];
-  cek("pelanggan: dua tombol setinggi 40px", tinggiTombol.length === 2);
+  cek("pelanggan: kepala tidak lagi memuat tombol panggil/bill", tinggiTombol.length === 0);
 
   cek(
-    "pelanggan: Meja, Panggil, Bill berada di kelompok kanan",
-    kepalaPelanggan.indexOf("Meja 3") < kepalaPelanggan.indexOf("Panggil") &&
-      kepalaPelanggan.indexOf("Panggil") < kepalaPelanggan.indexOf("Bill"),
+    "pelanggan: tidak ada tombol Panggil/Bill di mana pun",
+    !pelanggan.includes(">Panggil<") && !/>\s*Bill\s*</.test(pelanggan),
   );
+
+  cek("pelanggan: nomor meja tetap tampil di kepala", kepalaPelanggan.includes("Meja 3"));
 
 
   // Kepala pelayan harus benar-benar hanya identitas + satu tombol ikon.

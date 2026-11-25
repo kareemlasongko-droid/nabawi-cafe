@@ -27,7 +27,7 @@
 
 import { db, PESAN_ENV_KOSONG, punyaEnvBaca } from "./db";
 import { ATURAN_BAWAAN, type AturanBiaya } from "./aturan";
-import type { KategoriMenu, Meja, Menu } from "./tipe";
+import { urutNomorMeja, type KategoriMenu, type Meja, type Menu } from "./tipe";
 
 export type Hasil<T> = { ok: true; data: T } | { ok: false; pesan: string };
 
@@ -89,7 +89,11 @@ export async function ambilMeja(nomor?: string): Promise<Hasil<Meja | Meja[]>> {
 
   const r = await db<Meja[]>("meja", { q: "select=*&order=nomor.asc" });
   if (!r.ok) return { ok: false, pesan: r.pesan };
-  return { ok: true, data: r.data };
+  /*
+    `order=nomor.asc` di PostgREST mengurutkan TEXT: 1, 10, 11, …, 2, 20, 3.
+    Pengurutan yang benar dilakukan di sini — lihat `urutNomorMeja`.
+  */
+  return { ok: true, data: [...r.data].sort((a, b) => urutNomorMeja(a.nomor, b.nomor)) };
 }
 
 // ─────────────────────────────────────────────────────────────

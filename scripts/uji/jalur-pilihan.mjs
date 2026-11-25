@@ -35,7 +35,6 @@ const TABEL = {
   tagihan: [],
   pesanan: [],
   item_pesanan: [],
-  panggilan: [],
   meja_status: [],
 };
 let urut = 1;
