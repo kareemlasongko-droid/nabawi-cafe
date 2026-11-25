@@ -41,8 +41,10 @@ import {
   IkonSuara,
   IkonMatikanSuara,
 } from "./Ikon";
-import { LembarInvoice } from "./LembarInvoice";
-import type { Invoice } from "@/app/lib/order/invoice";
+import { BukaInvoice } from "./LembarInvoice";
+import { KartuRingkasan } from "./KartuRingkasan";
+import { DaftarRiwayat } from "./DaftarRiwayat";
+import type { BarisRiwayat, RingkasanPenjualan } from "@/app/lib/order/riwayat";
 
 type ItemPesanan = {
   id: number;
@@ -129,17 +131,21 @@ export function PortalKasir() {
   const [menuHabisBuka, setMenuHabisBuka] = useState(false);
   const [menuSibuk, setMenuSibuk] = useState(0);
   /**
-   * Invoice yang sedang dibuka.
+   * Pesanan yang invoice-nya sedang dibuka.
    *
-   * Isinya diambil dari /api/order/invoice/:id — bukan dirakit dari state
-   * layar ini. Struk lama dirakit dari `items_tagihan` milik meja, dan itu
-   * salah begitu satu meja punya dua pesanan: struk pesanan kedua memuat
-   * item pesanan pertama juga.
-   *
-   * `galat` menyimpan pesan bila pengambilan gagal, supaya kasir melihat
-   * sebabnya — bukan dialog kosong tanpa penjelasan.
+   * Hanya ID yang disimpan di sini. Pengambilan dan penampilannya
+   * diserahkan ke `<BukaInvoice>` — komponen yang SAMA dipakai daftar
+   * riwayat di bawah. Dua salinan modal invoice akan menyimpang pada
+   * penanganan galat dan cara menutupnya.
    */
-  const [struk, setStruk] = useState<{ invoice: Invoice } | { galat: string } | null>(null);
+  const [invoiceId, setInvoiceId] = useState<number | null>(null);
+
+  /** Rangkuman penjualan hari ini + riwayat pesanan (lihat /api/order/riwayat). */
+  const [ringkasan, setRingkasan] = useState<RingkasanPenjualan | null>(null);
+  const [pesanRingkasan, setPesanRingkasan] = useState("");
+  const [riwayat, setRiwayat] = useState<BarisRiwayat[]>([]);
+  const [pesanRiwayat, setPesanRiwayat] = useState("");
+  const [riwayatBuka, setRiwayatBuka] = useState(false);
   /** id pesanan yang sedang dicatat pembayarannya — mencegah ketuk ganda. */
   const [memproses, setMemproses] = useState<number | null>(null);
 
@@ -170,11 +176,46 @@ export function PortalKasir() {
     }
   }, []);
 
+  /**
+   * Muat rangkuman & riwayat.
+   *
+   * Dipisah dari `muat()` dan TIDAK ikut polling 4 detik: rangkuman
+   * penjualan tidak berubah cukup sering untuk itu, dan setiap polling
+   * menambah dua kueri agregat ke database — di jaringan kafe, itu
+   * ongkos nyata untuk angka yang sama. Dimuat saat layar dibuka, setiap
+   * kali pembayaran berhasil, dan saat tab riwayat dibuka.
+   */
+  const muatRiwayat = useCallback(async () => {
+    try {
+      const res = await fetch("/api/order/riwayat", { cache: "no-store" });
+      const j = (await res.json()) as {
+        ringkasan?: RingkasanPenjualan | null;
+        pesan_ringkasan?: string;
+        riwayat?: BarisRiwayat[];
+        pesan_riwayat?: string;
+        pesan?: string;
+      };
+      if (!res.ok) {
+        setPesanRingkasan(j.pesan ?? "Rangkuman belum bisa dibaca.");
+        setPesanRiwayat(j.pesan ?? "Riwayat belum bisa dibaca.");
+        return;
+      }
+      setRingkasan(j.ringkasan ?? null);
+      setPesanRingkasan(j.pesan_ringkasan ?? "");
+      setRiwayat(j.riwayat ?? []);
+      setPesanRiwayat(j.pesan_riwayat ?? "");
+    } catch {
+      setPesanRingkasan("Koneksi terputus. Rangkuman belum diperbarui.");
+      setPesanRiwayat("Koneksi terputus. Riwayat belum diperbarui.");
+    }
+  }, []);
+
   useEffect(() => {
     muat();
+    muatRiwayat();
     const t = setInterval(muat, 4000);
     return () => clearInterval(t);
-  }, [muat]);
+  }, [muat, muatRiwayat]);
 
   /**
    * Catat pembayaran tunai untuk satu pesanan.
@@ -209,29 +250,6 @@ export function PortalKasir() {
     [data]
   );
 
-  /**
-   * Ambil invoice lalu tampilkan.
-   *
-   * Isinya diambil dari server, bukan dirakit dari state layar, karena
-   * satu-satunya sumber angka yang boleh tercetak adalah database. Kalau
-   * pengambilan gagal, kasir HARUS melihat sebabnya — invoice kosong yang
-   * diam-diam tidak muncul membuat kasir mengulang pembayaran.
-   */
-  const bukaInvoice = useCallback(async (pesananId: number) => {
-    setStruk(null);
-    try {
-      const res = await fetch(`/api/order/invoice/${pesananId}?kunci=1`, { cache: "no-store" });
-      const j = (await res.json()) as { invoice?: Invoice; pesan?: string };
-      if (!res.ok || !j.invoice) {
-        setStruk({ galat: j.pesan ?? "Invoice tidak bisa dibuka." });
-        return;
-      }
-      setStruk({ invoice: j.invoice });
-    } catch {
-      setStruk({ galat: "Koneksi terputus. Invoice belum bisa dibuka." });
-    }
-  }, []);
-
   const bayarTunai = useCallback(
     async (p: MenungguBayar) => {
       if (memproses !== null) return;
@@ -261,18 +279,24 @@ export function PortalKasir() {
         setGalat("");
         await muat();
         /*
+          Rangkuman ikut disegarkan: omzet yang tidak berubah setelah kasir
+          menerima uang akan terlihat seperti pembayaran yang gagal
+          tercatat.
+        */
+        muatRiwayat();
+        /*
           Invoice dibuka SETELAH `muat()`: daftar di layar sudah bersih
           dari pesanan yang barusan dibayar, jadi tidak ada tombol basi
           yang masih bisa ditekan.
         */
-        await bukaInvoice(p.id);
+        setInvoiceId(p.id);
       } catch {
         setGalat("Koneksi terputus. Pembayaran belum tercatat.");
       } finally {
         setMemproses(null);
       }
     },
-    [memproses, muat, bukaInvoice]
+    [memproses, muat, muatRiwayat]
   );
 
 
@@ -511,7 +535,7 @@ export function PortalKasir() {
                 */}
                 <button
                   type="button"
-                  onClick={() => bukaInvoice(p.id)}
+                  onClick={() => setInvoiceId(p.id)}
                   className="mt-1.5 h-8 w-full rounded-[0.5rem] text-[0.75rem] font-bold text-tinta-500 underline"
                 >
                   Lihat invoice
@@ -881,6 +905,58 @@ export function PortalKasir() {
         </section>
       </div>
 
+      {/* ── Rangkuman penjualan + riwayat ──
+          Ditaruh SETELAH antrean dan denah, bukan di atasnya: kasir membuka
+          layar ini untuk melayani tamu yang sedang berdiri, bukan untuk
+          membaca laporan. Rangkuman yang menempati posisi teratas akan
+          mendorong antrean ke bawah lipatan layar tablet. */}
+      <div className="grid gap-4 px-4 pb-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        <section aria-labelledby="rangkuman-kasir">
+          <h2
+            id="rangkuman-kasir"
+            className="mb-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+          >
+            Penjualan hari ini
+          </h2>
+          <KartuRingkasan ringkasan={ringkasan} galat={pesanRingkasan} />
+        </section>
+
+        <section aria-labelledby="riwayat-kasir">
+          <button
+            type="button"
+            onClick={() => setRiwayatBuka((b) => !b)}
+            aria-expanded={riwayatBuka}
+            className="mb-2 flex w-full items-center gap-2 text-left"
+          >
+            <h2
+              id="riwayat-kasir"
+              className="flex-1 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+            >
+              Riwayat pesanan
+            </h2>
+            <span className="rounded-full bg-bersih-200 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-tinta-700">
+              {riwayat.length}
+            </span>
+            <span
+              className={[
+                "text-tinta-500 transition-transform",
+                riwayatBuka ? "rotate-180" : "",
+              ].join(" ")}
+              aria-hidden="true"
+            >
+              ▾
+            </span>
+          </button>
+
+          {/*
+            Tertutup secara bawaan: kasir yang sedang sibuk tidak perlu
+            menggulir 12 baris riwayat setiap kali memuat layar. Yang
+            dibuka hanya saat ia memang mencari pesanan tertentu.
+          */}
+          {riwayatBuka && <DaftarRiwayat riwayat={riwayat} galat={pesanRiwayat} awal={8} />}
+        </section>
+      </div>
+
       {/* ── Dialog pembayaran ── */}
       {bayar && (
         <DialogBayar
@@ -896,29 +972,14 @@ export function PortalKasir() {
               membuka berdasarkan meja bisa menampilkan invoice pesanan
               yang salah.
             */
-            if (pesananId) bukaInvoice(pesananId);
+            if (pesananId) setInvoiceId(pesananId);
           }}
         />
       )}
 
       {/* ── Invoice (sama persis dengan yang dilihat pelanggan) ── */}
-      {struk && "invoice" in struk && (
-        <LembarInvoice invoice={struk.invoice} onTutup={() => setStruk(null)} />
-      )}
-      {struk && "galat" in struk && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-tinta-900/50 p-4">
-          <div className="w-full max-w-xs rounded-[0.875rem] bg-bersih-0 p-4 text-center">
-            <p className="text-[0.9375rem] font-extrabold text-tinta-900">Invoice gagal dibuka</p>
-            <p className="mt-1 text-[0.8125rem] text-tinta-500">{struk.galat}</p>
-            <button
-              type="button"
-              onClick={() => setStruk(null)}
-              className="mt-3 h-10 w-full rounded-[0.625rem] bg-tinta-900 text-[0.8125rem] font-bold text-bersih-0"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
+      {invoiceId !== null && (
+        <BukaInvoice pesananId={invoiceId} onTutup={() => setInvoiceId(null)} />
       )}
 
       {/*

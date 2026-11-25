@@ -404,3 +404,90 @@ valid, isinya tepat, dan halaman admin memuat tab serta tombol cetaknya.
 Sebelum menempel 20 lembar, periksa satu: buka `/order/admin` → tab
 **Meja** → pindai satu QR dengan ponsel. Kalau terbuka di `/order?meja=…`
 dengan meja yang benar, sisanya akan sama.
+
+## 12. Rangkuman penjualan & riwayat pesanan (kasir + admin)
+
+Permintaan pemilik: *"dikasir dan admin terdapat rangkuman penjualan (yang
+ringkas saja), juga riwayat pesanan, dan invoice pesanan."*
+
+### 12.1 Satu endpoint, satu modul
+
+`GET /api/order/riwayat?batas=40` → `{ ringkasan, riwayat }`.
+Logikanya di `app/lib/order/riwayat.ts`; kedua portal memanggil jalur yang
+sama, jadi angka di layar kasir dan layar pemilik tidak bisa berbeda.
+
+Bila salah satu bagian gagal, bagian lain tetap dikirim: kasir tidak
+kehilangan daftar pesanan hanya karena angka omzet tidak bisa dihitung.
+
+### 12.2 Angka yang dipakai, dan yang sengaja TIDAK dipakai
+
+| Angka | Sumber | Kenapa |
+|---|---|---|
+| Omzet | Σ `tagihan.total` yang `status=lunas` dan `ditutup_at ≥ awal hari` | Nominal tagihan, bukan uang yang diserahkan |
+| Tunai | `pembayaran.masuk = maks(0, diterima − kembalian)` | `diterima` memuat kembalian |
+| Non-tunai | sisanya | Status `lunas` **dan** `settlement` sama-sama sah |
+| Pesanan | `pesanan` `status_bayar=lunas`, `dibayar_at ≥ awal hari` | |
+| Belum dibayar | `status_bayar=menunggu` **kecuali** `ditolak`/`dibatalkan` | Pesanan ditolak tidak perlu ditagih |
+
+Dua jebakan nyata di data produksi, keduanya diuji:
+
+1. **Kembalian bukan pendapatan.** Satu transaksi live: tagihan Rp279.700,
+   `diterima` Rp300.000. Menjumlahkan `diterima` membuat omzet naik
+   Rp20.300 — kas terlihat lebih besar dari yang ada di laci.
+2. **Status pembayaran tidak seragam.** Ada baris `lunas` dan `settlement`.
+   Menyaring satu nilai saja menghilangkan separuh transaksi non-tunai.
+
+Ini juga alasan `/api/order/riwayat` **tidak** menghitung dari
+`pembayaran`: sumber omzet adalah `tagihan`, `pembayaran` hanya memisahkan
+metode.
+
+### 12.3 Batas hari memakai WIB, bukan zona perangkat
+
+`awalHariIni()` menggeser +07:00 tetap (Indonesia tidak memakai DST) lalu
+kembali ke UTC. Tablet kasir di Jakarta dan ponsel pemilik di UTC harus
+menghitung "hari ini" yang sama. Diuji dengan perangkat disetel `UTC` dan
+`UTC+14`: hasilnya identik.
+
+### 12.4 Bentuk di layar
+
+Ringkas, sesuai permintaan:
+
+- **Kasir** — satu baris angka (omzet · pesanan · belum dibayar bila ada),
+  ditaruh **di bawah** antrean & denah meja, bukan di atasnya. Layar kasir
+  dibuka untuk melayani tamu yang sedang berdiri; laporan tidak boleh
+  mendorong antrean ke bawah lipatan.
+- **Admin** — tab **Penjualan** (paling kiri), empat angka besar + pisahan
+  tunai/non-tunai.
+
+Riwayat: 40 baris terakhir, **semua** status — termasuk yang ditolak dan
+kedaluwarsa, karena justru itu yang paling sering ditanyakan tamu. Ada
+pencarian nomor pesanan/nama tamu, dan **setiap baris punya tombol
+Invoice**.
+
+### 12.5 Invoice dari riwayat
+
+`<BukaInvoice pesananId>` di `LembarInvoice.tsx` adalah **satu-satunya**
+jalan membuka invoice untuk staf. Kasir dan admin tidak lagi masing-masing
+menulis `fetch` sendiri — itulah cara dua salinan modal mulai menyimpang
+pada penanganan galat dan cara menutupnya.
+
+Invoice tetap bisa dibuka **berkali-kali**, termasuk untuk pesanan lama dan
+yang sudah lunas. Tombolnya **tidak** dinonaktifkan untuk pesanan yang
+belum dibayar: justru di situ kasir butuh rinciannya untuk menagih.
+
+### 12.6 Diuji bagaimana
+
+| Suite | Cakupan |
+|---|---|
+| `npm run uji:riwayat` | 36 cek unit: batas hari WIB (4 kasus + zona perangkat), kembalian, `settlement`, pesanan ditolak, pesanan tanpa tagihan, ketahanan saat tabel gagal |
+| `npm run uji:riwayat:http` | 50 cek HTTP: rute, bentuk respons, invoice terbuka dari tiap baris, dan **bundel kedua portal** memuat rangkuman/riwayat/tombol invoice |
+
+Total suite: **435 lulus, 0 gagal**, dijalankan dua kali berturut-turut.
+
+### 12.7 Yang belum dibuktikan
+
+Sama seperti sebelumnya: **tampilan belum pernah dilihat mata** — Chromium
+tidak bisa diunduh di lingkungan ini. Yang terbukti: kelas CSS yang dipakai
+benar-benar ada di stylesheet yang disajikan, komponen ikut terbundel di
+kedua portal, dan halaman menjawab 200 tanpa galat. Perlu satu kali lihat
+di tablet kasir sebelum jam sibuk.
