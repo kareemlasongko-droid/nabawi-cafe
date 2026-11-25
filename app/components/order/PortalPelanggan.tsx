@@ -754,6 +754,18 @@ export function PortalPelanggan({
                 >
                   Pesan lagi
                 </button>
+                {/*
+                  Invoice dibuka SEBELUM dibayar pun berguna: tamu bisa
+                  menunjukkan "Ini pesanan saya" ke kasir, lengkap dengan
+                  nomor dan rinciannya — tanpa perlu membaca ulang dari layar
+                  ponsel yang kecil.
+                */}
+                <a
+                  href={`/order/invoice/${pesananDiKasir.id}?sesi=${encodeURIComponent(sesi)}`}
+                  className="flex h-10 items-center rounded-[0.625rem] border border-forest-700/30 px-3 text-[0.8125rem] font-bold text-forest-700"
+                >
+                  Lihat invoice
+                </a>
                 <button
                   type="button"
                   onClick={() => panggil("bill")}
@@ -873,6 +885,20 @@ export function PortalPelanggan({
                     <p className="mt-0.5 text-[0.8125rem] leading-snug text-tinta-500">
                       {l.detail} · {p.total_item} item
                     </p>
+                    {/*
+                      Tautan invoice untuk SETIAP pesanan, lunas atau belum.
+
+                      Invoice yang hanya tersedia setelah lunas tidak
+                      berguna pada kasus yang paling sering terjadi: tamu
+                      memilih bayar di kasir dan ingin menunjukkan pesanannya
+                      ke kasir. Justru saat itulah ia butuh dokumennya.
+                    */}
+                    <a
+                      href={`/order/invoice/${p.id}?sesi=${encodeURIComponent(sesi)}`}
+                      className="mt-1 inline-block text-[0.75rem] font-bold text-forest-700 underline"
+                    >
+                      Lihat invoice
+                    </a>
                   </div>
                 );
               })}

@@ -16,6 +16,8 @@
     "uji:prabayar": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/prabayar.mjs",
     "uji:lunas": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/alur-lunas.mjs",
     "uji:alur": "node scripts/uji/alur-http.mjs",
+    "uji:invoice": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/invoice.mjs",
+    "uji:invoice:http": "node scripts/uji/invoice-http.mjs",
     "uji:http": "node scripts/uji/regresi.mjs && node scripts/uji/kepala-portal.mjs && node scripts/uji/bug-audit.mjs && node scripts/uji/pilihan.mjs && npm run uji:sampai --silent",
     "uji:sampai": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/pilihan-sampai.ts",
     "uji:kepala": "node scripts/uji/kepala-portal.mjs",

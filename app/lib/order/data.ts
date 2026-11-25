@@ -554,7 +554,7 @@ export async function catatPembayaran(masuk: {
   metode: MetodeBayar;
   diterima: number;
   kasir: string;
-}): Promise<Hasil<{ tagihan: Tagihan }>> {
+}): Promise<Hasil<{ tagihan: Tagihan; pesanan_id: number | null }>> {
   const t = await db<Tagihan[]>("tagihan", {
     q: `select=*&id=eq.${masuk.tagihan_id}&limit=1`,
   });
@@ -578,6 +578,16 @@ export async function catatPembayaran(masuk: {
   const belumLunas = (pesananTagihan.ok ? pesananTagihan.data : []).filter(
     (p) => p.status_bayar !== "lunas" && p.status !== "dibatalkan"
   );
+
+  /*
+    Pesanan yang ikut dilunasi dikembalikan ke pemanggil.
+
+    Kasir membutuhkannya untuk membuka INVOICE PESANAN ITU setelah uang
+    diterima. Tanpa id ini, layar kasir hanya tahu tagihannya — dan satu
+    meja bisa berisi dua pesanan, jadi struk yang dibuka berisiko milik
+    pesanan tetangga.
+  */
+  const pesananDilunasi = belumLunas[0]?.id ?? null;
 
   const bayar = await db("pembayaran", {
     method: "POST",
@@ -638,7 +648,7 @@ export async function catatPembayaran(masuk: {
     body: { ditangani_at: new Date().toISOString() },
   });
 
-  return { ok: true, data: { tagihan: upd.data[0] } };
+  return { ok: true, data: { tagihan: upd.data[0], pesanan_id: pesananDilunasi } };
 }
 
 // ─────────────────────────────────────────────────────────────

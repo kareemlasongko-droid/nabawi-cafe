@@ -46,6 +46,34 @@ const patch = (j: string, o: unknown) =>
     body: JSON.stringify(o),
   }).then(async (r) => ({ status: r.status, data: await r.json().catch(() => null) }));
 
+/**
+ * ── LUNASI DULU, BARU DAPUR MENERIMA ──────────────────────────────────
+ *
+ * Sejak alur prabayar, `ambilPesananAktif()` hanya mengembalikan pesanan
+ * ber-`status_bayar = 'lunas'`. Uji ini ditulis sebelum aturan itu ada:
+ * ia membuat pesanan lalu langsung memindahkan statusnya ke "diterima",
+ * sehingga pesanan tetap "menunggu" — dan dapur dengan benar tidak
+ * menampilkannya. Seluruh 10 cek setelahnya gagal karena sebab itu, bukan
+ * karena pilihan/add-on rusak.
+ *
+ * Yang menandai lunas adalah KASIR, bukan uji: `bayar_tunai` membaca total
+ * dari database dan mencatat pembayarannya. Uji ini tidak boleh menyuntik
+ * `status_bayar` langsung — kalau ia melakukannya, ia berhenti menguji
+ * alur yang sebenarnya dipakai kasir.
+ */
+const lunasi = async (pesananId: number) => {
+  const r = await post("/api/order/kasir", {
+    aksi: "bayar_tunai",
+    pesanan_id: pesananId,
+    uang_pas: true,
+    oleh: "kasir-uji",
+  });
+  if (r.status !== 200) {
+    console.log(`  (catatan) pelunasan ${pesananId} gagal: status ${r.status} ${JSON.stringify(r.data)}`);
+  }
+  return r;
+};
+
 await post("/api/order/kasir", { aksi: "reset_demo" });
 
 // Pesanan dengan add-on + catatan, supaya terlihat keduanya tidak tertukar.
@@ -53,6 +81,13 @@ const r = await post("/api/order/pesanan", {
   meja: "9",
   sesi: "sampai-" + Date.now(),
   nama: "Tamu AddOn",
+  /*
+    Nama & nomor WA WAJIB sejak alur prabayar (divalidasi di aturan.ts).
+    Skrip ini ditulis sebelum aturan itu ada, jadi permintaannya ditolak
+    400 dan seluruh 14 cek di bawahnya gagal — bukan karena pilihan/add-on
+    rusak, melainkan karena pesanannya tidak pernah dibuat.
+  */
+  no_wa: "081234567890",
   lewatiJamBuka: true,
   items: [
     { menu_id: 3, jumlah: 1, catatan: "tanpa bawang", pilihan: ["Salted Egg"] },
@@ -66,6 +101,9 @@ console.log("\n── 1. Respons pembuatan pesanan ──");
 cek("item 1 menyimpan add-on", r.data?.items?.[0]?.pilihan?.[0]?.nama === "Salted Egg");
 cek("item 2 menyimpan add-on", r.data?.items?.[1]?.pilihan?.[0]?.nama === "Caramel");
 cek("item tanpa add-on tidak dikarang", r.data?.items?.[1]?.pilihan?.length === 1);
+
+const bayar1 = await lunasi(id);
+cek("pesanan dilunasi kasir sebelum masuk dapur", bayar1.status === 200, `status ${bayar1.status}`);
 
 await patch("/api/order/status", { id, ke: "diterima" });
 
@@ -102,10 +140,12 @@ const polos = await post("/api/order/pesanan", {
   meja: "9",
   sesi: "polos-" + Date.now(),
   nama: "Tamu",
+  no_wa: "081234567891",
   lewatiJamBuka: true,
   items: [{ menu_id: 1, jumlah: 1, catatan: null, pilihan: [] }],
 });
 cek("pesanan tanpa add-on berhasil", polos.status === 200);
+if (polos.status === 200) await lunasi(polos.data?.pesanan?.id);
 cek("pilihan berupa array kosong, bukan undefined", Array.isArray(polos.data?.items?.[0]?.pilihan), JSON.stringify(polos.data?.items?.[0]?.pilihan));
 await patch("/api/order/status", { id: polos.data?.pesanan?.id, ke: "diterima" });
 const dapur2 = await (await fetch(BASE + "/api/order/dapur")).json();
