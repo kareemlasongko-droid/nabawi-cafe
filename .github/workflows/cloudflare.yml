@@ -31,9 +31,11 @@ name: Cloudflare (persiapan)
 #   · push ke main  → deploy ke Worker produksi.
 #
 # CATATAN PENTING
-#   Vercel TETAP menjadi produksi selama ini menyala. Alur ini tidak
-#   mencabut apa pun. Vercel baru dimatikan setelah Cloudflare terbukti
-#   melayani semua halaman (lihat docs/PINDAH-CLOUDFLARE.md).
+#   Vercel SUDAH DIHAPUS (proyek + seluruh deployment + env var-nya).
+#   Sejak itu Cloudflare adalah SATU-SATUNYA jalur produksi — tidak ada
+#   lagi cadangan di sisi Vercel. Kalau deploy ini gagal, situsnya tidak
+#   punya tempat lain untuk hidup, jadi kegagalan di sini harus dianggap
+#   serius, bukan "nanti juga naik lewat Vercel".
 # ─────────────────────────────────────────────────────────────────────
 
 on:
