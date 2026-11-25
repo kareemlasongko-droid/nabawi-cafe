@@ -49,7 +49,7 @@ menampilkan pita "Mode demo".
 
 1. Supabase → **Settings → API** → salin kunci **`service_role`**
    (project `mvuqdakfzffhrnzxnmke`).
-2. Vercel → project `nabawi-cafe` → **Settings → Environment Variables**.
+2. Cloudflare → Worker `nabawi-cafe` → **Settings → Variables** (Vercel sudah dihapus).
 3. Tambah `SUPABASE_SERVICE_KEY` = kunci tadi, centang **Production, Preview,
    Development**.
 4. **Redeploy.** Variabel baru tidak berlaku pada deployment yang sudah jadi.
@@ -114,7 +114,7 @@ Cara tercepat memastikan mode sungguhan benar-benar jalan — bukan hanya pitany
 hilang — adalah membuka alamat ini di browser:
 
 ```
-https://nabawi-cafe.vercel.app/api/order/kasir
+https://nabawi-cafe.<subdomain-akun>.workers.dev/api/order/kasir
 ```
 
 Perhatikan **`"demo": false`** di akhir jawabannya.

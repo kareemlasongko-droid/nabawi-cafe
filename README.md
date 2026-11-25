@@ -25,49 +25,35 @@ npm start
 
 ## Alur deploy
 
-**Production hanya naik kalau dipromosikan manual.** Merge ke `main` tidak
-lagi menerbitkan production secara otomatis.
+**Produksi berjalan di Cloudflare Workers** (`npx opennextjs-cloudflare build`
+→ `wrangler deploy`, lihat `wrangler.jsonc` dan `docs/PINDAH-CLOUDFLARE.md`).
 
-| Tahap | Sumber | Hasil | Domain |
-| --- | --- | --- | --- |
-| Development | `npm run dev` | HMR, bukan versi publik | `localhost:3000` |
-| Preview | setiap push ke branch PR | Deployment Preview | URL preview per-commit |
-| Production | **promosikan manual** di dashboard Vercel | Deployment Production | `https://nabawi-cafe.vercel.app` |
+> **Vercel sudah dihapus.** Proyek `nabawi-cafe` beserta seluruh deployment
+> dan environment variable-nya dihapus permanen, dan
+> `https://nabawi-cafe.vercel.app` **tidak lagi melayani**. Alamat lama yang
+> masih tercetak di QR meja atau dokumen harus diganti ke alamat Worker.
+> `vercel.json` sudah dihapus juga: berkas itu hanya berisi setelan
+> auto-deploy yang sekarang tidak dibaca siapa pun.
 
-### Yang mengunci production
+| Tahap | Sumber | Hasil |
+| --- | --- | --- |
+| Development | `npm run dev` | HMR, bukan versi publik (`localhost:3000`) |
+| Produksi | `wrangler deploy` / CI Cloudflare | Worker `nabawi-cafe` |
 
-`vercel.json`:
+### Environment variable
 
-```json
-{ "git": { "deploymentEnabled": { "main": false } } }
-```
+Dulu dipasang di dashboard Vercel; sekarang di **Cloudflare → Worker
+`nabawi-cafe` → Settings → Variables**:
 
- Push ke `main` — termasuk merge pull request — **tidak** membuat deployment
-production. Preview per-branch tetap dibuat, jadi cek Vercel pada PR masih ada
-dan perubahan tetap bisa diperiksa sebelum dipromosikan.
+| Variabel | Jenis | Tanpa ini |
+| --- | --- | --- |
+| `SUPABASE_URL` | biasa | tidak ada yang bisa dibaca |
+| `SUPABASE_ANON_KEY` | biasa | tidak ada yang bisa dibaca |
+| `SUPABASE_SERVICE_KEY` | **rahasia** | menu terbaca, **pesanan ditolak** |
 
-### Cara naik ke production
-
-1. Buka Vercel → project `nabawi-cafe` → tab **Deployments**.
-2. Pilih deployment preview yang sudah diperiksa.
-3. Menu **⋯ → Promote to Production**.
-
-Cara ini juga berarti production bisa **di-rollback** kapan saja dengan
-memilih deployment lama dan mempromosikannya kembali.
-
-### Kenapa bukan lewat git
-
-Repository ini tidak punya jalur deploy lain: tidak ada `npm run deploy`,
-tidak ada kredensial Vercel di lingkungan pengembangan, dan integrasi Git
-Vercel-lah satu-satunya yang terhubung ke akun. Mematikan auto-deploy di
-`vercel.json` berarti satu-satunya cara menaikkan production adalah tindakan
-manual yang disengaja di dashboard.
-
-**Catatan:** kalau di dashboard Vercel ada setelan yang berlawanan (mis.
-"Production Branch" atau opsi auto-deploy yang dipaksa hidup), setelan
-dashboard menang atas `vercel.json`. Periksa sekali di
-**Settings → Git → Ignored Build Step / Production Branch** setelah perubahan
-ini masuk.
+Karena proyek Vercel sudah dihapus, ketiga nilai itu **tidak bisa diambil
+lagi dari Vercel**. Kalau Cloudflare belum memilikinya, ambil ulang dari
+dashboard Supabase.
 
 ### Database dipakai bersama
 
