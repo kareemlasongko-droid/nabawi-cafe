@@ -1,11 +1,11 @@
 /**
  * /api/order/kasir — data untuk portal kasir.
  *
- * GET  : pesanan aktif + meja + tagihan terbuka + panggilan.
+ * GET  : pesanan aktif + meja + tagihan terbuka.
  *        Semuanya dalam SATU permintaan. Kalau dipecah, tablet kasir
  *        melakukan 4 permintaan tiap 4 detik dan itu pemborosan di
  *        jaringan cafe yang tidak selalu kuat.
- * POST : aksi kecil (menangani panggilan).
+ * POST : aksi kecil (bayar tunai, ketersediaan menu).
  */
 import { NextResponse } from "next/server";
 import {
@@ -25,7 +25,7 @@ import {
 } from "@/app/lib/order/demo";
 import { bolehBayarTunai } from "@/app/lib/order/katalog";
 import { pesanModeContoh, statusModeContoh } from "@/app/lib/order/mode-contoh";
-import type { Meja, Panggilan, Pesanan, Tagihan } from "@/app/lib/order/tipe";
+import { urutNomorMeja, type Meja, type Pesanan, type Tagihan } from "@/app/lib/order/tipe";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +35,8 @@ export async function GET() {
   /*
     MEJA, MENU, TAGIHAN, PESANAN — SEMUA DARI DATABASE.
 
-    Dulu, tanpa kunci server blok ini mengembalikan meja, tagihan, pesanan,
-    dan panggilan karangan dari `demo.ts`, bercampur dengan menu ASLI dari
+    Dulu, tanpa kunci server blok ini mengembalikan meja, tagihan, dan
+    pesanan karangan dari `demo.ts`, bercampur dengan menu ASLI dari
     database. Hasilnya: kasir melihat meja dan pesanan yang tidak pernah
     ada, di sebelah menu yang benar — campuran yang paling menyesatkan
     karena tampak masuk akal.
@@ -64,12 +64,11 @@ export async function GET() {
   */
   if (punyaKunciServer()) await sapuKedaluwarsa();
 
-  const [pesananRes, mejaRes, tagihanRes, panggilanRes, aturan, menuRes, menungguRes] =
+  const [pesananRes, mejaRes, tagihanRes, aturan, menuRes, menungguRes] =
     await Promise.all([
     ambilPesananAktif(),
     db<Meja[]>("meja", { q: "select=*&order=nomor.asc" }),
     db<Tagihan[]>("tagihan", { q: "select=*&status=neq.lunas&order=dibuka_at.asc" }),
-    db<Panggilan[]>("panggilan", { q: "select=*&ditangani_at=is.null&order=dibuat_at.asc" }),
     ambilAturan(),
     ambilMenu(),
     /*
@@ -137,7 +136,14 @@ export async function GET() {
   return NextResponse.json({
     pesanan: pesananRes.data,
     menunggu_bayar: menunggu,
-    meja: mejaRes.data.map((m) => {
+    /*
+      Meja diurutkan di sini, bukan diserahkan pada `order=nomor.asc` dari
+      database: kolomnya TEXT, jadi PostgREST memberi 1, 10, 11, 2, 20, 3.
+      Denah kasir yang "acak" menghabiskan waktu kasir yang sedang berdiri.
+    */
+    meja: [...mejaRes.data]
+      .sort((a, b) => urutNomorMeja(a.nomor, b.nomor))
+      .map((m) => {
       /*
         Tagihan yang ditampilkan di kartu meja: yang masih TERBUKA.
         Kalau tidak ada (semua sudah lunas), kembalikan null — jangan
@@ -166,10 +172,6 @@ export async function GET() {
         items_tagihan: petaItem.get(m.id) ?? [],
       };
     }),
-    panggilan: (panggilanRes.ok ? panggilanRes.data : []).map((g) => ({
-      ...g,
-      meja_nomor: petaNomor.get(g.meja_id) ?? "",
-    })),
     menu: menuRes.ok ? demoMenuDenganStatus(menuRes.data.menu) : [],
     aturan,
     /*
@@ -325,35 +327,6 @@ export async function POST(req: Request) {
     */
     demoReset();
     return NextResponse.json({ ok: true, demo: true });
-  }
-
-  if (badan.aksi === "tangani_panggilan") {
-    const id = Number(badan.id);
-    if (!Number.isFinite(id) || id <= 0) {
-      return NextResponse.json({ pesan: "Panggilan tidak sah." }, { status: 400 });
-    }
-
-    if (!punyaKunciServer()) {
-      /*
-        Menandai panggilan "ditangani" HARUS mengubah database, karena
-        panggilan itu sendiri dibaca dari database. Dulu di sini statusnya
-        diubah di memori: pelayan melihat kartu panggilan hilang dari
-        layarnya, padahal panggilan sungguhan masih terbuka untuk semua
-        perangkat lain.
-      */
-      return NextResponse.json(
-        { pesan: "Kunci server belum dipasang, panggilan tidak bisa ditandai ditangani." },
-        { status: 503 }
-      );
-    }
-
-    const res = await db("panggilan", {
-      method: "PATCH",
-      q: `id=eq.${id}`,
-      body: { ditangani_at: new Date().toISOString() },
-    });
-    if (!res.ok) return NextResponse.json({ pesan: res.pesan }, { status: 400 });
-    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ pesan: "Aksi tidak dikenal." }, { status: 400 });

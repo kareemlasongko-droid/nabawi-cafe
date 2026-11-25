@@ -21,7 +21,6 @@ import type {
   Pesanan,
   ItemPesanan,
   Tagihan,
-  Panggilan,
   StatusPesanan,
   MetodeBayar,
   PilihanMenu,
@@ -516,36 +515,6 @@ export async function ubahStatus(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Panggilan meja
-// ─────────────────────────────────────────────────────────────
-
-export async function buatPanggilan(
-  mejaId: number,
-  jenis: "pelayan" | "bill"
-): Promise<Hasil<Panggilan>> {
-  const res = await db<Panggilan[]>("panggilan", {
-    method: "POST",
-    prefer: "return=representation",
-    q: "select=*",
-    body: { meja_id: mejaId, jenis },
-  });
-  if (!res.ok) return { ok: false, pesan: res.pesan };
-
-  // Minta bill sekaligus mengubah status meja, supaya kasir melihatnya
-  // di denah tanpa harus membuka daftar panggilan.
-  if (jenis === "bill") {
-    await db("meja", { method: "PATCH", q: `id=eq.${mejaId}`, body: { status: "minta_bill" } });
-    await db("tagihan", {
-      method: "PATCH",
-      q: `meja_id=eq.${mejaId}&status=eq.terbuka`,
-      body: { status: "minta_bill" },
-    });
-  }
-
-  return { ok: true, data: res.data[0] };
-}
-
-// ─────────────────────────────────────────────────────────────
 // Pembayaran
 // ─────────────────────────────────────────────────────────────
 
@@ -637,15 +606,6 @@ export async function catatPembayaran(masuk: {
     method: "PATCH",
     q: `id=eq.${tagihan.meja_id}`,
     body: { status: "kosong" },
-  });
-
-  // Panggilan yang belum ditangani milik meja ini ikut ditutup. Tanpa ini,
-  // kartu "minta bill" tetap menggantung di portal pelayan setelah tamu
-  // membayar dan pergi — pelayan mendatangi meja yang sudah kosong.
-  await db("panggilan", {
-    method: "PATCH",
-    q: `meja_id=eq.${tagihan.meja_id}&ditangani_at=is.null`,
-    body: { ditangani_at: new Date().toISOString() },
   });
 
   return { ok: true, data: { tagihan: upd.data[0], pesanan_id: pesananDilunasi } };
@@ -1051,7 +1011,7 @@ export async function sapuKedaluwarsa(sekarang: Date = new Date()): Promise<numb
         yang benar-benar masuk — selisih yang baru ketahuan saat tutup
         harian, dan saat itu sudah sulit dilacak asalnya.
 
-        Tabel tagihan hanya punya tiga status (terbuka / minta_bill /
+        Tabel tagihan hanya punya dua status yang dipakai (terbuka /
         lunas), jadi tidak ada status "batal". Yang benar: kembalikan ke
         'terbuka' lalu tutup waktunya. Kasir melihatnya sebagai tagihan
         yang sudah ditutup tanpa pembayaran — persis keadaannya.

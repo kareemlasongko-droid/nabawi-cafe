@@ -46,13 +46,12 @@ import {
   IkonKurang,
   IkonTambah,
   IkonHapus,
-  IkonBel,
-  IkonBill,
   IkonMeja,
   IkonKanan,
   IkonCentang,
   IkonKiri,
   IkonBintang,
+  IkonJam,
 } from "./Ikon";
 
 type Baris = {
@@ -132,7 +131,7 @@ const LABEL: Record<string, { judul: string; detail: string }> = {
   diproses: { judul: "Sedang disiapkan", detail: "Dapur mulai mengerjakan." },
   siap: { judul: "Siap diantar", detail: "Menunggu pelayan mengantar ke meja." },
   diantar: { judul: "Sudah diantar", detail: "Pesanan sudah ada di meja." },
-  ditolak: { judul: "Ditolak", detail: "Kasir menolak pesanan ini. Panggil pelayan." },
+  ditolak: { judul: "Ditolak", detail: "Kasir menolak pesanan ini. Silakan tanya kasir." },
   dibatalkan: { judul: "Dibatalkan", detail: "Pesanan ini tidak diproses." },
 };
 
@@ -209,7 +208,8 @@ export function PortalPelanggan({
   const [mengirim, setMengirim] = useState(false);
   const [pesanGalat, setPesanGalat] = useState("");
   const [pesananSaya, setPesananSaya] = useState<StatusPesananPelanggan[]>([]);
-  const [panggilanTerkirim, setPanggilanTerkirim] = useState<"pelayan" | "bill" | "">("");
+  /** Daftar pesanan lama dibuka? Lihat bagian "Riwayat" di bawah. */
+  const [riwayatBuka, setRiwayatBuka] = useState(false);
   const [baruSaja, setBaruSaja] = useState(0);
 
   const refGalat = useRef<HTMLDivElement>(null);
@@ -469,7 +469,6 @@ export function PortalPelanggan({
       setKeranjang([]);
       setBukaKeranjang(false);
       setLangkah("keranjang");
-      setPanggilanTerkirim("");
 
       /*
         Pesanan tersimpan, tetapi BELUM dibayar. Yang ditampilkan bukan
@@ -551,22 +550,6 @@ export function PortalPelanggan({
     }
   }
 
-  async function panggil(jenis: "pelayan" | "bill") {
-    try {
-      const res = await fetch("/api/order/panggilan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ meja: mejaNomor, jenis }),
-      });
-      if (res.ok) {
-        setPanggilanTerkirim(jenis);
-        setTimeout(() => setPanggilanTerkirim(""), 4000);
-      }
-    } catch {
-      setPesanGalat("Panggilan gagal terkirim. Coba lagi atau lambaikan tangan.");
-    }
-  }
-
   /*
     Kelengkapan data dicek di sini HANYA untuk kenyamanan (tombol mati).
     Yang menentukan tetap server — menonaktifkan tombol di browser tidak
@@ -574,9 +557,27 @@ export function PortalPelanggan({
   */
   const dataLengkap = nama.trim().length >= 2 && /\d{8,}/.test(noWa.replace(/[^0-9]/g, ""));
 
-  const adaPesananBerjalan = pesananSaya.some(
-    (p) => !["diantar", "ditolak", "dibatalkan"].includes(p.status)
-  );
+  /*
+    ── SATU PESANAN, SATU TEMPAT ──────────────────────────────────────
+
+    Pesanan dianggap SELESAI (pindah ke riwayat) bila salah satu benar:
+      · pembayarannya gagal/kedaluwarsa/dikembalikan — tidak akan berlanjut;
+      · statusnya sudah diantar, ditolak, atau dibatalkan.
+
+    Pesanan yang belum lunas TETAP di daftar aktif, apa pun status
+    dapurnya: tamu masih harus membayar, dan menyembunyikannya di balik
+    "Riwayat" membuat tagihan yang belum dibayar terasa seperti arsip.
+  */
+  const pesananAktif = pesananSaya.filter((p) => {
+    const berhenti =
+      p.status_bayar !== "lunas"
+        ? ["kedaluwarsa", "gagal", "dikembalikan"].includes(p.status_bayar)
+        : ["diantar", "ditolak", "dibatalkan"].includes(p.status);
+    return !berhenti;
+  });
+  const pesananLama = pesananSaya.filter((p) => !pesananAktif.includes(p));
+
+  const adaPesananBerjalan = pesananAktif.length > 0;
 
   return (
     <div className="min-h-dvh bg-bersih-50">
@@ -585,31 +586,16 @@ export function PortalPelanggan({
           meja ditaruh paling atas, besar, dan area-nya ikut disebut. */}
       <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/95 backdrop-blur">
         {/*
-          SATU BARIS, DUA KELOMPOK: identitas kafe menempel kiri, meja +
-          tombol menempel kanan. Nomor meja pindah ke kanan karena di situlah
-          ibu jari berada saat ponsel dipegang satu tangan — dan tombol
-          Panggil/Bill paling sering ditekan, jadi ia ikut ke sana.
+          SATU BARIS, DUA KELOMPOK: identitas kafe menempel kiri, nomor meja
+          menempel kanan.
 
-          TINGGI: logo, kotak meja, dan kedua tombol sama-sama 40px (h-10).
-          Sebelumnya 20/28/40 — tiga tinggi berbeda di satu garis terbaca
-          sebagai tiga elemen yang kebetulan berdekatan, bukan satu bilah.
+          Dulu di sini juga ada dua tombol ("Panggil" dan "Bill"). Keduanya
+          dihapus bersama fitur panggilan, sehingga bilah ini sekarang hanya
+          memuat dua hal — dan justru itu yang membuatnya muat lega di layar
+          360px: sebelumnya sisa ruangnya hanya 10px.
 
-          LEBAR dihitung dari metrik Plus Jakarta Sans, bukan dikira-kira.
-          Di layar 360px isinya 336px:
-            kiri  : logo 28 + "Nabawi Cafe" 95             = 131
-            kanan : meja 78 (ikon + "Meja 3") + Panggil 63
-                    + Bill 35 + jarak 12                   = 188
-          Ditambah jarak antar kelompok dan luar: 326px, sisa 10px.
-          Karena itu, di bawah 640px:
-            1. "& Resto" dan keterangan disembunyikan — memaksanya muat
-               berarti ellipsis di tengah merek, yang terbaca sebagai rusak.
-            2. Label "Panggil"/"Bill" tetap TAMPIL: tanpa teks, tamu tidak
-               tahu ikon lonceng dan kertas itu apa. Padding tombolnya yang
-               dipangkas, bukan artinya.
-            3. Di bawah 414px ikon di dalam tombol dilepas (labelnya tetap
-               ada). Dua ikon butuh 40px, dan di 390px itu berarti sisa 0px —
-               tidak ada cadangan sama sekali untuk huruf perangkat yang
-               diperbesar.
+          Tingginya tetap 40px semua (logo dan kotak meja), supaya terbaca
+          sebagai satu bilah, bukan tiga elemen yang kebetulan berdekatan.
         */}
         <div className="mx-auto flex max-w-[45rem] items-center justify-between gap-2 px-3 py-2.5 sm:gap-3">
           {/* ── KIRI: identitas kafe ── */}
@@ -631,9 +617,8 @@ export function PortalPelanggan({
               dan satu-satunya dengan huruf lebih besar, sehingga terbaca
               sebagai hiasan, bukan bagian dari bilah.
 
-              Ia tetap BUKAN tombol: latar tinta penuh (aksi-500 dipakai
-              tombol Bill) dan tidak ada `hover`/`active`, karena nomor meja
-              memang tidak bisa ditekan.
+              Ia tetap BUKAN tombol: latar tinta penuh dan tidak ada
+              `hover`/`active`, karena nomor meja memang tidak bisa ditekan.
             */}
             <span
               className="flex h-10 shrink-0 items-center gap-1 rounded-[0.625rem] bg-tinta-900 px-2 text-[0.8125rem] text-bersih-0"
@@ -655,24 +640,6 @@ export function PortalPelanggan({
               <span className="font-bold tabular-nums">{mejaNomor}</span>
               <span className="sr-only">, area {mejaArea}</span>
             </span>
-
-            <button
-              type="button"
-              onClick={() => panggil("pelayan")}
-              className="flex h-10 items-center gap-1 rounded-[0.625rem] border border-bersih-300 px-2 text-[0.8125rem] font-semibold text-tinta-900 transition active:scale-[0.97] active:bg-bersih-100 min-[414px]:px-2.5"
-              title="Panggil pelayan ke meja"
-            >
-              <IkonBel className="hidden size-4 min-[414px]:block" />
-              Panggil
-            </button>
-            <button
-              type="button"
-              onClick={() => panggil("bill")}
-              className="flex h-10 items-center gap-1 rounded-[0.625rem] bg-aksi-500 px-2 text-[0.8125rem] font-bold text-bersih-0 transition active:scale-[0.97] active:bg-aksi-600 min-[414px]:px-2.5"
-            >
-              <IkonBill className="hidden size-4 min-[414px]:block" />
-              Bill
-            </button>
           </div>
         </div>
 
@@ -766,13 +733,6 @@ export function PortalPelanggan({
                 >
                   Lihat invoice
                 </a>
-                <button
-                  type="button"
-                  onClick={() => panggil("bill")}
-                  className="h-10 rounded-[0.625rem] bg-tinta-900 px-3 text-[0.8125rem] font-extrabold text-bersih-0"
-                >
-                  Panggil kasir
-                </button>
               </div>
             </div>
           </section>
@@ -839,70 +799,58 @@ export function PortalPelanggan({
         )}
 
         {/* ── Pesanan berjalan ──
-            Ditaruh paling atas setelah kepala karena pertanyaan pertama
-            pelanggan yang sudah memesan adalah "pesanan saya bagaimana".
-            Pelanggan yang belum memesan tidak melihat bagian ini sama sekali. */}
-        {pesananSaya.length > 0 && (
+            Hanya pesanan yang MASIH BERJALAN yang tampil di sini.
+
+            Dulu semua pesanan (maksimal 3) tampil, termasuk yang sudah
+            selesai — sehingga tamu yang sudah beberapa kali makan di sini
+            harus menggulir kartu-kartu lama sebelum sampai ke menu. Riwayat
+            pindah ke balik tombol: tamu yang butuh invoice lama mencari
+            dengan sengaja, tamu yang sedang makan tidak terganggu. */ }
+        {pesananAktif.length > 0 && (
           <section className="mt-4" aria-live="polite">
             <h2 className="mb-2 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-tinta-500">
               Pesanan Anda
             </h2>
             <div className="space-y-2">
-              {pesananSaya.slice(0, 3).map((p) => {
-                /*
-                  Pesanan yang belum lunas TIDAK boleh memakai label dapur.
-                  "Menunggu kasir" pada pesanan yang belum dibayar membuat
-                  tamu mengira pesanannya sedang diproses, padahal dapur
-                  belum melihatnya sama sekali — dan itu sumber keluhan
-                  "pesanan saya kok belum datang".
-                */
-                const belumLunas = p.status_bayar && p.status_bayar !== "lunas";
-                const l = belumLunas
-                  ? (LABEL_BAYAR[p.status_bayar as StatusBayar] ?? {
-                      judul: "Menunggu pembayaran",
-                      detail: "",
-                    })
-                  : (LABEL[p.status] ?? { judul: p.status, detail: "" });
-                const selesai = belumLunas
-                  ? ["kedaluwarsa", "gagal", "dikembalikan"].includes(p.status_bayar)
-                  : ["diantar", "ditolak", "dibatalkan"].includes(p.status);
-                return (
-                  <div
-                    key={p.id}
-                    className={[
-                      "rounded-[0.625rem] border px-3 py-2.5",
-                      selesai
-                        ? "border-bersih-200 bg-bersih-100"
-                        : "border-forest-700/30 bg-tinta-900/[0.06]",
-                    ].join(" ")}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-[0.8125rem] font-extrabold text-tinta-900">{l.judul}</p>
-                      <span className="shrink-0 font-mono text-[0.6875rem] text-tinta-500">
-                        {p.nomor}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-[0.8125rem] leading-snug text-tinta-500">
-                      {l.detail} · {p.total_item} item
-                    </p>
-                    {/*
-                      Tautan invoice untuk SETIAP pesanan, lunas atau belum.
-
-                      Invoice yang hanya tersedia setelah lunas tidak
-                      berguna pada kasus yang paling sering terjadi: tamu
-                      memilih bayar di kasir dan ingin menunjukkan pesanannya
-                      ke kasir. Justru saat itulah ia butuh dokumennya.
-                    */}
-                    <a
-                      href={`/order/invoice/${p.id}?sesi=${encodeURIComponent(sesi)}`}
-                      className="mt-1 inline-block text-[0.75rem] font-bold text-forest-700 underline"
-                    >
-                      Lihat invoice
-                    </a>
-                  </div>
-                );
-              })}
+              {pesananAktif.map((p) => (
+                <KartuPesanan key={p.id} pesanan={p} sesi={sesi} />
+              ))}
             </div>
+          </section>
+        )}
+
+        {/* ── Riwayat ──
+            Tombol hanya muncul bila memang ada yang bisa dibuka; tombol
+            kosong membuat tamu menekannya lalu kecewa. `aria-expanded`
+            dipakai supaya pembaca layar tahu keadaan daftar, bukan hanya
+            warna tombolnya yang berubah. */}
+        {pesananLama.length > 0 && (
+          <section className="mt-3">
+            <button
+              type="button"
+              onClick={() => setRiwayatBuka((b) => !b)}
+              aria-expanded={riwayatBuka}
+              className="flex h-11 w-full items-center justify-between rounded-[0.625rem] border border-bersih-200 bg-bersih-0 px-3 text-[0.8125rem] font-bold text-tinta-900"
+            >
+              <span className="inline-flex items-center gap-2">
+                <IkonJam className="size-4 text-tinta-500" />
+                Riwayat pesanan
+                <span className="rounded-full bg-bersih-100 px-1.5 py-0.5 text-[0.6875rem] font-extrabold tabular-nums text-tinta-700">
+                  {pesananLama.length}
+                </span>
+              </span>
+              <span className="text-[0.6875rem] font-semibold text-tinta-500">
+                {riwayatBuka ? "Tutup" : "Lihat"}
+              </span>
+            </button>
+
+            {riwayatBuka && (
+              <div className="mt-2 space-y-2">
+                {pesananLama.map((p) => (
+                  <KartuPesanan key={p.id} pesanan={p} sesi={sesi} />
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -1023,10 +971,10 @@ export function PortalPelanggan({
                           <p className="text-[0.9375rem] font-extrabold leading-tight text-tinta-900">
                             {m.nama}
                           </p>
-                          {/* Lencana rekomendasi. Warna tanah-100 dipakai
-                              bersama chip "habis"/"minta bill" di portal
-                              staf — satu aksen untuk "perhatikan ini",
-                              bukan warna baru tiap fitur. */}
+                          {/* Lencana rekomendasi. Warna tanah-100 juga
+                              dipakai chip "habis" di portal staf — satu
+                              aksen untuk "perhatikan ini", bukan warna baru
+                              tiap fitur. */}
                           {m.rekomendasi === true && (
                             <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-tanah-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-clay-800">
                               <IkonBintang className="size-3" />
@@ -1476,7 +1424,7 @@ export function PortalPelanggan({
                   */}
                   <p className="mt-2 text-[0.6875rem] leading-snug text-tinta-500">
                     {metode === "kasir"
-                      ? "Pesanan disiapkan setelah Anda membayar di kasir. Batas waktunya 15 menit — panggil kasir kalau butuh lebih lama."
+                      ? "Pesanan disiapkan setelah Anda membayar di kasir. Batas waktunya 15 menit."
                       : "Pesanan disiapkan setelah pembayaran diterima. Batas waktunya 15 menit."}
                   </p>
                 </fieldset>
@@ -1513,19 +1461,70 @@ export function PortalPelanggan({
         </div>
       )}
 
-      {/* Pemberitahuan panggilan terkirim — singkat, cukup untuk memastikan
-          tombolnya bekerja tanpa menutupi layar. */}
-      {panggilanTerkirim && (
-        <div
-          role="status"
-          className="fixed inset-x-0 bottom-24 z-40 mx-auto w-fit rounded-full bg-tinta-900 px-4 py-2 text-[0.8125rem] font-semibold text-bersih-0 shadow-lg"
-        >
-          <span className="inline-flex items-center gap-2">
-            <IkonCentang className="size-4" />
-            {panggilanTerkirim === "bill" ? "Permintaan bill terkirim" : "Pelayan dipanggil"}
-          </span>
-        </div>
-      )}
+    </div>
+  );
+}
+
+/**
+ * Satu kartu pesanan di daftar tamu.
+ *
+ * Dipakai DUA tempat — "Pesanan Anda" (yang masih berjalan) dan "Riwayat".
+ * Dulu blok ini ditulis langsung di dalam JSX dan hanya ada satu salinan;
+ * begitu riwayat ditambahkan, salinan kedua pasti lahir, lalu keduanya
+ * menyimpang (satu menampilkan invoice, satu lupa).
+ */
+function KartuPesanan({
+  pesanan: p,
+  sesi,
+}: {
+  pesanan: StatusPesananPelanggan;
+  sesi: string;
+}) {
+  /*
+    Pesanan yang belum lunas TIDAK boleh memakai label dapur. "Menunggu
+    kasir" pada pesanan yang belum dibayar membuat tamu mengira pesanannya
+    sedang diproses, padahal dapur belum melihatnya sama sekali — dan itu
+    sumber keluhan "pesanan saya kok belum datang".
+  */
+  const belumLunas = p.status_bayar && p.status_bayar !== "lunas";
+  const l = belumLunas
+    ? (LABEL_BAYAR[p.status_bayar as StatusBayar] ?? {
+        judul: "Menunggu pembayaran",
+        detail: "",
+      })
+    : (LABEL[p.status] ?? { judul: p.status, detail: "" });
+  const selesai = belumLunas
+    ? ["kedaluwarsa", "gagal", "dikembalikan"].includes(p.status_bayar)
+    : ["diantar", "ditolak", "dibatalkan"].includes(p.status);
+
+  return (
+    <div
+      className={[
+        "rounded-[0.625rem] border px-3 py-2.5",
+        selesai
+          ? "border-bersih-200 bg-bersih-100"
+          : "border-forest-700/30 bg-tinta-900/[0.06]",
+      ].join(" ")}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[0.8125rem] font-extrabold text-tinta-900">{l.judul}</p>
+        <span className="shrink-0 font-mono text-[0.6875rem] text-tinta-500">{p.nomor}</span>
+      </div>
+      <p className="mt-0.5 text-[0.8125rem] leading-snug text-tinta-500">
+        {l.detail} · {p.total_item} item
+      </p>
+      {/*
+        Invoice tersedia untuk SETIAP pesanan, lunas atau belum, dan tetap
+        bisa dibuka berkali-kali — invoice menempel pada pesanannya, bukan
+        pada satu momen setelah pembayaran. Tamu yang memilih bayar di
+        kasir justru butuh dokumennya SEBELUM membayar.
+      */}
+      <a
+        href={`/order/invoice/${p.id}?sesi=${encodeURIComponent(sesi)}`}
+        className="mt-1 inline-block text-[0.75rem] font-bold text-forest-700 underline"
+      >
+        Lihat invoice
+      </a>
     </div>
   );
 }

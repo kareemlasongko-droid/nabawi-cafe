@@ -20,10 +20,11 @@
 import { useMemo, useState } from "react";
 import { rupiah } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
-import type { KategoriMenu, Menu, PilihanMenu } from "@/app/lib/order/tipe";
+import type { KategoriMenu, Meja, Menu, PilihanMenu } from "@/app/lib/order/tipe";
 import type { AturanBiaya } from "@/app/lib/order/aturan";
 import { IkonCentang, IkonSilang, IkonTambah, IkonHapus, IkonBintang, IkonCari, IkonCariHapus } from "./Ikon";
 import { saringMenu, hitungPerKategori, type SaringanStatus } from "@/app/lib/order/saring";
+import { TabMeja } from "./TabMeja";
 
 type Saringan = SaringanStatus;
 
@@ -32,16 +33,19 @@ export function PortalAdmin({
   aturanAwal,
   bisaUbah,
   galatAwal,
+  meja,
 }: {
   awal: { kategori: KategoriMenu[]; menu: Menu[] };
   aturanAwal: AturanBiaya;
   bisaUbah: boolean;
   galatAwal: string;
+  /** Meja aktif — untuk tab Meja (daftar + QR). */
+  meja: Meja[];
 }) {
   const [menu, setMenu] = useState<Menu[]>(awal.menu);
   const [aturan, setAturan] = useState<AturanBiaya>(aturanAwal);
   const [galat, setGalat] = useState(galatAwal);
-  const [tab, setTab] = useState<"menu" | "biaya" | "jam">("menu");
+  const [tab, setTab] = useState<"menu" | "biaya" | "jam" | "meja">("menu");
   /** Jam buka yang sedang berlaku (dibaca dari database, bukan konstanta). */
   const [jam, setJam] = useState<{
     buka24Jam: boolean;
@@ -261,6 +265,16 @@ export function PortalAdmin({
             >
               <span className="sm:hidden">Pajak</span>
               <span className="hidden sm:inline">Pajak &amp; layanan</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("meja")}
+              className={[
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
+                tab === "meja" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
+              ].join(" ")}
+            >
+              Meja
             </button>
             <button
               type="button"
@@ -647,6 +661,8 @@ export function PortalAdmin({
           </p>
         </div>
       )}
+
+      {tab === "meja" && <TabMeja meja={meja} />}
 
       {tab === "jam" && (
         <div className="max-w-xl p-4 sm:p-6">

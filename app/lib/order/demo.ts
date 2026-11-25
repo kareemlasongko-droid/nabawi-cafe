@@ -4,7 +4,7 @@
  * ── APA YANG TERSISA DI SINI, DAN KENAPA ─────────────────────────────
  *
  * Berkas ini dulu 535 baris: salinan 132 menu lengkap dengan harga dan
- * pilihan rasa, 20 meja, serta seluruh fungsi pesanan/tagihan/panggilan
+ * pilihan rasa, 20 meja, serta seluruh fungsi pesanan/tagihan
  * yang bekerja di memori.
  *
  * Pemilik memutuskan: "data contoh tidak perlu, dan data yang menempel di
@@ -22,9 +22,9 @@
  * bisa dicoba sama sekali sebelum kunci dipasang. Isinya hilang saat
  * Worker restart, dan portal menampilkan pemberitahuan bahwa itu terjadi.
  *
- * Semua aksi lain — pesan, bayar, panggil pelayan, ubah status — DITOLAK
- * dengan pesan jelas bila kunci server belum ada. Lihat rute masing-masing:
- * pesanan, bayar, panggilan, status.
+ * Semua aksi lain — pesan, bayar, ubah status — DITOLAK dengan pesan jelas
+ * bila kunci server belum ada. Lihat rute masing-masing: pesanan, bayar,
+ * status.
  */
 
 const g = globalThis as unknown as {

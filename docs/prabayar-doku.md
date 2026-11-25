@@ -301,3 +301,106 @@ sudah dibuktikan: aturan `@media print` benar-benar tersaji di CSS hasil
 build, dan halaman memuat `data-invoice`, nomor, total, serta tombol cetak.
 Yang belum: pratinjau kertas sungguhan. Periksa sekali di tablet kasir
 (Chrome → Cetak → Simpan sebagai PDF) sebelum jam buka.
+
+---
+
+# 11. Perubahan: panggilan dihapus, meja & QR dirapikan
+
+## 11.1 Fitur panggilan dan bill dihapus
+
+Yang dihapus, bukan hanya disembunyikan:
+
+| Bagian | Keadaan sekarang |
+| --- | --- |
+| `POST /api/order/panggilan` | **dihapus** — 404 |
+| `buatPanggilan()` di `data.ts` | dihapus |
+| `Panggilan` di `tipe.ts` | dihapus (tipe maupun label) |
+| `tangani_panggilan` di route kasir | dihapus |
+| Respons `/api/order/pelayan` & `/api/order/kasir` | tidak lagi memuat `panggilan` |
+| Portal pelanggan | tombol **Panggil** dan **Bill** hilang dari kepala; "Panggil kasir" di layar konfirmasi hilang |
+| Portal pelayan | tab **Panggilan** hilang; tinggal satu daftar antar |
+| Portal kasir | kartu "Panggilan menunggu" hilang |
+| `StatusMeja` / `StatusTagihan` | `minta_bill` dihapus dari tipe |
+
+**Tabel `panggilan` sengaja TIDAK dihapus.** Isinya 3 baris (2 `bill`,
+1 `pelayan`) dan tabelnya tidak dibaca siapa pun lagi. Menghapus tabel
+berarti migrasi yang tidak bisa dibatalkan; membiarkannya tidak merugikan.
+Kalau nanti dipastikan tidak diperlukan, buang lewat migrasi tersendiri.
+
+`minta_bill` juga masih diizinkan oleh CHECK constraint di database. Data
+live diperiksa sebelum perubahan ini: **tidak ada** baris meja maupun
+tagihan yang berstatus `minta_bill`, jadi tidak ada data yang jadi tidak
+terbaca.
+
+## 11.2 Urutan nomor meja
+
+`nomor` di tabel `meja` bertipe TEXT, sehingga `order=nomor.asc` memberi
+**1, 10, 11, 12, …, 19, 2, 20, 3** — inilah "urutan acak" yang dilaporkan.
+
+Perbaikan dilakukan di aplikasi, bukan di database: `urutNomorMeja()` di
+`tipe.ts` dijalankan di `ambilMeja()` (dipakai admin & halaman tamu) dan
+di route kasir. Nomor non-angka (`A1`, `VIP`) ditaruh setelah semua nomor
+angka agar urutan angka tetap terbaca.
+
+Migrasi kolom ke integer tidak dilakukan karena mengubah kontrak API dan
+menyentuh kode QR; manfaatnya tidak sebanding untuk 20 meja.
+
+## 11.3 Invoice menempel pada pesanan
+
+Invoice sudah bisa dibuka **sebelum** dibayar dan **berkali-kali sesudah**
+dibayar. Yang berubah di sesi ini: tautan invoice tersedia untuk **setiap**
+pesanan di portal tamu (termasuk yang sudah masuk riwayat), dan uji baru
+membuktikan dua kali pembukaan menghasilkan isi yang identik.
+
+## 11.4 Portal pelanggan: pesanan baru vs riwayat
+
+- **Pesanan Anda** — hanya yang masih berjalan.
+- **Riwayat pesanan (n)** — tombol, tertutup secara bawaan.
+
+Batas "selesai": pembayaran `kedaluwarsa`/`gagal`/`dikembalikan`, atau
+status `diantar`/`ditolak`/`dibatalkan`. Pesanan **belum lunas tetap di
+daftar aktif** apa pun status dapurnya — menyembunyikan tagihan yang belum
+dibayar di balik "Riwayat" membuatnya terasa seperti arsip.
+
+Kartu pesanan dipakai bersama oleh dua daftar itu (`KartuPesanan`), supaya
+salah satunya tidak lupa menampilkan tautan invoice.
+
+## 11.5 Tab Meja + QR di admin
+
+Tab keempat di `/order/admin`: daftar meja per area, satu kartu per meja
+berisi nomor, area, kapasitas, status, dan **QR**.
+
+- **Isi QR:** `<origin>/order?meja=<nomor>` — tamu memindai, langsung
+  memesan untuk meja itu. Tanpa parameter meja, tamu memilih sendiri dan
+  pesanan bisa diantar ke meja orang.
+- **Origin diambil dari `window.location.origin`**, bukan variabel
+  lingkungan. Alamat production sudah pernah berubah (Vercel → Workers);
+  QR yang tercetak dengan alamat lama adalah kertas mati yang baru
+  ketahuan setelah ditempel di 20 meja. URL lengkapnya juga dicetak kecil
+  di kartu supaya bisa diperiksa **sebelum** mencetak.
+- **Cetak semua QR** memanggil `window.print()`; kartu memakai
+  `break-inside-avoid` agar tidak terpotong dua halaman.
+- Generator QR ditulis sendiri di `app/lib/order/qr.ts` (~200 baris,
+  tanpa dependensi baru). Alasan: kebutuhan kita hanya byte mode level M
+  untuk URL pendek, sedangkan pustaka QR umumnya 20–40 kB dan membawa
+  encoder yang tidak dipakai.
+
+### Generator QR ini diuji bagaimana
+
+1. **Struktur** (`npm run uji:meja`): pola pencari di tiga sudut, garis
+   waktu bergantian, modul gelap tetap, dua salinan format info identik,
+   kepadatan modul 35–65%, jumlah perintah SVG = jumlah modul gelap, dan
+   teks di luar kapasitas **melempar galat** alih-alih menghasilkan QR
+   rusak.
+2. **Dibaca ulang oleh decoder sungguhan** (sekali, saat pengembangan,
+   dengan `jsqr`): 6 dari 6 kasus terbaca tepat — termasuk URL panjang dan
+   teks non-ASCII. Decoder tidak dijadikan dependensi repo.
+
+## 11.6 Yang belum dibuktikan
+
+Sama seperti invoice: **hasil cetak QR belum pernah dirender** di
+lingkungan ini (Chromium tidak bisa diunduh). Yang terbukti: matriksnya
+valid, isinya tepat, dan halaman admin memuat tab serta tombol cetaknya.
+Sebelum menempel 20 lembar, periksa satu: buka `/order/admin` → tab
+**Meja** → pindai satu QR dengan ponsel. Kalau terbuka di `/order?meja=…`
+dengan meja yang benar, sisanya akan sama.

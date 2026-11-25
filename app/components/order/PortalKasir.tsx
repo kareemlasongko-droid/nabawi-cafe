@@ -29,15 +29,12 @@ import {
   type Meja,
   type Menu,
   type Tagihan,
-  type Panggilan,
 } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
 import { TombolKepala } from "./TombolKepala";
 import {
   IkonCentang,
   IkonSilang,
-  IkonBel,
-  IkonBill,
   IkonJam,
   IkonMeja,
   IkonMuatUlang,
@@ -112,7 +109,6 @@ type DataKasir = {
   pesanan: PesananK[];
   menunggu_bayar?: MenungguBayar[];
   meja: MejaKasir[];
-  panggilan: (Panggilan & { meja_nomor: string })[];
   menu?: Menu[];
   aturan: { pajakPersen: number; layananPersen: number; layananRp: number; pembulatan: number };
   demo: boolean;
@@ -349,15 +345,6 @@ export function PortalKasir() {
     }
   }
 
-  async function tanganiPanggilan(id: number) {
-    await fetch("/api/order/kasir", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ aksi: "tangani_panggilan", id }),
-    }).catch(() => {});
-    muat();
-  }
-
   const antrean = useMemo(
     () => (data?.pesanan ?? []).filter((p) => p.status === "menunggu_konfirmasi"),
     [data]
@@ -387,9 +374,7 @@ export function PortalKasir() {
         keterangan={
           galat
             ? galat
-            : `${antrean.length} pesanan menunggu · ${diproses.length} berjalan · ${
-                data?.panggilan.length ?? 0
-              } panggilan`
+            : `${antrean.length} pesanan menunggu · ${diproses.length} berjalan`
         }
         demo={data?.demo}
         ringkasan={{ keteranganPonsel: `${antrean.length}` }}
@@ -711,38 +696,6 @@ export function PortalKasir() {
             Meja
           </h2>
 
-          {/* Panggilan meja ditaruh DI ATAS denah: pelanggan yang memanggil
-              sedang menunggu, sedangkan denah bisa dilihat kapan saja. */}
-          {(data?.panggilan.length ?? 0) > 0 && (
-            <div className="mb-3 rounded-[0.875rem] border border-clay-700/30 bg-tanah-100 p-2.5">
-              <p className="mb-1.5 text-[0.6875rem] font-bold uppercase tracking-wider text-clay-800">
-                Panggilan menunggu
-              </p>
-              <ul className="space-y-1.5">
-                {data!.panggilan.map((g) => (
-                  <li key={g.id} className="flex items-center gap-2 rounded-[0.625rem] bg-bersih-0 px-2.5 py-1.5">
-                    {g.jenis === "bill" ? (
-                      <IkonBill className="size-4 shrink-0 text-clay-700" />
-                    ) : (
-                      <IkonBel className="size-4 shrink-0 text-clay-700" />
-                    )}
-                    <span className="flex-1 text-[0.8125rem] font-bold text-tinta-900">
-                      Meja {g.meja_nomor} · {g.jenis === "bill" ? "minta bill" : "panggil pelayan"}
-                    </span>
-                    <span className="text-[0.6875rem] text-tinta-500">{sejak(g.dibuat_at)}</span>
-                    <button
-                      type="button"
-                      onClick={() => tanganiPanggilan(g.id)}
-                      className="h-8 rounded-[0.5rem] bg-tinta-900 px-2.5 text-[0.6875rem] font-bold text-bersih-0"
-                    >
-                      Sudah
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           <ul className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-4">
             {(data?.meja ?? []).map((m) => {
               const aktif = mejaPilih === m.nomor;
@@ -768,13 +721,23 @@ export function PortalKasir() {
                         aktif ? "text-bersih-0/70" : "",
                       ].join(" ")}
                     >
+                      {/*
+                        "minta bill" DIHAPUS dari sini: status itu hanya
+                        pernah diset oleh fitur bill, dan fitur itu sudah
+                        tidak ada. Membiarkannya berarti memelihara label
+                        untuk keadaan yang tidak bisa lagi terjadi — dan
+                        baris mati seperti ini yang nanti membuat orang
+                        mengira fiturnya masih ada.
+
+                        Baris data lama yang telanjur berstatus "minta_bill"
+                        (ada 2 di database) tetap tampil masuk akal: ia jatuh
+                        ke "terisi", yang memang benar — mejanya ada isinya.
+                      */}
                       {m.status === "kosong"
                         ? "kosong"
-                        : m.status === "minta_bill"
-                          ? "minta bill"
-                          : m.status === "menunggu_bayar"
-                            ? "bayar"
-                            : "terisi"}
+                        : m.status === "menunggu_bayar"
+                          ? "bayar"
+                          : "terisi"}
                     </span>
                     {/*
                       Total tagihan diletakkan DI DALAM kartu, bukan sebagai

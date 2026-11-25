@@ -34,9 +34,18 @@ export type StatusBayar = "menunggu" | "lunas" | "kedaluwarsa" | "gagal" | "dike
  */
 export type MetodeBayarPrabayar = "online" | "kasir";
 
-export type StatusMeja = "kosong" | "ada_pesanan" | "minta_bill" | "menunggu_bayar";
+/**
+ * Status meja.
+ *
+ * `minta_bill` DIHAPUS: ia hanya diset oleh fitur "minta bill", dan fitur
+ * itu sudah tidak ada. Nilainya masih diizinkan di kolom database, tetapi
+ * aplikasi tidak lagi menghasilkannya — dan tipe yang tidak lagi memuatnya
+ * membuat sisa pemakaian lama langsung gagal dikompilasi, bukan diam-diam
+ * hidup terus.
+ */
+export type StatusMeja = "kosong" | "ada_pesanan" | "menunggu_bayar";
 
-export type StatusTagihan = "terbuka" | "minta_bill" | "lunas";
+export type StatusTagihan = "terbuka" | "lunas";
 
 export type MetodeBayar = "tunai" | "qris_kasir" | "kartu";
 
@@ -150,13 +159,6 @@ export type Tagihan = {
   kasir: string | null;
 };
 
-export type Panggilan = {
-  id: number;
-  meja_id: number;
-  jenis: "pelayan" | "bill";
-  dibuat_at: string;
-  ditangani_at: string | null;
-};
 
 /** Label yang dilihat pelanggan. Sengaja bahasa sehari-hari, bukan istilah sistem. */
 export const LABEL_PELANGGAN: Record<StatusPesanan, { judul: string; detail: string }> = {
@@ -204,13 +206,11 @@ export const LABEL_INTERNAL: Record<StatusPesanan, string> = {
 export const LABEL_MEJA: Record<StatusMeja, string> = {
   kosong: "Kosong",
   ada_pesanan: "Ada pesanan",
-  minta_bill: "Minta bill",
   menunggu_bayar: "Menunggu bayar",
 };
 
 export const LABEL_TAGIHAN: Record<StatusTagihan, string> = {
   terbuka: "Terbuka",
-  minta_bill: "Minta bill",
   lunas: "Lunas",
 };
 
@@ -225,7 +225,7 @@ export function rupiah(n: number): string {
   return "Rp" + Math.round(n).toLocaleString("id-ID");
 }
 
-/** "3 menit lalu" — dipakai di tiket dapur dan daftar panggilan. */
+/** "3 menit lalu" — dipakai di tiket dapur. */
 export function sejak(iso: string, sekarang = Date.now()): string {
   const menit = Math.max(0, Math.floor((sekarang - new Date(iso).getTime()) / 60000));
   if (menit < 1) return "baru saja";
@@ -269,3 +269,35 @@ export const LABEL_BAYAR: Record<StatusBayar, { judul: string; detail: string }>
     detail: "Pengembalian dana diproses manual oleh kasir.",
   },
 };
+
+/**
+ * Urutkan nomor meja secara MANUSIAWI: 1, 2, 3, …, 10, 11 — bukan 1, 10, 11, 2.
+ *
+ * ── KENAPA INI PERLU JADI FUNGSI, BUKAN `.sort()` DI TEMPAT ──────────
+ *
+ * Nomor meja disimpan sebagai TEXT di database, dan PostgREST mengurutkan
+ * `order=nomor.asc` sebagai teks. Hasilnya di layar kasir: 1, 10, 11, 12,
+ * …, 19, 2, 20, 3, 4. Kasir yang mencari meja 7 harus menyapu seluruh
+ * denah karena mejanya "acak" — dan itu persis keluhan yang dilaporkan.
+ *
+ * Memperbaiki di database (kolom integer) berarti migrasi + mengubah
+ * kontrak API. Mengurutkan di sini cukup, asalkan SEMUA tempat yang
+ * menampilkan meja memakai fungsi yang sama — kalau tidak, dua layar akan
+ * berbeda urutan dan salah satunya pasti terasa salah.
+ *
+ * Nomor yang bukan angka murni (mis. "A1", "VIP") ditaruh SETELAH nomor
+ * angka, diurutkan menurut abjad. Meja bernomor angka adalah mayoritas,
+ * dan mencampurnya di tengah membuat urutan angka tidak lagi terbaca.
+ */
+export function urutNomorMeja(a: string, b: string): number {
+  const na = Number(a);
+  const nb = Number(b);
+  const angkaA = Number.isFinite(na) && a.trim() !== "";
+  const angkaB = Number.isFinite(nb) && b.trim() !== "";
+
+  // Nomor angka selalu di depan; nomor lain menyusul menurut abjad.
+  if (angkaA && angkaB) return na - nb;
+  if (angkaA) return -1;
+  if (angkaB) return 1;
+  return String(a).localeCompare(String(b), "id");
+}
