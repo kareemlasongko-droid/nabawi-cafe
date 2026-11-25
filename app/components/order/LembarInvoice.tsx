@@ -26,7 +26,7 @@
  *     ponsel tamu.
  */
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { rupiah } from "@/app/lib/order/tipe";
 import { labelMetode, waktuInvoice, type Invoice } from "@/app/lib/order/invoice";
 import { LogoNabawi } from "./LogoNabawi";
@@ -39,6 +39,84 @@ import { LogoNabawi } from "./LogoNabawi";
  * alamat salah di invoice lebih buruk daripada alamat umum.
  */
 const ALAMAT = "Jakarta · Nabawi Cafe & Resto";
+
+/**
+ * Buka invoice untuk satu pesanan, lalu tampilkan sebagai modal.
+ *
+ * ── KENAPA PENGAMBILANNYA DI SINI ─────────────────────────────────────
+ *
+ * Kasir dan admin sama-sama perlu membuka invoice dari daftar riwayat.
+ * Kalau masing-masing menulis `fetch` sendiri, dua hal akan menyimpang:
+ * penanganan galat, dan cara menutup modalnya. Lebih buruk lagi, salah
+ * satunya akan lupa bahwa `/api/order/invoice/:id` memakai `?kunci=1` dan
+ * mengirim `?sesi=` yang tidak ada — invoice lalu menjawab 400 dan
+ * tampak seperti "invoice hilang".
+ *
+ * `galat` ditampilkan sebagai modal terpisah, bukan diabaikan: invoice
+ * yang gagal dibuka TIDAK boleh terlihat seperti "tidak ada invoice".
+ */
+export function BukaInvoice({
+  pesananId,
+  onTutup,
+}: {
+  pesananId: number;
+  onTutup: () => void;
+}) {
+  const [isi, setIsi] = useState<{ invoice: Invoice } | { galat: string } | null>(null);
+
+  useEffect(() => {
+    let hidup = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/order/invoice/${pesananId}?kunci=1`, { cache: "no-store" });
+        const j = (await res.json()) as { invoice?: Invoice; pesan?: string };
+        if (!hidup) return;
+        if (!res.ok || !j.invoice) {
+          setIsi({ galat: j.pesan ?? "Invoice tidak bisa dibuka." });
+          return;
+        }
+        setIsi({ invoice: j.invoice });
+      } catch {
+        if (hidup) setIsi({ galat: "Koneksi terputus. Invoice belum bisa dibuka." });
+      }
+    })();
+    return () => {
+      hidup = false;
+    };
+  }, [pesananId]);
+
+  if (!isi) return <ModalTunggu />;
+  if ("galat" in isi) return <ModalGalat pesan={isi.galat} onTutup={onTutup} />;
+  return <LembarInvoice invoice={isi.invoice} onTutup={onTutup} />;
+}
+
+function ModalTunggu() {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-tinta-900/50 p-4 print:hidden">
+      <div className="w-full max-w-xs rounded-[0.875rem] bg-bersih-0 p-5 text-center">
+        <p className="text-[0.875rem] font-semibold text-tinta-500">Memuat invoice…</p>
+      </div>
+    </div>
+  );
+}
+
+function ModalGalat({ pesan, onTutup }: { pesan: string; onTutup: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-tinta-900/50 p-4">
+      <div className="w-full max-w-xs rounded-[0.875rem] bg-bersih-0 p-4 text-center">
+        <p className="text-[0.9375rem] font-extrabold text-tinta-900">Invoice gagal dibuka</p>
+        <p className="mt-1 text-[0.8125rem] leading-snug text-tinta-500">{pesan}</p>
+        <button
+          type="button"
+          onClick={onTutup}
+          className="mt-3 h-10 w-full rounded-[0.625rem] bg-tinta-900 text-[0.8125rem] font-bold text-bersih-0"
+        >
+          Tutup
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function LembarInvoice({
   invoice,

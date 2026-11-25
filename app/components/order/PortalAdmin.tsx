@@ -17,7 +17,7 @@
  *    fokus. Kasir/admin mengetik "68000", bukan "Rp68.000".
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { rupiah } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
 import type { KategoriMenu, Meja, Menu, PilihanMenu } from "@/app/lib/order/tipe";
@@ -25,6 +25,9 @@ import type { AturanBiaya } from "@/app/lib/order/aturan";
 import { IkonCentang, IkonSilang, IkonTambah, IkonHapus, IkonBintang, IkonCari, IkonCariHapus } from "./Ikon";
 import { saringMenu, hitungPerKategori, type SaringanStatus } from "@/app/lib/order/saring";
 import { TabMeja } from "./TabMeja";
+import { KartuRingkasan } from "./KartuRingkasan";
+import { DaftarRiwayat } from "./DaftarRiwayat";
+import type { BarisRiwayat, RingkasanPenjualan } from "@/app/lib/order/riwayat";
 
 type Saringan = SaringanStatus;
 
@@ -45,7 +48,7 @@ export function PortalAdmin({
   const [menu, setMenu] = useState<Menu[]>(awal.menu);
   const [aturan, setAturan] = useState<AturanBiaya>(aturanAwal);
   const [galat, setGalat] = useState(galatAwal);
-  const [tab, setTab] = useState<"menu" | "biaya" | "jam" | "meja">("menu");
+  const [tab, setTab] = useState<"menu" | "biaya" | "jam" | "meja" | "penjualan">("menu");
   /** Jam buka yang sedang berlaku (dibaca dari database, bukan konstanta). */
   const [jam, setJam] = useState<{
     buka24Jam: boolean;
@@ -59,6 +62,45 @@ export function PortalAdmin({
   const [baru, setBaru] = useState(false);
   const [sibuk, setSibuk] = useState(false);
   const [tersimpan, setTersimpan] = useState("");
+
+  // ── Tab Penjualan: rangkuman hari ini + riwayat pesanan ────────────────
+  //
+  // Dimuat saat tabnya DIBUKA, bukan saat halaman dimuat. Admin yang datang
+  // untuk mengubah harga tidak perlu menunggu dua kueri agregat sebelum
+  // tabel menunya tampil.
+  const [ringkasan, setRingkasan] = useState<RingkasanPenjualan | null>(null);
+  const [pesanRingkasan, setPesanRingkasan] = useState("");
+  const [riwayat, setRiwayat] = useState<BarisRiwayat[]>([]);
+  const [pesanRiwayat, setPesanRiwayat] = useState("");
+  const [muatPenjualanSibuk, setMuatPenjualanSibuk] = useState(false);
+
+  const muatPenjualan = useCallback(async () => {
+    setMuatPenjualanSibuk(true);
+    try {
+      const res = await fetch("/api/order/riwayat?batas=60", { cache: "no-store" });
+      const j = (await res.json()) as {
+        ringkasan?: RingkasanPenjualan | null;
+        pesan_ringkasan?: string;
+        riwayat?: BarisRiwayat[];
+        pesan_riwayat?: string;
+        pesan?: string;
+      };
+      if (!res.ok) {
+        setPesanRingkasan(j.pesan ?? "Rangkuman belum bisa dibaca.");
+        setPesanRiwayat(j.pesan ?? "Riwayat belum bisa dibaca.");
+        return;
+      }
+      setRingkasan(j.ringkasan ?? null);
+      setPesanRingkasan(j.pesan_ringkasan ?? "");
+      setRiwayat(j.riwayat ?? []);
+      setPesanRiwayat(j.pesan_riwayat ?? "");
+    } catch {
+      setPesanRingkasan("Koneksi terputus. Rangkuman belum diperbarui.");
+      setPesanRiwayat("Koneksi terputus. Riwayat belum diperbarui.");
+    } finally {
+      setMuatPenjualanSibuk(false);
+    }
+  }, []);
 
   // Peta id → nama. Dipakai kolom tabel, pencarian, dan chip kategori.
   // Identitasnya dijaga stabil karena ikut jadi dependensi useMemo di bawah:
@@ -245,6 +287,24 @@ export function PortalAdmin({
               harus memuat identitas + dua tab dalam 336px. Di tablet
               labelnya kembali penuh.
             */}
+            {/*
+              "Penjualan" paling kiri: pemilik membuka portal ini dengan
+              pertanyaan "hari ini sudah berapa", bukan "harga ayam berapa".
+              Tab lain tetap satu ketukan jauhnya, jadi tidak ada yang hilang.
+            */}
+            <button
+              type="button"
+              onClick={() => {
+                setTab("penjualan");
+                muatPenjualan();
+              }}
+              className={[
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
+                tab === "penjualan" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
+              ].join(" ")}
+            >
+              Penjualan
+            </button>
             <button
               type="button"
               onClick={() => setTab("menu")}
@@ -312,6 +372,50 @@ export function PortalAdmin({
       {galat && bisaUbah && (
         <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
           <p className="text-[0.8125rem] font-semibold text-clay-800">{galat}</p>
+        </div>
+      )}
+
+      {tab === "penjualan" && (
+        <div className="grid gap-4 p-4 sm:p-6">
+          <section aria-labelledby="rangkuman-admin">
+            <div className="mb-2 flex items-center gap-2">
+              <h2
+                id="rangkuman-admin"
+                className="flex-1 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+              >
+                Penjualan hari ini
+              </h2>
+              <button
+                type="button"
+                onClick={muatPenjualan}
+                disabled={muatPenjualanSibuk}
+                className="h-9 rounded-[0.5rem] border border-bersih-200 px-3 text-[0.75rem] font-bold text-tinta-700 disabled:opacity-50"
+              >
+                {muatPenjualanSibuk ? "Memuat…" : "Muat ulang"}
+              </button>
+            </div>
+            <KartuRingkasan
+              ringkasan={ringkasan}
+              galat={pesanRingkasan}
+              varian="penuh"
+            />
+          </section>
+
+          <section aria-labelledby="riwayat-admin">
+            <h2
+              id="riwayat-admin"
+              className="mb-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+            >
+              Riwayat pesanan
+            </h2>
+            {/*
+              `awal={20}`: admin memeriksa lebih jauh ke belakang daripada
+              kasir, dan layarnya lebih besar. Riwayat di sini TERBUKA
+              langsung — berbeda dari kasir, karena membuka tab ini berarti
+              memang ingin melihat daftarnya.
+            */}
+            <DaftarRiwayat riwayat={riwayat} galat={pesanRiwayat} awal={20} />
+          </section>
         </div>
       )}
 
