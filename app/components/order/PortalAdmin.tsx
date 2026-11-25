@@ -25,6 +25,7 @@ import type { AturanBiaya } from "@/app/lib/order/aturan";
 import { IkonCentang, IkonSilang, IkonTambah, IkonHapus, IkonBintang, IkonCari, IkonCariHapus } from "./Ikon";
 import { saringMenu, hitungPerKategori, type SaringanStatus } from "@/app/lib/order/saring";
 import { TabMeja } from "./TabMeja";
+import { TabStok } from "./TabStok";
 import { KartuRingkasan } from "./KartuRingkasan";
 import { DaftarRiwayat } from "./DaftarRiwayat";
 import type { BarisRiwayat, RingkasanPenjualan } from "@/app/lib/order/riwayat";
@@ -48,7 +49,7 @@ export function PortalAdmin({
   const [menu, setMenu] = useState<Menu[]>(awal.menu);
   const [aturan, setAturan] = useState<AturanBiaya>(aturanAwal);
   const [galat, setGalat] = useState(galatAwal);
-  const [tab, setTab] = useState<"menu" | "biaya" | "jam" | "meja" | "penjualan">("menu");
+  const [tab, setTab] = useState<"menu" | "biaya" | "jam" | "meja" | "penjualan" | "stok">("menu");
   /** Jam buka yang sedang berlaku (dibaca dari database, bukan konstanta). */
   const [jam, setJam] = useState<{
     buka24Jam: boolean;
@@ -335,6 +336,16 @@ export function PortalAdmin({
               ].join(" ")}
             >
               Meja
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("stok")}
+              className={[
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
+                tab === "stok" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
+              ].join(" ")}
+            >
+              Stok
             </button>
             <button
               type="button"
@@ -767,6 +778,8 @@ export function PortalAdmin({
       )}
 
       {tab === "meja" && <TabMeja meja={meja} />}
+
+      {tab === "stok" && <TabStok />}
 
       {tab === "jam" && (
         <div className="max-w-xl p-4 sm:p-6">
