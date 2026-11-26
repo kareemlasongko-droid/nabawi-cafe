@@ -277,3 +277,98 @@ export function IkonStok({ className = "size-4" }: P) {
     </svg>
   );
 }
+
+/**
+ * Ikon per kategori menu — dipakai kartu menu di portal pelanggan.
+ *
+ * ── KENAPA ADA, PADAHAL KARTUNYA SUDAH BERNAMA ────────────────────────
+ *
+ * Kartu menu tanpa foto dulu menampilkan dua huruf pertama nama menu.
+ * Diukur pada 126 menu: hanya 59 inisial unik, dan 32 di antaranya
+ * dipakai lebih dari satu menu — "CH" mewakili 8 menu (Chicken Bite,
+ * Choco Soft Cookie, Cheese Latte), "NA" 6, "MA" 6. Jadi 99 dari 126
+ * kartu memasang huruf yang sama dengan kartu lain, dan huruf itu tidak
+ * menjawab pertanyaan apa pun yang sedang dihadapi tamu.
+ *
+ * Ikon kategori menjawab pertanyaan yang benar — ini makanan atau
+ * minuman, dan jenisnya apa — dalam ruang yang sama.
+ *
+ * ── KENAPA DIURUTKAN PER ID, BUKAN PER NAMA ───────────────────────────
+ *
+ * Id kategori berasal dari migrasi (1 Makanan Utama … 6 Jus & Dessert),
+ * jadi urutannya stabil. Kalau pemilik mengganti NAMA kategori, ikonnya
+ * tetap di tempat yang benar. Kategori yang tidak dikenal (mis. id 7
+ * yang ditambahkan pemilik) jatuh ke ikon piring — bentuk netral yang
+ * tidak pernah salah, hanya tidak spesifik.
+ */
+export function IkonKategoriMenu({
+  kategoriId,
+  className = "size-4",
+}: P & { kategoriId: number | null | undefined }) {
+  // 1 Makanan Utama — piring dengan tutup (sajian hangat)
+  if (kategoriId === 1) {
+    return (
+      <svg {...dasar} className={className}>
+        <path d="M3.5 13.5h17a8.5 8.5 0 0 0-17 0Z" />
+        <path d="M2.5 17.5h19" />
+        <path d="M12 5v-1.5" />
+        <circle cx="12" cy="3.5" r="0.9" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  // 2 Camilan & Pastry — cup cake
+  if (kategoriId === 2) {
+    return (
+      <svg {...dasar} className={className}>
+        <path d="M5 10h14l-1.6 9.2a1.5 1.5 0 0 1-1.5 1.3H8.1a1.5 1.5 0 0 1-1.5-1.3L5 10Z" />
+        <path d="M4 10a3 3 0 0 1 3-3 3.2 3.2 0 0 1 5-2.3A3.2 3.2 0 0 1 17 7a3 3 0 0 1 3 3" />
+      </svg>
+    );
+  }
+  // 3 Kopi — cangkir dengan gagang dan uap
+  if (kategoriId === 3) {
+    return (
+      <svg {...dasar} className={className}>
+        <path d="M4 9h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V9Z" />
+        <path d="M16 10.5h1.8a2.7 2.7 0 0 1 0 5.4H16" />
+        <path d="M7.5 6.5c.8-.8.8-1.7 0-2.5M11.5 6.5c.8-.8.8-1.7 0-2.5" />
+      </svg>
+    );
+  }
+  // 4 Non-Kopi — gelas tinggi dengan sedotan
+  if (kategoriId === 4) {
+    return (
+      <svg {...dasar} className={className}>
+        <path d="M6.5 7h11l-1.3 12.3a1.5 1.5 0 0 1-1.5 1.3H9.3a1.5 1.5 0 0 1-1.5-1.3L6.5 7Z" />
+        <path d="M15 4.5 13 7M5.5 11h13" />
+      </svg>
+    );
+  }
+  // 5 Cheese & Milkshake — gelas dengan krim di atas
+  if (kategoriId === 5) {
+    return (
+      <svg {...dasar} className={className}>
+        <path d="M6.5 9h11l-1.4 10.3a1.5 1.5 0 0 1-1.5 1.3H9.4a1.5 1.5 0 0 1-1.5-1.3L6.5 9Z" />
+        <path d="M6 9a2.6 2.6 0 0 1 2.6-2.6 3 3 0 0 1 5.3-1.6 2.9 2.9 0 0 1 4.1 2.6A2.6 2.6 0 0 1 18 9" />
+        <path d="M12 4.5v2" />
+      </svg>
+    );
+  }
+  // 6 Jus & Dessert — gelas jus dengan irisan buah
+  if (kategoriId === 6) {
+    return (
+      <svg {...dasar} className={className}>
+        <path d="M7 8h10l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H9.7a1.5 1.5 0 0 1-1.5-1.3L7 8Z" />
+        <path d="M6 8h12" />
+        <path d="M13.5 8a4 4 0 0 1 4-4M13.5 8a3 3 0 0 0-3-3" />
+      </svg>
+    );
+  }
+  // Tidak dikenal — bentuk netral (piring + sendok garpu)
+  return (
+    <svg {...dasar} className={className}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M9 8.5v7M15 8.5v7" />
+    </svg>
+  );
+}

@@ -128,10 +128,27 @@ export async function GET() {
     mendatangi meja yang benar tanpa mencari id meja secara manual.
   */
   const petaNomorMeja = new Map(mejaRes.data.map((m) => [m.id, m.nomor]));
-  const menunggu = (menungguRes.ok ? menungguRes.data : []).map((p) => ({
-    ...p,
-    meja_nomor: petaNomorMeja.get(p.meja_id) ?? String(p.meja_id),
-  }));
+  const menunggu = (menungguRes.ok ? menungguRes.data : []).map((p) => {
+    /*
+      ── BERAPA YANG HARUS DITAGIH, BUKAN HANYA "BELUM DIBAYAR" ────────
+
+      Kartu "Belum dibayar" memberi tahu kasir bahwa ADA yang belum
+      dibayar, tetapi tidak berapa. Kasir lalu menekan "Uang pas" tanpa
+      tahu nominal yang akan diterima tamu — dan pada tagihan Rp146.600
+      itu perbedaan yang membuat kasir salah menyebut angka di depan tamu.
+
+      Tagihannya sudah ada di memori (`petaTagihan`, dipakai untuk denah
+      meja di bawah), jadi ini tidak menambah satu pun permintaan ke
+      database. Pesanan tanpa tagihan (data lama) mendapat null, bukan 0:
+      nol akan terbaca sebagai "tidak perlu dibayar".
+    */
+    const t = p.tagihan_id != null ? petaTagihan.get(p.tagihan_id) : undefined;
+    return {
+      ...p,
+      meja_nomor: petaNomorMeja.get(p.meja_id) ?? String(p.meja_id),
+      total: t?.total ?? null,
+    };
+  });
 
   return NextResponse.json({
     pesanan: pesananRes.data,

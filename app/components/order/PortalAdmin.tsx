@@ -39,6 +39,7 @@ import {
   IkonStok,
 } from "./Ikon";
 import { TombolKepala } from "./TombolKepala";
+import { NavBawahStaf } from "./NavBawahStaf";
 import { saringMenu, hitungPerKategori, type SaringanStatus } from "@/app/lib/order/saring";
 import { TabMeja } from "./TabMeja";
 import { TabStok } from "./TabStok";
@@ -76,6 +77,19 @@ export function PortalAdmin({
   const [sibukJam, setSibukJam] = useState(false);
   const [pesanJam, setPesanJam] = useState("");
   const [sunting, setSunting] = useState<Menu | null>(null);
+  /*
+    ── HALAMAN, BUKAN SATU DAFTAR 126 BARIS ────────────────────────────
+
+    Tabel menu dirender SELURUH barisnya sekaligus: 126 baris × 5 kolom,
+    tanpa halaman. Di ponsel itu berarti menggulir 126 kartu untuk sampai
+    ke menu yang namanya berawalan "W", dan setiap kali saringan berubah
+    tinggi halaman melompat sejauh ribuan piksel.
+
+    Sepuluh baris per halaman adalah yang bisa dilihat sekaligus di layar
+    360px tanpa menggulir, dan itu juga yang membuat nomor menu bisa
+    dihitung mundur ("tadi yang saya ubah nomor berapa").
+  */
+  const [halamanMenu, setHalamanMenu] = useState(1);
   const [baru, setBaru] = useState(false);
   const [sibuk, setSibuk] = useState(false);
   const [tersimpan, setTersimpan] = useState("");
@@ -170,10 +184,28 @@ export function PortalAdmin({
    */
   const jumlahPerKategori = useMemo(() => hitungPerKategori(hasilSaring), [hasilSaring]);
 
+  /*
+    ── 10 BARIS PER HALAMAN ──────────────────────────────────────────
+
+    Angka 10 dipilih dari yang bisa dilihat sekaligus di layar 360px
+    (kartu menu tingginya ~150px; lebih dari itu sudah harus menggulir
+    untuk sekadar tahu ada berapa baris di halaman ini).
+
+    Saringan yang berubah mengembalikan ke halaman 1: kalau tidak,
+    menyaring dari halaman 7 bisa mendarat di halaman yang sudah tidak
+    ada, dan tabelnya tampak kosong padahal hasilnya ada.
+  */
+  const PER_HALAMAN = 10;
+  const jumlahHalamanMenu = Math.max(1, Math.ceil(hasilSaring.length / PER_HALAMAN));
+  const halamanAman = Math.min(halamanMenu, jumlahHalamanMenu);
+  const mulaiMenu = (halamanAman - 1) * PER_HALAMAN;
+  const terlihatMenu = hasilSaring.slice(mulaiMenu, mulaiMenu + PER_HALAMAN);
+
   function bersihkanSaringan() {
     setCari("");
     setKategoriSaring("semua");
     setStatusSaring("semua");
+    setHalamanMenu(1);
     setHanyaRekomendasi(false);
   }
 
@@ -345,61 +377,21 @@ export function PortalAdmin({
       )}
 
       {/*
-        ── DASHBOARD DUA PANEL ────────────────────────────────────────────
+        ── ISI TAB, LEBAR PENUH ───────────────────────────────────────────
 
-        Kiri: navigasi (6 tab, ikon + label, bisa tumbuh jadi 9 tanpa
-        memakan ruang kepala). Kanan: isi tab.
+        Navigasi admin kini ada di bilah BAWAH (lihat NavBawahStaf di akhir
+        berkas), bukan di panel kiri. Yang berubah karena itu: setiap tab
+        mendapat lebar penuh layar, bukan sisa setelah panel 13,5rem.
 
-        Di ponsel panel kiri berubah menjadi baris tab yang digeser
-        horizontal — bukan laci tersembunyi, karena admin sering membuka
-        portal ini satu tangan sambil memegang ponsel. Tab yang tidak
-        terlihat tetap terjangkau dengan menggeser, dan gradien tepi
-        memberi tahu bahwa masih ada tab di kanan.
+        Itu paling terasa di tab Menu dan Stok — dua tabel berkolom banyak
+        yang sebelumnya harus memadatkan kolom harga dan statusnya.
+
+        Di layar lebar isi dibatasi 64rem dan tetap di tengah: tabel yang
+        terentang selebar 1600px menambah jarak mata, bukan menambah
+        keterbacaan. Batas itu dipasang di ISI, bukan di halaman, supaya
+        bilah bawah tetap selebar layar.
       */}
-      <div className="mx-auto flex max-w-[100rem] flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:gap-5 lg:p-6">
-        <nav
-          aria-label="Bagian admin"
-          className="lg:w-[13.5rem] lg:shrink-0"
-        >
-          <ul className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0">
-            {(
-              [
-                { kunci: "penjualan", label: "Penjualan", Ikon: IkonBill, muat: muatPenjualan },
-                { kunci: "menu", label: "Menu", Ikon: IkonMenu, muat: null },
-                { kunci: "biaya", label: "Pajak & layanan", Ikon: IkonPajak, muat: null },
-                { kunci: "meja", label: "Meja", Ikon: IkonMeja, muat: null },
-                { kunci: "stok", label: "Stok", Ikon: IkonStok, muat: null },
-                { kunci: "jam", label: "Jam buka", Ikon: IkonJam, muat: muatJam },
-              ] as const
-            ).map(({ kunci, label, Ikon, muat }) => {
-              const aktif = tab === kunci;
-              return (
-                <li key={kunci} className="shrink-0 lg:shrink">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTab(kunci);
-                      if (muat) muat();
-                    }}
-                    aria-current={aktif ? "page" : undefined}
-                    className={[
-                      "flex h-10 w-full items-center gap-2 rounded-[0.625rem] px-3 text-[0.8125rem] font-bold transition-colors lg:h-11",
-                      "whitespace-nowrap",
-                      aktif
-                        ? "bg-forest-900 text-cream-50 shadow-[0_6px_16px_-10px_rgb(20_35_26/0.8)]"
-                        : "text-tinta-700 hover:bg-bersih-100",
-                    ].join(" ")}
-                  >
-                    <Ikon className="size-4 shrink-0 opacity-80" />
-                    {label}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        <div className="min-w-0 flex-1">
+      <div className="mx-auto max-w-[64rem] p-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:p-6">
       {tab === "penjualan" && (
         <div className="grid gap-4">
           <section aria-labelledby="rangkuman-admin">
@@ -414,12 +406,13 @@ export function PortalAdmin({
                 type="button"
                 onClick={muatPenjualan}
                 disabled={muatPenjualanSibuk}
-                className="tombol-tenang h-9 px-3 text-[0.75rem]"
+                className="tombol-tenang h-11 px-3 text-[0.8125rem] sm:h-9 sm:text-[0.75rem]"
               >
                 {muatPenjualanSibuk ? "Memuat…" : "Muat ulang"}
               </button>
             </div>
             <KartuRingkasan
+              memuat={muatPenjualanSibuk}
               ringkasan={ringkasan}
               galat={pesanRingkasan}
               varian="penuh"
@@ -455,7 +448,7 @@ export function PortalAdmin({
               type="button"
               onClick={() => setBaru(true)}
               disabled={!bisaUbah}
-              className="tombol-utama h-10 shrink-0 px-3.5 text-[0.8125rem]"
+              className="tombol-utama h-11 shrink-0 px-3.5 text-[0.8125rem] sm:h-10"
             >
               <IkonTambah className="size-4" />
               Menu baru
@@ -478,7 +471,10 @@ export function PortalAdmin({
               <IkonCari className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-tinta-500" />
               <input
                 value={cari}
-                onChange={(e) => setCari(e.target.value)}
+                onChange={(e) => {
+                  setCari(e.target.value);
+                  setHalamanMenu(1);
+                }}
                 type="search"
                 inputMode="search"
                 enterKeyHint="search"
@@ -517,7 +513,10 @@ export function PortalAdmin({
                   <ChipSaring
                     key={k.id}
                     aktif={kategoriSaring === k.id}
-                    onClick={() => setKategoriSaring(kategoriSaring === k.id ? "semua" : k.id)}
+                    onClick={() => {
+                      setKategoriSaring(kategoriSaring === k.id ? "semua" : k.id);
+                      setHalamanMenu(1);
+                    }}
                   >
                     {k.nama}
                     <span className="tabular-nums opacity-60">{jumlah}</span>
@@ -537,7 +536,10 @@ export function PortalAdmin({
                 <ChipSaring
                   key={nilai}
                   aktif={statusSaring === nilai}
-                  onClick={() => setStatusSaring(nilai)}
+                  onClick={() => {
+                    setStatusSaring(nilai);
+                    setHalamanMenu(1);
+                  }}
                   kecil
                 >
                   {label}
@@ -550,10 +552,13 @@ export function PortalAdmin({
               <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-bersih-200" />
               <button
                 type="button"
-                onClick={() => setHanyaRekomendasi((b) => !b)}
+                onClick={() => {
+                  setHanyaRekomendasi((b) => !b);
+                  setHalamanMenu(1);
+                }}
                 aria-pressed={hanyaRekomendasi}
                 className={[
-                  "flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[0.6875rem] font-bold transition",
+                  "flex h-11 shrink-0 items-center gap-1 rounded-full px-3 text-[0.8125rem] font-bold transition sm:h-8 sm:px-2.5 sm:text-[0.6875rem]",
                   hanyaRekomendasi
                     ? "bg-forest-900 text-cream-50"
                     : "bg-bersih-100 text-tinta-700 hover:bg-bersih-200 active:bg-bersih-200",
@@ -591,11 +596,33 @@ export function PortalAdmin({
           </div>
 
           <div className="overflow-hidden rounded-[0.875rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0">
+            {/*
+              ── SATU TABEL, DUA BENTUK ────────────────────────────────
+
+              Di layar lebar ini tabel biasa: lima kolom sejajar, bisa
+              dipindai mata ke bawah.
+
+              Di ponsel tabel lima kolom TIDAK muat — 360px dikurangi
+              padding menyisakan ~290px untuk nama menu, kategori, harga,
+              status, dan dua tombol. Yang terjadi sebelumnya: nama menu
+              terpotong ("Nasi Goreng K…"), dan tombolnya tinggal 32px
+              karena ruangnya habis dipakai kolom.
+
+              Solusinya BUKAN dua markup berbeda (satu tabel, satu daftar
+              kartu) yang disembunyikan bergantian — itu menggandakan 126
+              baris di DOM, tepat di perangkat yang paling butuh ringan.
+              Yang dipakai: `display:grid` pada <tr> di ponsel, sehingga
+              sel-sel yang sama mengalir jadi kartu; `sm:table-row`
+              mengembalikannya jadi baris tabel. Satu DOM, dua bentuk.
+
+              Kepala tabel disembunyikan di ponsel: label kolom tidak
+              berguna kalau isinya sudah tersusun seperti kartu.
+            */}
             <table className="w-full text-left">
-              <thead>
+              <thead className="hidden sm:table-header-group">
                 <tr className="border-b border-bersih-200 bg-bersih-100 text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
                   <th className="px-3 py-2">Menu</th>
-                  <th className="hidden px-3 py-2 sm:table-cell">Kategori</th>
+                  <th className="px-3 py-2">Kategori</th>
                   <th className="px-3 py-2 text-right">Harga</th>
                   <th className="px-3 py-2 text-center">Tersedia</th>
                   <th className="px-3 py-2" />
@@ -616,7 +643,7 @@ export function PortalAdmin({
                         <button
                           type="button"
                           onClick={bersihkanSaringan}
-                          className="mt-3 h-9 rounded-[0.5rem] border border-bersih-200 px-3 text-[0.8125rem] font-bold text-tinta-700"
+                          className="mt-3 h-11 rounded-[0.5rem] border border-bersih-200 px-3 text-[0.8125rem] font-bold text-tinta-700 sm:h-9"
                         >
                           Tampilkan semua menu
                         </button>
@@ -624,9 +651,21 @@ export function PortalAdmin({
                     </td>
                   </tr>
                 )}
-                {hasilSaring.map((m) => (
-                  <tr key={m.id} className={m.tersedia ? "" : "bg-bersih-50"}>
-                    <td className="px-3 py-2">
+                {terlihatMenu.map((m) => (
+                  <tr
+                    key={m.id}
+                    className={[
+                      /*
+                        Ponsel: kartu bertumpuk (grid satu kolom). Layar
+                        lebar: baris tabel biasa. `divide-y` di tbody tidak
+                        bekerja pada grid, jadi garis pemisah dipasang di
+                        sini untuk mode kartu.
+                      */
+                      "grid grid-cols-1 gap-1 border-b border-bersih-200 px-3 py-3 sm:table-row sm:gap-0 sm:border-0 sm:px-0 sm:py-0",
+                      m.tersedia ? "" : "bg-bersih-50",
+                    ].join(" ")}
+                  >
+                    <td className="px-0 py-0 sm:px-3 sm:py-2">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <p
                           className={[
@@ -672,20 +711,37 @@ export function PortalAdmin({
                         </p>
                       )}
                     </td>
-                    <td className="hidden px-3 py-2 text-[0.8125rem] text-tinta-500 sm:table-cell">
+                    {/*
+                      Di ponsel kategori TIDAK disembunyikan lagi — ia jadi
+                      baris kecil di kartu. Sebelumnya `hidden sm:table-cell`
+                      membuangnya sama sekali di ponsel, padahal
+                      mengelompokkan menu per kategori adalah hal pertama
+                      yang dicari saat menyunting harga satu seri.
+                    */}
+                    <td className="px-0 pb-0.5 text-[0.75rem] text-tinta-500 sm:px-3 sm:py-2 sm:text-[0.8125rem]">
                       {m.kategori_id ? (namaKategori.get(m.kategori_id) ?? "—") : "—"}
                     </td>
-                    <td className="px-3 py-2 text-right text-[0.9375rem] font-bold tabular-nums text-tinta-900">
+                    <td className="px-0 text-[1.0625rem] font-extrabold tabular-nums text-forest-900 sm:px-3 sm:py-2 sm:text-right sm:text-[0.9375rem] sm:font-bold sm:text-tinta-900">
                       {rupiah(m.harga)}
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    {/*
+                      ── SATU BARIS AKSI, SEMUA 44px ──────────────────────
+
+                      Di kartu ponsel, tiga aksi (tersedia, rekomendasi,
+                      ubah) berdiri sebaris penuh di bawah harga. Di tabel
+                      layar lebar mereka kembali ke kolomnya masing-masing.
+
+                      Tingginya 44px di ponsel — sebelumnya 32px, dan itu
+                      tombol yang ditekan sambil berdiri di dapur.
+                    */}
+                    <td className="col-span-full mt-1.5 px-0 sm:col-auto sm:mt-0 sm:px-3 sm:py-2 sm:text-center">
                       <button
                         type="button"
                         onClick={() => ubahMenu(m, { tersedia: !m.tersedia })}
                         disabled={!bisaUbah || sibuk}
                         aria-pressed={m.tersedia}
                         className={[
-                          "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[0.6875rem] font-bold transition disabled:opacity-50",
+                          "inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-[0.8125rem] font-bold transition disabled:opacity-50 sm:h-8 sm:px-2.5 sm:text-[0.6875rem]",
                           m.tersedia
                             ? "bg-daun-100 text-forest-700"
                             : "bg-sela-50 text-sela-800",
@@ -702,8 +758,8 @@ export function PortalAdmin({
                         )}
                       </button>
                     </td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="px-0 sm:px-3 sm:py-2 sm:text-right">
+                      <div className="flex items-center justify-start gap-1.5 sm:justify-end">
                         {/*
                           Bintang rekomendasi: aksi yang paling sering
                           berubah (stok sedang banyak, hidangan baru), jadi
@@ -723,7 +779,7 @@ export function PortalAdmin({
                           }
                           title={m.rekomendasi ? "Rekomendasi" : "Jadikan rekomendasi"}
                           className={[
-                            "grid size-8 place-items-center rounded-[0.5rem] border transition disabled:opacity-40",
+                            "grid size-11 place-items-center rounded-[0.5rem] border transition disabled:opacity-40 sm:size-8",
                             m.rekomendasi
                               ? "border-aksi-700/40 bg-sela-50 text-sela-800"
                               : "border-bersih-200 text-tinta-500",
@@ -735,7 +791,7 @@ export function PortalAdmin({
                           type="button"
                           onClick={() => setSunting(m)}
                           disabled={!bisaUbah}
-                          className="h-8 rounded-[0.5rem] border border-bersih-200 px-2.5 text-[0.6875rem] font-bold text-tinta-700 disabled:opacity-40"
+                          className="h-11 rounded-[0.5rem] border border-bersih-200 px-3 text-[0.8125rem] font-bold text-tinta-700 disabled:opacity-40 sm:h-8 sm:px-2.5 sm:text-[0.6875rem]"
                         >
                           Ubah
                         </button>
@@ -745,6 +801,75 @@ export function PortalAdmin({
                 ))}
               </tbody>
             </table>
+
+            {/*
+              ── KETERANGAN JANGKAUAN + TOMBOL HALAMAN ────────────────
+
+              Keterangan ditaruh SEBELUM tombol: mata membaca "11–20 dari
+              126" lalu mencari tombol yang arahnya cocok. Tanpa keterangan
+              itu, nomor halaman tidak berarti apa-apa begitu hasil
+              pencarian menyusut jadi satu halaman.
+
+              Tombol 44px di ponsel: ini kontrol yang ditekan berulang saat
+              menyisir 126 menu, dan 36px terlalu kecil untuk ibu jari.
+            */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-bersih-200 bg-bersih-50 px-3 py-2">
+              <p className="text-[0.75rem] tabular-nums text-tinta-500">
+                Menampilkan{" "}
+                <span className="font-bold text-tinta-900">
+                  {hasilSaring.length === 0 ? 0 : mulaiMenu + 1}–
+                  {Math.min(mulaiMenu + PER_HALAMAN, hasilSaring.length)}
+                </span>{" "}
+                dari <span className="font-bold text-tinta-900">{hasilSaring.length}</span> menu
+              </p>
+
+              {jumlahHalamanMenu > 1 && (
+                <nav aria-label="Halaman menu" className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setHalamanMenu(halamanAman - 1)}
+                    disabled={halamanAman === 1}
+                    aria-label="Halaman sebelumnya"
+                    className="tombol-tenang size-11 p-0 text-[0.9375rem] disabled:opacity-35 sm:size-9 sm:text-[0.8125rem]"
+                  >
+                    ‹
+                  </button>
+
+                  {/*
+                    Maksimal lima nomor. Lebih dari itu tombolnya lebih
+                    sulit ditekan di ponsel daripada bergeser beberapa
+                    kali — dan jendelanya ikut halaman aktif, jadi nomor
+                    yang sedang dibuka tidak pernah hilang dari layar.
+                  */}
+                  {jendelaHalaman(jumlahHalamanMenu, halamanAman).map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setHalamanMenu(n)}
+                      aria-current={n === halamanAman ? "page" : undefined}
+                      className={[
+                        "size-11 rounded-[0.5rem] text-[0.8125rem] font-bold tabular-nums transition sm:size-9",
+                        n === halamanAman
+                          ? "bg-forest-900 text-cream-50"
+                          : "bg-bersih-0 text-tinta-700 ring-1 ring-bersih-200 hover:bg-bersih-100",
+                      ].join(" ")}
+                    >
+                      {n}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => setHalamanMenu(halamanAman + 1)}
+                    disabled={halamanAman === jumlahHalamanMenu}
+                    aria-label="Halaman berikutnya"
+                    className="tombol-tenang size-11 p-0 text-[0.9375rem] disabled:opacity-35 sm:size-9 sm:text-[0.8125rem]"
+                  >
+                    ›
+                  </button>
+                </nav>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -835,7 +960,7 @@ export function PortalAdmin({
                     type="button"
                     onClick={() => simpanJam(jam.contoh24Jam)}
                     disabled={sibukJam || jam.buka24Jam}
-                    className="tombol-utama h-10 px-3 text-[0.8125rem] disabled:opacity-45"
+                    className="tombol-utama h-11 px-3 text-[0.8125rem] disabled:opacity-45 sm:h-10"
                   >
                     Buka 24 jam
                   </button>
@@ -843,7 +968,7 @@ export function PortalAdmin({
                     type="button"
                     onClick={() => simpanJam("09.00-20.00,08.00-21.00")}
                     disabled={sibukJam}
-                    className="h-10 rounded-[0.625rem] border border-bersih-200 px-3 text-[0.8125rem] font-bold text-tinta-700 disabled:opacity-45"
+                    className="h-11 rounded-[0.625rem] border border-bersih-200 px-3 text-[0.8125rem] font-bold text-tinta-700 disabled:opacity-45 sm:h-10"
                   >
                     Kembali ke jam normal
                   </button>
@@ -910,13 +1035,43 @@ export function PortalAdmin({
       {tersimpan && (
         <div
           role="status"
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-forest-900 px-4 py-2 text-[0.8125rem] font-bold text-cream-50 shadow-[0_10px_30px_-12px_rgb(20_35_26/0.6)]"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 -translate-x-1/2 rounded-full bg-forest-900 px-4 py-2 text-[0.8125rem] font-bold text-cream-50 shadow-[0_10px_30px_-12px_rgb(20_35_26/0.6)]"
         >
           {tersimpan}
         </div>
       )}
-        </div>
       </div>
+
+      {/*
+        ── NAV BAWAH ADMIN ──────────────────────────────────────────────
+
+        Enam bagian, semuanya terlihat sekaligus. Ikon dipakai bersama label
+        karena enam tujuan terlalu banyak untuk dihafal dari ikon saja;
+        label 10px tetap terbaca di layar 360px.
+
+        Dua tab punya efek samping saat dibuka (`muat`): Penjualan mengambil
+        rangkuman + riwayat, Jam buka membaca pengaturan. Keduanya dimuat
+        SAAT DIBUKA, bukan saat halaman dimuat — admin yang datang untuk
+        mengubah harga tidak perlu menunggu kueri yang tidak dipakainya.
+      */}
+      <NavBawahStaf
+        judul="Navigasi admin"
+        aktif={tab}
+        onPilih={(k) => {
+          const tujuan = k as typeof tab;
+          setTab(tujuan);
+          if (tujuan === "penjualan") muatPenjualan();
+          if (tujuan === "jam") muatJam();
+        }}
+        item={[
+          { kunci: "penjualan", label: "Penjualan", Ikon: IkonBill },
+          { kunci: "menu", label: "Menu", Ikon: IkonMenu },
+          { kunci: "biaya", label: "Biaya", Ikon: IkonPajak },
+          { kunci: "meja", label: "Meja", Ikon: IkonMeja },
+          { kunci: "stok", label: "Stok", Ikon: IkonStok },
+          { kunci: "jam", label: "Jam", Ikon: IkonJam },
+        ]}
+      />
     </div>
   );
 }
@@ -1089,7 +1244,7 @@ function DialogMenu({
                     maxLength={80}
                     placeholder="Nama pilihan"
                     aria-label={`Nama pilihan ${i + 1}`}
-                    className="h-10 min-w-0 flex-1 rounded-[0.5rem] border border-bersih-200 bg-bersih-0 px-2.5 text-[0.9375rem] text-tinta-900 outline-none placeholder:text-tinta-500 focus:border-tinta-700"
+                    className="h-11 min-w-0 flex-1 rounded-[0.5rem] border border-bersih-200 bg-bersih-0 px-2.5 text-[0.9375rem] sm:h-10 text-tinta-900 outline-none placeholder:text-tinta-500 focus:border-tinta-700"
                   />
                   <div className="relative w-[6.5rem] shrink-0">
                     <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[0.6875rem] text-tinta-500">
@@ -1107,14 +1262,14 @@ function DialogMenu({
                       inputMode="numeric"
                       placeholder="0"
                       aria-label={`Tambahan harga pilihan ${i + 1}`}
-                      className="h-10 w-full rounded-[0.5rem] border border-bersih-200 bg-bersih-0 pl-8 pr-2 text-right text-[0.9375rem] font-bold tabular-nums text-tinta-900 outline-none placeholder:text-tinta-500 focus:border-tinta-700"
+                      className="h-11 w-full rounded-[0.5rem] border border-bersih-200 bg-bersih-0 pl-8 pr-2 text-right text-[0.9375rem] sm:h-10 font-bold tabular-nums text-tinta-900 outline-none placeholder:text-tinta-500 focus:border-tinta-700"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={() => setPilihan((d) => d.filter((_, j) => j !== i))}
                     aria-label={`Hapus pilihan ${p.nama || i + 1}`}
-                    className="grid size-10 shrink-0 place-items-center rounded-[0.5rem] text-tinta-500 transition active:bg-sela-50 active:text-sela-800"
+                    className="grid size-11 shrink-0 place-items-center rounded-[0.5rem] text-tinta-500 transition active:bg-sela-50 active:text-sela-800 sm:size-10"
                   >
                     <IkonHapus className="size-4" />
                   </button>
@@ -1135,7 +1290,7 @@ function DialogMenu({
               setPilihan((d) => (d.length >= 12 ? d : [...d, { nama: "", tambah: "" }]))
             }
             disabled={pilihan.length >= 12}
-            className="mt-2 flex h-9 items-center gap-1 rounded-[0.5rem] border border-dashed border-bersih-300 px-2.5 text-[0.8125rem] font-bold text-tinta-700 disabled:opacity-40"
+            className="mt-2 flex h-11 items-center gap-1 rounded-[0.5rem] border border-dashed border-bersih-300 px-2.5 text-[0.8125rem] font-bold text sm:h-9-tinta-700 disabled:opacity-40"
           >
             <IkonTambah className="size-3.5" />
             Tambah pilihan
@@ -1201,6 +1356,21 @@ function DialogMenu({
 }
 
 /**
+ * Lima nomor halaman di sekitar halaman aktif.
+ *
+ * Selalu memuat halaman pertama dan terakhir, karena keduanya yang dicari
+ * saat ingin melompat ("saya mau lihat menu yang terakhir"). Jendela di
+ * tengah bergeser supaya halaman aktif tidak pernah jatuh di luar layar.
+ */
+function jendelaHalaman(jumlah: number, aktif: number): number[] {
+  const semua = Array.from({ length: jumlah }, (_, i) => i + 1);
+  if (jumlah <= 5) return semua;
+  let mulai = Math.max(0, aktif - 3);
+  if (mulai + 5 > jumlah) mulai = jumlah - 5;
+  return semua.slice(mulai, mulai + 5);
+}
+
+/**
  * Chip saringan.
  *
  * Kenapa tombol biasa, bukan <select>: di tablet kasir/admin, memilih
@@ -1229,7 +1399,7 @@ function ChipSaring({
       aria-pressed={aktif}
       className={[
         "flex shrink-0 items-center gap-1 rounded-full font-bold transition",
-        kecil ? "h-8 px-2.5 text-[0.6875rem]" : "h-9 px-3 text-[0.8125rem]",
+        kecil ? "h-11 px-3 text-[0.8125rem] sm:h-8 sm:px-2.5 sm:text-[0.6875rem]" : "h-11 px-3 text-[0.8125rem] sm:h-9",
         aktif
           ? "bg-forest-900 text-cream-50"
           : "bg-bersih-100 text-tinta-700 hover:bg-bersih-200 active:bg-bersih-200",

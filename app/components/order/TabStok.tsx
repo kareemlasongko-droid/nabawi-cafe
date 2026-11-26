@@ -410,7 +410,7 @@ function OpnameKecil({
       <button
         type="button"
         onClick={() => setBuka(true)}
-        className="h-8 shrink-0 rounded-[0.5rem] border border-bersih-200 px-2 text-[0.6875rem] font-bold text-tinta-700"
+        className="h-11 sm:h-8 shrink-0 rounded-[0.5rem] border border-bersih-200 px-2 text-[0.8125rem] sm:text-[0.6875rem] font-bold text-tinta-700"
       >
         Opname
       </button>
@@ -425,13 +425,13 @@ function OpnameKecil({
           onChange={(e) => setFisik(e.target.value)}
           inputMode="decimal"
           placeholder={`fisik (${bahan.satuan})`}
-          className="h-8 w-full min-w-0 rounded-[0.5rem] border border-bersih-200 px-2 text-[0.75rem] outline-none"
+          className="h-11 sm:h-8 w-full min-w-0 rounded-[0.5rem] border border-bersih-200 px-2 text-[0.75rem] outline-none"
         />
         <button
           type="button"
           onClick={kirim}
           disabled={sibuk || fisik === ""}
-          className="h-8 shrink-0 rounded-[0.5rem] bg-forest-900 px-2 text-[0.6875rem] font-bold text-cream-50 transition hover:bg-forest-800 disabled:opacity-40"
+          className="h-11 sm:h-8 shrink-0 rounded-[0.5rem] bg-forest-900 px-2 text-[0.8125rem] sm:text-[0.6875rem] font-bold text-cream-50 transition hover:bg-forest-800 disabled:opacity-40"
         >
           OK
         </button>
@@ -661,7 +661,7 @@ function EditorResep({
                 onChange={(e) =>
                   setBaris((l) => l.map((x, k) => (k === i ? { ...x, bahan_id: Number(e.target.value) } : x)))
                 }
-                className="h-8 min-w-0 flex-1 rounded-[0.5rem] border border-bersih-200 px-1.5 text-[0.75rem]"
+                className="h-11 w-full min-w-0 rounded-[0.5rem] border border-bersih-200 px-1.5 text-[0.875rem] sm:h-8 sm:w-auto sm:flex-1 sm:text-[0.75rem]"
               >
                 {bahan.map((x) => (
                   <option key={x.id} value={x.id}>
@@ -675,7 +675,7 @@ function EditorResep({
                   setBaris((l) => l.map((x, k) => (k === i ? { ...x, jumlah: e.target.value } : x)))
                 }
                 inputMode="decimal"
-                className="h-8 w-16 shrink-0 rounded-[0.5rem] border border-bersih-200 px-1.5 text-right text-[0.75rem] tabular-nums outline-none"
+                className="h-11 w-24 flex-1 rounded-[0.5rem] border border-bersih-200 px-2 text-right text-[0.875rem] tabular-nums outline-none sm:h-8 sm:w-16 sm:flex-none sm:px-1.5 sm:text-[0.75rem]"
               />
               <span className="w-16 shrink-0 text-right text-[0.6875rem] tabular-nums text-tinta-500">
                 {rupiah(biaya)}
@@ -684,7 +684,7 @@ function EditorResep({
                 type="button"
                 onClick={() => setBaris((l) => l.filter((_, k) => k !== i))}
                 aria-label={`Hapus ${bh?.nama ?? "bahan"}`}
-                className="h-8 w-6 shrink-0 text-[0.875rem] text-tinta-500"
+                className="h-11 w-9 shrink-0 text-[1.0625rem] text-tinta-500 sm:h-8 sm:w-6 sm:text-[0.875rem]"
               >
                 ×
               </button>
@@ -696,7 +696,7 @@ function EditorResep({
       <button
         type="button"
         onClick={() => setBaris((l) => [...l, { bahan_id: bahan[0]?.id ?? 0, jumlah: "" }])}
-        className="mt-1.5 h-8 w-full rounded-[0.5rem] border border-dashed border-bersih-200 text-[0.75rem] font-bold text-tinta-700"
+        className="mt-1.5 h-11 w-full sm:h-8 rounded-[0.5rem] border border-dashed border-bersih-200 text-[0.8125rem] font-bold text-tinta-700"
       >
         + Bahan
       </button>
@@ -880,14 +880,27 @@ function FormPembelian({ bahan, onSelesai }: { bahan: Bahan[]; onSelesai: () => 
       </div>
 
       <div className="mt-2 grid gap-1.5">
+{/*
+          ── DUA BARIS DI PONSEL, SATU BARIS DI LAYAR LEBAR ──────────
+
+          Empat isian dalam satu baris di layar 360px: pilihan bahan
+          menyusut sampai namanya terpotong ("Biji Kopi Arab…"),
+          sedangkan kolom jumlah dan harga tinggal ~56px — cukup untuk
+          "250", tidak cukup untuk "250000" yang harus digulir di dalam
+          kotak kecil.
+
+          Di ponsel: bahan selebar baris, lalu jumlah · harga · hapus di
+          baris kedua. Di layar lebar tetap satu baris seperti semula,
+          karena di sana keempatnya memang muat.
+        */}
         {baris.map((b, i) => (
-          <div key={i} className="flex items-center gap-1.5">
+          <div key={i} className="flex flex-wrap items-center gap-1.5">
             <select
               value={b.bahan_id}
               onChange={(e) =>
                 setBaris((l) => l.map((x, k) => (k === i ? { ...x, bahan_id: Number(e.target.value) } : x)))
               }
-              className="h-8 min-w-0 flex-1 rounded-[0.5rem] border border-bersih-200 px-1.5 text-[0.75rem]"
+              className="h-11 w-full min-w-0 rounded-[0.5rem] border border-bersih-200 px-2 text-[0.875rem] sm:h-8 sm:w-auto sm:flex-1 sm:px-1.5 sm:text-[0.75rem]"
             >
               {bahan.map((x) => (
                 <option key={x.id} value={x.id}>
@@ -902,7 +915,7 @@ function FormPembelian({ bahan, onSelesai }: { bahan: Bahan[]; onSelesai: () => 
               }
               inputMode="decimal"
               placeholder="jml"
-              className="h-8 w-14 shrink-0 rounded-[0.5rem] border border-bersih-200 px-1.5 text-right text-[0.75rem] tabular-nums outline-none"
+              className="h-11 w-20 flex-1 rounded-[0.5rem] border border-bersih-200 px-2 text-right text-[0.875rem] tabular-nums outline-none sm:h-8 sm:w-14 sm:flex-none sm:px-1.5 sm:text-[0.75rem]"
             />
             <input
               value={b.harga}
@@ -911,13 +924,13 @@ function FormPembelian({ bahan, onSelesai }: { bahan: Bahan[]; onSelesai: () => 
               }
               inputMode="numeric"
               placeholder="harga"
-              className="h-8 w-16 shrink-0 rounded-[0.5rem] border border-bersih-200 px-1.5 text-right text-[0.75rem] tabular-nums outline-none"
+              className="h-11 sm:h-8 w-16 shrink-0 rounded-[0.5rem] border border-bersih-200 px-1.5 text-right text-[0.75rem] tabular-nums outline-none"
             />
             <button
               type="button"
               onClick={() => setBaris((l) => l.filter((_, k) => k !== i))}
               aria-label="Hapus baris"
-              className="h-8 w-5 shrink-0 text-[0.875rem] text-tinta-500"
+              className="h-11 w-9 shrink-0 text-[1.0625rem] text-tinta-500 sm:h-8 sm:w-6 sm:text-[0.875rem]"
             >
               ×
             </button>
@@ -928,7 +941,7 @@ function FormPembelian({ bahan, onSelesai }: { bahan: Bahan[]; onSelesai: () => 
       <button
         type="button"
         onClick={() => setBaris((l) => [...l, { bahan_id: bahan[0]?.id ?? 0, jumlah: "", harga: "" }])}
-        className="mt-1.5 h-8 w-full rounded-[0.5rem] border border-dashed border-bersih-200 text-[0.75rem] font-bold text-tinta-700"
+        className="mt-1.5 h-11 sm:h-11 w-full sm:h-8 rounded-[0.5rem] border border-dashed border-bersih-200 text-[0.8125rem] font-bold text-tinta-700"
       >
         + Bahan
       </button>
@@ -1002,7 +1015,7 @@ function FormBuang({ bahan, onSelesai }: { bahan: Bahan[]; onSelesai: () => void
         <select
           value={bahanId}
           onChange={(e) => setBahanId(Number(e.target.value))}
-          className="h-8 min-w-0 flex-1 rounded-[0.5rem] border border-bersih-200 px-1.5 text-[0.75rem]"
+          className="h-11 w-full min-w-0 rounded-[0.5rem] border border-bersih-200 px-2 text-[0.875rem] sm:h-8 sm:w-auto sm:flex-1 sm:px-1.5 sm:text-[0.75rem]"
         >
           {bahan.map((x) => (
             <option key={x.id} value={x.id}>
@@ -1015,7 +1028,7 @@ function FormBuang({ bahan, onSelesai }: { bahan: Bahan[]; onSelesai: () => void
           onChange={(e) => setJumlah(e.target.value)}
           inputMode="decimal"
           placeholder="jumlah"
-          className="h-8 w-20 shrink-0 rounded-[0.5rem] border border-bersih-200 px-1.5 text-right text-[0.75rem] tabular-nums outline-none"
+          className="h-11 sm:h-8 w-20 shrink-0 rounded-[0.5rem] border border-bersih-200 px-1.5 text-right text-[0.75rem] tabular-nums outline-none"
         />
       </div>
       <div className="mt-1.5 flex items-center gap-1.5">
@@ -1023,13 +1036,13 @@ function FormBuang({ bahan, onSelesai }: { bahan: Bahan[]; onSelesai: () => void
           value={alasan}
           onChange={(e) => setAlasan(e.target.value)}
           placeholder="Alasan (rusak, tumpah…)"
-          className="h-8 min-w-0 flex-1 rounded-[0.5rem] border border-bersih-200 px-2 text-[0.75rem] outline-none"
+          className="h-11 sm:h-8 min-w-0 flex-1 rounded-[0.5rem] border border-bersih-200 px-2 text-[0.75rem] outline-none"
         />
         <button
           type="button"
           onClick={kirim}
           disabled={sibuk || !jumlah}
-          className="h-8 shrink-0 rounded-[0.5rem] bg-forest-900 px-3 text-[0.75rem] font-bold text-cream-50 transition hover:bg-forest-800 disabled:opacity-40"
+          className="h-11 sm:h-8 shrink-0 rounded-[0.5rem] bg-forest-900 px-3 text-[0.75rem] font-bold text-cream-50 transition hover:bg-forest-800 disabled:opacity-40"
         >
           Catat
         </button>
@@ -1151,7 +1164,7 @@ function BagianHpp() {
           <button
             type="button"
             onClick={() => setUrut((u) => (u === "margin" ? "nama" : "margin"))}
-            className="h-8 rounded-[0.5rem] border border-bersih-200 px-2 text-[0.6875rem] font-bold text-tinta-700"
+            className="h-11 sm:h-8 rounded-[0.5rem] border border-bersih-200 px-2 text-[0.8125rem] sm:text-[0.6875rem] font-bold text-tinta-700"
           >
             {urut === "margin" ? "Margin terburuk" : "Urut nama"}
           </button>
@@ -1166,21 +1179,85 @@ function BagianHpp() {
 
         <ul className="divide-y divide-bersih-200 overflow-hidden rounded-[0.875rem] border border-bersih-200 bg-bersih-0">
           {daftarMenu.slice(0, 80).map((m) => (
-            <li key={m.menu_id} className="flex items-baseline gap-2 px-3 py-1.5">
-              <span className="min-w-0 flex-1 truncate text-[0.75rem] text-tinta-900">{m.nama}</span>
+            /*
+              ── NAMA DI ATAS, ANGKA BERLABEL DI BAWAH ──────────────────
+
+              Sebelumnya satu baris memuat nama + tiga kolom angka berlebar
+              tetap (w-16 + w-16 + w-12 = 176px). Di layar 360px itu
+              menyisakan ~110px untuk NAMA MENU — dan nama menu Nabawi
+              ("Crispy Chicken Steak", "Flavoured Latte Panas / Dingin")
+              terpotong di tengah kata.
+
+              Yang lebih buruk: tiga angka berdampingan tanpa label —
+              38.400 · 55.000 · 30% — dan hanya kepala daftar di atas
+              halaman yang menjelaskan urutannya. Begitu digulir, labelnya
+              hilang dan angkanya jadi tiga bilangan tanpa arti.
+
+              Di ponsel sekarang: nama selebar layar, lalu tiga angka
+              BERLABEL di baris kedua. Di layar lebar tetap satu baris,
+              karena di sana kolomnya memang sejajar dan labelnya terbaca.
+            */
+            <li
+              key={m.menu_id}
+              className="grid gap-0.5 px-3 py-2.5 sm:flex sm:items-baseline sm:gap-2 sm:py-1.5"
+            >
+              <span className="min-w-0 flex-1 text-[0.875rem] font-semibold text-tinta-900 sm:truncate sm:text-[0.75rem] sm:font-normal">
+                {m.nama}
+              </span>
               {m.jumlah_bahan === 0 ? (
-                <span className="shrink-0 text-[0.625rem] font-bold text-sela-800">tanpa resep</span>
+                <span className="text-[0.75rem] font-bold text-sela-800 sm:shrink-0 sm:text-[0.625rem]">
+                  tanpa resep
+                </span>
               ) : (
                 <>
-                  <span className="w-16 shrink-0 text-right text-[0.6875rem] tabular-nums text-tinta-500">
+                  {/*
+                    Di ponsel: tiga pasangan label+nilai dalam satu baris
+                    yang bisa membungkus. `flex-1` membuatnya berbagi lebar
+                    rata, jadi tidak ada kolom yang "menang" lebar tetap.
+                  */}
+                  <span className="flex gap-3 sm:hidden">
+                    <span className="flex flex-col">
+                      <span className="text-[0.5625rem] font-bold uppercase tracking-wider text-tinta-500">
+                        HPP
+                      </span>
+                      <span className="text-[0.8125rem] tabular-nums text-tinta-900">
+                        {rupiah(m.hpp)}
+                      </span>
+                    </span>
+                    <span className="flex flex-col">
+                      <span className="text-[0.5625rem] font-bold uppercase tracking-wider text-tinta-500">
+                        Harga
+                      </span>
+                      <span className="text-[0.8125rem] tabular-nums text-tinta-900">
+                        {rupiah(m.harga)}
+                      </span>
+                    </span>
+                    <span className="flex flex-col">
+                      <span className="text-[0.5625rem] font-bold uppercase tracking-wider text-tinta-500">
+                        Margin
+                      </span>
+                      <span
+                        className={[
+                          "text-[0.8125rem] font-bold tabular-nums",
+                          (m.persen ?? 0) < 0 ? "text-sela-800" : "text-forest-700",
+                        ].join(" ")}
+                      >
+                        {m.persen === null ? "—" : `${m.persen}%`}
+                        {!m.lengkap && <span title="ada bahan tanpa harga">*</span>}
+                      </span>
+                    </span>
+                  </span>
+
+                  {/* Layar lebar: satu baris, seperti sebelumnya. */}
+                  <span className="hidden w-16 shrink-0 text-right text-[0.6875rem] tabular-nums text-tinta-500 sm:block">
                     {rupiah(m.hpp)}
                   </span>
-                  <span className="w-16 shrink-0 text-right text-[0.6875rem] tabular-nums text-tinta-500">
+                  <span className="hidden w-16 shrink-0 text-right text-[0.6875rem] tabular-nums text-tinta-500 sm:block">
                     {rupiah(m.harga)}
                   </span>
                   <span
                     className={[
-                      "w-12 shrink-0 text-right text-[0.75rem] font-bold tabular-nums",
+                      "hidden w-12 shrink-0 text-right text-[0.75rem] font-bold tabular-nums sm:block",
                       (m.persen ?? 0) < 0 ? "text-sela-800" : "text-forest-700",
                     ].join(" ")}
                   >
