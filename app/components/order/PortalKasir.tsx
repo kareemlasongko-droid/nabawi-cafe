@@ -577,23 +577,57 @@ export function PortalKasir() {
                   key={p.id}
                   className="overflow-hidden rounded-[0.875rem] border border-bersih-200 bg-bersih-0 shadow-[0_2px_10px_rgb(22_19_15/0.05)] ring-1 ring-sela-700/20"
                 >
-                  <div className="flex items-start gap-3 border-b border-bersih-200 bg-sela-50 px-3.5 py-2.5">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-[0.625rem] bg-forest-900 text-[1.0625rem] font-extrabold text-cream-50">
-                      {p.meja_nomor}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[0.9375rem] font-extrabold text-tinta-900">
-                        Meja {p.meja_nomor}
-                        {p.nama_pemesan ? ` · ${p.nama_pemesan}` : ""}
+                  {/*
+                    KEPALA KARTU ANTREAN — nomor pesanan sebagai bintang.
+
+                    Di acuan, hal pertama yang dibaca kasir adalah NOMOR
+                    PESANAN (#1058) dalam huruf besar, bukan nomor meja.
+                    Alasannya nyata: tamu menyebut nomornya ("pesanan 1058"),
+                    dan nomor itulah yang dicari kasir saat antrean panjang.
+                    Nomor meja tetap ada, di baris kedua.
+
+                    Lencana "Baru" oranye: pembeda tercepat antara pesanan
+                    yang belum disentuh dan yang sudah ditangani, di daftar
+                    yang bentuknya seragam.
+                  */}
+                  <div className="flex items-start justify-between gap-2 border-b border-bersih-200 bg-cream-50 px-3.5 py-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded-[0.25rem] bg-sela-500 px-1.5 py-0.5 text-[0.5625rem] font-extrabold uppercase tracking-[0.1em] text-forest-950">
+                          Baru
+                        </span>
+                        <span className="truncate font-mono text-[0.6875rem] font-semibold text-tinta-500">
+                          {p.nomor}
+                        </span>
+                      </div>
+
+                      <p className="mt-1 text-[1.5rem] font-extrabold leading-none tracking-[-0.02em] text-forest-900">
+                        #{p.nomor}
                       </p>
-                      <p className="flex items-center gap-1 text-[0.6875rem] text-tinta-500">
-                        <IkonJam className="size-3" />
-                        {sejak(p.created_at)} · {p.total_item} item · {p.nomor}
+
+                      <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.75rem] text-tinta-700">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-daun-100 px-1.5 py-0.5 font-extrabold text-forest-700">
+                          <IkonMeja className="size-3" />
+                          Meja {p.meja_nomor}
+                        </span>
+                        {p.nama_pemesan && (
+                          <span className="max-w-[12ch] truncate font-semibold">
+                            {p.nama_pemesan}
+                          </span>
+                        )}
+                        <span className="text-tinta-500">{p.total_item} item</span>
                       </p>
                     </div>
-                    <span className="shrink-0 text-[1.0625rem] font-extrabold tabular-nums text-tinta-900">
-                      {rupiah(p.items.reduce((n, i) => n + i.harga_satuan * i.jumlah, 0))}
-                    </span>
+
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="flex items-center gap-1 text-[0.75rem] font-bold tabular-nums text-tinta-700">
+                        <IkonJam className="size-3" />
+                        {sejak(p.created_at)}
+                      </span>
+                      <span className="text-[1.0625rem] font-extrabold tabular-nums text-sela-700">
+                        {rupiah(p.items.reduce((n, i) => n + i.harga_satuan * i.jumlah, 0))}
+                      </span>
+                    </div>
                   </div>
 
                   <ul className="divide-y divide-bersih-200 px-3.5 py-1">
@@ -720,7 +754,19 @@ export function PortalKasir() {
             Meja
           </h2>
 
-          <ul className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-4">
+          {/*
+            ── DUA KOLOM DI PONSEL, SEPERTI ACUAN ─────────────────────
+
+            Sebelumnya empat kolom. Di layar kasir (tablet 10", sering
+            dipakai berdiri) empat kolom membuat tiap kotak hanya ~70px:
+            nomor meja terbaca, tetapi nominal tagihannya terpotong dan
+            sasaran sentuhnya kecil.
+
+            Acuan desain memakai DUA kolom, dengan kotak yang cukup besar
+            untuk memuat nomor meja, status, dan total sekaligus — tiga hal
+            yang dibaca kasir dalam satu pandangan tanpa membuka apa pun.
+          */}
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
             {(data?.meja ?? []).map((m) => {
               const aktif = mejaPilih === m.nomor;
               const adaIsi = m.status !== "kosong";
@@ -738,7 +784,7 @@ export function PortalKasir() {
                           : "border-transparent bg-bersih-0 text-tinta-500 shadow-[0_1px_2px_rgba(22,19,15,0.05)]",
                     ].join(" ")}
                   >
-                    <span className="text-[1.125rem] font-extrabold leading-none">{m.nomor}</span>
+                    <span className="text-[1.375rem] font-extrabold leading-none">{m.nomor}</span>
                     <span
                       className={[
                         "mt-1 text-[0.6875rem] font-bold uppercase tracking-wide",
@@ -788,6 +834,32 @@ export function PortalKasir() {
                 </li>
               );
             })}
+          </ul>
+
+          {/*
+            ── LEGENDA WARNA ──────────────────────────────────────────
+
+            Warna kotak meja (hijau = terisi, putih = kosong, gelap =
+            dipilih) hanya berguna bila artinya bisa dilihat tanpa bertanya.
+            Sebelumnya tidak ada keterangan sama sekali: kasir baru harus
+            menebak, dan tamu yang melihat layar tidak tahu apa-apa.
+
+            Ditaruh TEPAT DI BAWAH grid, bukan di atas: mata membaca kotak
+            dulu, lalu mencari arti warna yang barusan dilihatnya.
+          */}
+          <ul className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[0.75rem] text-tinta-500">
+            <li className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-[0.25rem] bg-daun-100 ring-1 ring-inset ring-forest-600/25" aria-hidden="true" />
+              Terisi
+            </li>
+            <li className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-[0.25rem] bg-bersih-0 ring-1 ring-inset ring-bersih-300" aria-hidden="true" />
+              Kosong
+            </li>
+            <li className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-[0.25rem] bg-sela-100 ring-1 ring-inset ring-sela-500/40" aria-hidden="true" />
+              Perlu ditagih
+            </li>
           </ul>
 
           {/*

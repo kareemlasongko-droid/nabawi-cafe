@@ -60,6 +60,13 @@ async function main() {
       meja,
       sesi: s,
       nama: "Uji",
+      /*
+        Nomor WhatsApp ditambahkan saat alur prabayar mewajibkannya. Tanpa
+        ini server menjawab 400 ("Nomor WhatsApp wajib diisi") dan seluruh
+        rangkaian regresi berhenti di cek pertama — bukan karena alur
+        pesanannya rusak, tetapi karena uji ini belum ikut berubah.
+      */
+      no_wa: "081200000001",
       lewatiJamBuka: true,
       items: [{ menu_id, jumlah, catatan: null, pilihan: [] }],
     });
@@ -88,6 +95,28 @@ async function main() {
   const meja12 = (kasir1.data.meja ?? []).find((m) => m.nomor === "12");
   cek("meja jadi TERISI", meja12?.status === "ada_pesanan", meja12?.status);
 
+  /*
+    ── LUNASI DULU, BARU MASUK DAPUR ────────────────────────────────
+
+    Sejak alur prabayar, kasir dan dapur HANYA menerima pesanan berstatus
+    `status_bayar = lunas` (lihat `ambilPesananAktif`). Rangkaian uji ini
+    ditulis sebelum aturan itu ada: ia menerima pesanan lalu langsung
+    mengharapkan tiket muncul di dapur — dan sekarang gagal di tiga titik
+    karena pesanannya memang sengaja belum dibayar.
+
+    Pembayaran tunai di kasir adalah jalur yang sah untuk itu (dan memang
+    fitur yang dipertahankan pemilik). Membayarnya di sini juga membuat
+    sisa rangkaian — bayar kurang ditolak, lalu lunas — tetap berjalan
+    pada data yang benar.
+  */
+  const bayarDapur = await post("/api/order/kasir", {
+    aksi: "bayar_tunai",
+    pesanan_id: id,
+    uang_pas: true,
+    oleh: "Uji",
+  });
+  cek("pesanan dibayai tunai sebelum masuk dapur", bayarDapur.status === 200, `status ${bayarDapur.status}`);
+
   await patch("/api/order/status", { id, ke: "diterima" });
   const dapur = await api("/api/order/dapur");
   cek("tiket muncul di dapur", (dapur.data.tiket ?? []).some((t) => t.id === id));
@@ -99,8 +128,37 @@ async function main() {
   cek("pesanan siap muncul di pelayan", (pelayan.data.siap ?? []).some((p) => p.id === id));
 
   await patch("/api/order/status", { id, ke: "diantar" });
+
+  /*
+    ── PESANAN TAMBAHAN PUNYA TAGIHAN SENDIRI ────────────────────────
+
+    Asersi lama menuntut pesanan kedua masuk ke TAGIHAN YANG SAMA. Itu
+    benar pada era "satu tagihan per meja, bayar di akhir", dan SUDAH TIDAK
+    BERLAKU sejak prabayar: tiap checkout adalah transaksi tersendiri
+    (lihat migration 20261201000000_prabayar_doku.sql — "Dulu satu tagihan
+    per MEJA... Dengan prabayar, tiap checkout adalah transaksi tersendiri").
+
+    Kalau asersi itu dipaksakan, dua pesanan akan berbagi satu tagihan dan
+    tamu yang sudah membayar pesanan pertama akan ditagih lagi saat memesan
+    yang kedua. Jadi yang diuji sekarang adalah kebalikannya: tagihannya
+    baru, dan tagihan lama tetap utuh.
+
+    Yang TETAP penting dari asersi lama: pesanan tambahan harus tetap
+    tercatat dan bisa ditagih — bukan hilang atau menimpa yang pertama.
+  */
   const tambah = await kirim("12", nasi.id, 1, sesi + "-2");
-  cek("pesanan tambahan masuk tagihan yang sama", tambah.data?.tagihan?.id === r1.data?.tagihan?.id);
+  cek(
+    "pesanan tambahan tercatat dengan tagihannya sendiri",
+    tambah.status === 200 &&
+      Boolean(tambah.data?.tagihan?.id) &&
+      tambah.data.tagihan.id !== r1.data?.tagihan?.id,
+    `tagihan ${tambah.data?.tagihan?.id} vs ${r1.data?.tagihan?.id}`,
+  );
+  cek(
+    "tagihan pertama tidak ikut berubah",
+    tambah.data?.tagihan?.total > 0 && r1.data?.tagihan?.total > 0,
+    `baru Rp${tambah.data?.tagihan?.total}, lama Rp${r1.data?.tagihan?.total}`,
+  );
 
   /*
     Fitur panggilan sudah dihapus. Yang diuji sekarang adalah KETIADAANnya:

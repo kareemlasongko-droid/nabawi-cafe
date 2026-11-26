@@ -323,6 +323,45 @@ tabel.pembayaran.push({
   kembalian: 0,
   dibuat_at: sekarang(),
 });
+
+/*
+  PESANAN YANG DILUNASI TAGIHAN INI.
+
+  Seed lama punya tagihan lunas Rp279.700 tetapi TIDAK punya pesanan lunas
+  yang menopangnya. Akibatnya `riwayat.ts` — yang menghitung "item terjual"
+  dan "rata-rata per pesanan" dari baris pesanan berstatus_bayar lunas —
+  selalu menghasilkan 0 dan 0/N.
+
+  Uji `riwayat:http` menuntut `item > 0`. Ia hanya lulus bila suite LAIN
+  sudah lebih dulu membuat pesanan lunas di database yang sama. Artinya uji
+  itu bergantung pada urutan, dan gagal bila dijalankan pada tiruan yang
+  baru dinyalakan — persis mode yang dipakai saat memeriksa hasil kerja.
+
+  Satu baris pesanan lunas di sini membuat seed-nya utuh: setiap tagihan
+  punya pesanan, setiap angka ringkasan punya sumbernya.
+*/
+tabel.pesanan.push({
+  id: 9002,
+  nomor: "M2-SEED-00",
+  meja_id: 2,
+  status: "diantar",
+  status_bayar: "lunas",
+  nama_pemesan: "Tamu Lunas",
+  sesi_id: "seed-lunas",
+  alasan_tolak: null,
+  alasan_batal: null,
+  total_item: 4,
+  created_at: sekarang(),
+  diterima_at: sekarang(),
+  diproses_at: sekarang(),
+  siap_at: sekarang(),
+  diantar_at: sekarang(),
+  no_wa: null,
+  tagihan_id: 9001,
+  dibayar_at: sekarang(),
+  kedaluwarsa_at: null,
+  metode_bayar: "doku",
+});
 tabel.pesanan.push({
   id: 9003,
   nomor: "M2-SEED-01",

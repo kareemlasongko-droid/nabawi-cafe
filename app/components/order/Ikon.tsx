@@ -202,3 +202,78 @@ export function IkonMuatUlang({ className = "size-4" }: P) {
     </svg>
   );
 }
+
+/** Ikon navigasi bawah portal pelanggan: beranda, pesanan, promo, akun. */
+export function IkonBeranda({ className = "size-5" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-9.5Z" />
+    </svg>
+  );
+}
+
+export function IkonPesanan({ className = "size-5" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <rect x="5" y="3.5" width="14" height="17" rx="2" />
+      <path d="M9 8.5h6M9 12.5h6M9 16.5h3" />
+    </svg>
+  );
+}
+
+export function IkonPromo({ className = "size-5" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <path d="M20.5 12.5 12.5 20.5a2 2 0 0 1-2.8 0L3.5 14.3a2 2 0 0 1 0-2.8l8-8h7a2 2 0 0 1 2 2v7Z" />
+      <circle cx="16" cy="8" r="1.4" />
+    </svg>
+  );
+}
+
+export function IkonAkun({ className = "size-5" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </svg>
+  );
+}
+
+/** Daun kecil di samping sapaan — penanda "segar", bukan hiasan acak. */
+export function IkonDaun({ className = "size-5" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <path d="M20 4c0 9-5 14-12 14H5c0-8 5-13 15-14Z" />
+      <path d="M4 21c2-6 6-9 11-11" />
+    </svg>
+  );
+}
+
+/** Navigasi dashboard admin. */
+export function IkonMenu({ className = "size-4" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <path d="M5 4h14v16H5z" />
+      <path d="M8.5 8h7M8.5 12h7M8.5 16h4" />
+    </svg>
+  );
+}
+
+export function IkonPajak({ className = "size-4" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <path d="M6 18 18 6" />
+      <circle cx="7.5" cy="7.5" r="2.5" />
+      <circle cx="16.5" cy="16.5" r="2.5" />
+    </svg>
+  );
+}
+
+export function IkonStok({ className = "size-4" }: P) {
+  return (
+    <svg {...dasar} className={className}>
+      <path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5v-7Z" />
+      <path d="M4 8.5 12 13l8-4.5M12 13v7" />
+    </svg>
+  );
+}

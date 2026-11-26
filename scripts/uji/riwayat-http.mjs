@@ -64,6 +64,29 @@ cek("omzet berupa angka", typeof r.omzet === "number", String(r.omzet));
 cek("omzet BUKAN jumlah uang diterima", r.omzet !== 679700, `omzet ${r.omzet}`);
 cek("pembayaran `settlement` terhitung non-tunai", r.nontunai === 279700, String(r.nontunai));
 cek("tunai + non-tunai = omzet", r.tunai + r.nontunai === r.omzet, `${r.tunai}+${r.nontunai} vs ${r.omzet}`);
+/*
+  ── ANGKA INI MENGUKUR KEADAAN, BUKAN HANYA KODE ──────────────────────
+
+  `belum_bayar === 1` benar pada database yang baru di-seed. Tetapi uji
+  lain yang berjalan lebih dulu bisa meninggalkan pesanan "menunggu bayar",
+  dan angka itu naik tanpa satu pun baris kode berubah. Saat itu terjadi,
+  pesan "gagal: belum dibayar 2" tidak memberi tahu APA pun tentang
+  penyebabnya.
+
+  Jadi ketika angkanya bukan 1, uji MENCETAK isi yang ikut terhitung.
+  Kalau pesanan itu milik uji lain, penyebabnya langsung terlihat; kalau
+  tidak ada pesanan tak terduga, berarti hitungannya sendiri yang salah.
+*/
+if (r.belum_bayar !== 1) {
+  const semua = await (await ambil("/api/order/riwayat?batas=200")).json();
+  const menunggu = (semua.riwayat ?? []).filter(
+    (x) => x.status_bayar === "menunggu" && x.status !== "ditolak" && x.status !== "dibatalkan",
+  );
+  console.log(
+    "        ikut terhitung: " +
+      (menunggu.map((x) => `${x.nomor}(${x.status})`).join(", ") || "—"),
+  );
+}
 cek("belum dibayar TIDAK menghitung pesanan ditolak", r.belum_bayar === 1, String(r.belum_bayar));
 
 /*

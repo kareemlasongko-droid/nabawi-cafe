@@ -360,12 +360,41 @@ export async function hitungTagihanPesanan(
   pesananId: number,
   tagihanId: number
 ): Promise<Hasil<Tagihan>> {
+  /*
+    ── PESANAN YANG DIBATALKAN/DITOLAK TIDAK MENAGIH APA PUN ──────────
+
+    Ini bug yang tertangkap uji `bug-audit`, bukan sekadar kerapian.
+
+    `statusPesanan()` MEMANG memanggil fungsi ini setelah menolak atau
+    membatalkan pesanan — tujuannya supaya total di meja kasir ikut turun.
+    Tetapi fungsi ini menjumlahkan SEMUA baris `item_pesanan` milik pesanan
+    itu, tanpa melihat statusnya. Baris item tidak dihapus saat pesanan
+    batal, jadi hasilnya: tagihan tetap Rp91.000 lengkap dengan biaya
+    layanan dan pajak, padahal pesanannya sudah batal dan struknya kosong.
+
+    Yang membuatnya berbahaya: kasir melihat angka, bukan riwayat. Tamu
+    yang pesanannya dibatalkan bisa ditagih makanan yang tidak pernah
+    dibuat.
+
+    Jadi statusnya dibaca lebih dulu. Batal/tolak = tagihan nol, tanpa
+    biaya layanan dan pajak (lihat `kosong` di bawah).
+  */
+  const pesananRes = await db<{ status: string }[]>("pesanan", {
+    q: `select=status&id=eq.${pesananId}&limit=1`,
+  });
+  if (!pesananRes.ok) return { ok: false, pesan: pesananRes.pesan };
+
+  const statusPesananIni = pesananRes.data[0]?.status ?? "";
+  const batal = statusPesananIni === "dibatalkan" || statusPesananIni === "ditolak";
+
   const itemRes = await db<{ jumlah: number; harga_satuan: number }[]>("item_pesanan", {
     q: `select=jumlah,harga_satuan&pesanan_id=eq.${pesananId}`,
   });
   if (!itemRes.ok) return { ok: false, pesan: itemRes.pesan };
 
-  const subtotal = itemRes.data.reduce((n, i) => n + i.jumlah * i.harga_satuan, 0);
+  const subtotal = batal
+    ? 0
+    : itemRes.data.reduce((n, i) => n + i.jumlah * i.harga_satuan, 0);
 
   /*
     PESANAN TANPA ITEM TIDAK BOLEH MENGHASILKAN TAGIHAN BERISI BIAYA.
