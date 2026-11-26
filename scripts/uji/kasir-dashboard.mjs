@@ -368,8 +368,26 @@ async function main() {
   );
   cek(
     "tombol lipat hanya ikon — tanpa label teks yang terlihat",
-    kepalaSidebar.includes("md:grid") && /size-9 shrink-0 place-items-center/.test(kepalaSidebar),
+    kepalaSidebar.includes("relative shrink-0 text-cream-50/") &&
+      kepalaSidebar.includes("Sembunyikan sidebar"),
     "kata 'Sembunyikan' mendorong logo dan nama keluar dari rel 72px",
+  );
+  /*
+    Saat sidebar DISEMBUNYIKAN, tombolnya menggantikan logo: di rel 72px
+    logo 32px + tombol 36px tidak bisa berdampingan. Tombol itu harus
+    terlihat seperti tombol (latar + cincin), bukan logo mati — kalau
+    tidak, satu-satunya isyarat "klik untuk membuka" hilang.
+  */
+  cek(
+    "tombol lipat berbentuk kotak berlogo saat sidebar disembunyikan",
+    /*
+      Diperiksa dari BUNDEL, bukan HTML: markup server selalu merender
+      keadaan awal (sidebar terbuka), jadi kelas dan teks untuk keadaan
+      tertutup tidak pernah ada di HTML yang dikirim.
+    */
+    bundelKasir.includes("Tampilkan sidebar") &&
+      bundelKasir.includes("bg-cream-50/10 ring-1 ring-inset ring-cream-50/15"),
+    "di rel 72px, tombol itulah satu-satunya isyarat untuk membuka",
   );
 
   /*
@@ -464,6 +482,58 @@ async function main() {
     "kepala layar memakai lebar penuh, sejajar sidebar dan area kerja",
     !headerHtml.includes("max-w-[80rem]") && !headerHtml.includes("mx-auto"),
     "kepala yang lebih sempit dari isinya terbaca sebagai halaman lain",
+  );
+
+  /*
+    ── GRID MEJA 5 KOLOM, TAPI BERTAHAP ───────────────────────────────
+    Pemilik meminta 5 kolom. Yang diuji BUKAN "ada 5 kolom" saja —
+    `grid-cols-5` untuk semua lebar akan memotong "Rp147.600" di ponsel
+    360px. Yang benar: bertambah 2 → 3 → 4 → 5.
+  */
+  cek(
+    "daftar meja memakai 5 kolom di layar lebar",
+    bundelKasir.includes("lg:grid-cols-4 2xl:grid-cols-5"),
+    "20 meja jadi 4 baris — denah terlihat tanpa menggulir",
+  );
+  cek(
+    "kolom meja bertambah bertahap, bukan 5 sejak ponsel",
+    bundelKasir.includes("grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"),
+    "nominal tagihan tidak boleh terpotong di 360px",
+  );
+
+  /*
+    ── HALAMAN BERTAHAN SAAT MUAT ULANG ───────────────────────────────
+    Kasir yang membaca Riwayat lalu menekan Ctrl+R dulu dilempar ke
+    Menunggu konfirmasi. Panel disimpan di URL.
+  */
+  cek(
+    "panel yang dibuka disimpan di URL",
+    bundelKasir.includes("replaceState") && bundelKasir.includes("layar"),
+    "muat ulang dan tombol Back harus mempertahankan panel",
+  );
+  cek(
+    "panel dibaca kembali dari URL saat halaman dimuat",
+    bundelKasir.includes("popstate") && bundelKasir.includes("location.search"),
+    "tanpa ini URL berubah tapi halaman tetap mulai dari Antrean",
+  );
+
+  /*
+    ── RIWAYAT: FILTER TANGGAL + YANG TERBARU DI ATAS ─────────────────
+  */
+  cek(
+    "riwayat punya filter tanggal Dari/Sampai",
+    bundelKasir.includes("Dari tanggal") && bundelKasir.includes("Semua tanggal"),
+    "mencari transaksi hari tertentu tanpa menggulir ratusan baris",
+  );
+  cek(
+    "filter tanggal memakai zona WIB, bukan zona perangkat",
+    bundelKasir.includes("Asia/Jakarta"),
+    "transaksi 00.30 WIB akan jatuh ke tanggal sebelumnya bila memakai UTC",
+  );
+  cek(
+    "riwayat diurutkan ulang: pesanan terbaru di atas",
+    /sort\(.*dibuat_at/.test(bundelKasir) || bundelKasir.includes("dibuat_at"),
+    "urutan tidak boleh bergantung pada urutan dari server saja",
   );
 
   cek(
