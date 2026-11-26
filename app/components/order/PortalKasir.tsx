@@ -55,6 +55,7 @@ import { BukaInvoice } from "./LembarInvoice";
 import { KartuRingkasan } from "./KartuRingkasan";
 import { DaftarRiwayat } from "./DaftarRiwayat";
 import type { BarisRiwayat, RingkasanPenjualan } from "@/app/lib/order/riwayat";
+import { DiagramPenjualan } from "./DiagramPenjualan";
 
 type ItemPesanan = {
   id: number;
@@ -722,15 +723,15 @@ export function PortalKasir() {
             <span className="hidden min-w-0 flex-1 truncate text-left md:inline">{oleh}</span>
             <span className="sr-only">— ubah nama kasir</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setSuara((v) => !v)}
-            aria-pressed={suara}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-[0.5rem] text-[0.8125rem] font-bold text-cream-50/70 transition hover:bg-cream-50/10 hover:text-cream-50 md:justify-start md:px-3"
-          >
-            {suara ? <IkonSuara className="size-4 shrink-0" /> : <IkonMatikanSuara className="size-4 shrink-0" />}
-            <span className="hidden md:inline">{suara ? "Bunyi aktif" : "Bunyi mati"}</span>
-          </button>
+          {/*
+            Sakelar bunyi DIHAPUS dari sini.
+
+            Ia dulu ada di dua tempat sekaligus — kaki sidebar dan kepala
+            layar. Dua tombol untuk satu keadaan bukan hanya mubazir: kasir
+            yang mematikan bunyi dari sidebar lalu melihat tombol kepala
+            masih menyala akan mengira bunyinya masih hidup, lalu
+            melewatkan pesanan masuk. Satu keadaan, satu tombol, di kepala.
+          */}
           </>
         }
       />
@@ -1386,21 +1387,23 @@ export function PortalKasir() {
             {(data?.meja ?? []).map((m) => {
               const aktif = mejaPilih === m.nomor;
               /*
-                ── TIGA KEADAAN, TIGA RASA YANG BERBEDA ────────────────
+                ── DUA KEADAAN, BUKAN TIGA ─────────────────────────────
 
-                Sebelumnya hanya dua warna: "ada isi" (hijau) dan "kosong"
-                (putih). Padahal ada tiga keadaan yang menuntut tindakan
-                berbeda: tamu masih makan, tamu siap membayar, dan meja
-                kosong.
+                "Perlu ditagih" DIHAPUS. Itu keadaan yang tidak pernah
+                benar-benar ada: `meja.status` hanya pernah bernilai
+                "kosong" atau "ada_pesanan" — tidak ada yang menulis
+                "menunggu_bayar", karena fitur "minta bill" sudah dibuang.
 
-                Legenda menjanjikan oranye untuk "perlu ditagih", tetapi
-                kartunya memakai hijau yang sama dengan "terisi" — legenda
-                yang berbohong lebih buruk daripada tidak ada legenda.
-                Sekarang oranye itu benar-benar dipakai, dengan cincin
-                tebal supaya terlihat dari jauh tanpa membaca satu huruf.
+                Akibatnya oranye "perlu ditagih" menyala untuk SETIAP meja
+                yang punya tagihan terbuka, termasuk tamu yang baru mulai
+                makan. Kasir membacanya sebagai "tamu sudah minta bayar" —
+                label yang menjanjikan lebih dari yang diketahui sistem.
+
+                Yang benar-benar diketahui sistem: ada tagihan atau tidak.
+                Itu ditampilkan sebagai ANGKA di kartu, bukan sebagai warna
+                yang menyamar jadi status.
               */
               const adaIsi = m.status !== "kosong";
-              const perluDitagih = Boolean(m.tagihan) && m.status !== "kosong";
               return (
                 <li key={m.id}>
                   <button
@@ -1410,59 +1413,63 @@ export function PortalKasir() {
                       "relative flex h-[4.25rem] w-full flex-col items-center justify-center rounded-[0.625rem] border-2 transition",
                       aktif
                         ? "border-forest-900 bg-forest-900 text-cream-50 shadow-[0_10px_24px_-14px_rgba(20,35,26,0.8)]"
-                        : perluDitagih
-                          ? "border-sela-500 bg-sela-50 text-sela-800"
-                          : adaIsi
-                            ? "border-transparent bg-daun-100 text-tinta-900"
-                            : "border-transparent bg-bersih-0 text-tinta-500 shadow-[0_1px_2px_rgba(22,19,15,0.05)]",
+                        : adaIsi
+                          ? "border-transparent bg-daun-100 text-tinta-900"
+                          : "border-transparent bg-bersih-0 text-tinta-500 shadow-[0_1px_2px_rgba(22,19,15,0.05)]",
                     ].join(" ")}
                   >
                     <span className="text-[1.375rem] font-extrabold leading-none">{m.nomor}</span>
+                    {/*
+                      ── TOTAL DI ATAS LABEL ────────────────────────────
+
+                      Pemilik meminta nilai total muncul sebelum status.
+                      Urutannya juga yang benar untuk dibaca: angka meja
+                      (1.375rem) → nominal tagihan → keadaan meja. Kasir
+                      mencari meja untuk DITAGIH, jadi nominalnya harus
+                      lebih dekat ke nomor daripada ke label.
+
+                      Saat kosong tidak ada nominal, dan baris itu tidak
+                      boleh bolong: tinggi kartu dijaga oleh `min-h` pada
+                      pembungkusnya, bukan oleh teks pengganti seperti "—"
+                      yang menambah satu hal lagi untuk dibaca.
+                    */}
+                    {m.tagihan && m.status !== "kosong" ? (
+                      <span
+                        /*
+                          `data-meja-total` sengaja dipakai sebagai penanda
+                          uji, bukan sebagai gaya. Urutan "nominal sebelum
+                          label" tidak bisa diperiksa dari bundel yang sudah
+                          diminifikasi: ekspresi seperti
+                          `rupiah(m.tagihan.total)` berubah jadi `t(e.total)`,
+                          dan pencarian teksnya selalu gagal. Penanda data
+                          bertahan apa adanya setelah minify.
+                        */
+                        data-meja-total
+                        className={[
+                          "mt-1 text-[0.75rem] font-extrabold leading-none tabular-nums",
+                          aktif ? "text-white/80" : "text-forest-800",
+                        ].join(" ")}
+                      >
+                        {rupiah(m.tagihan.total)}
+                      </span>
+                    ) : (
+                      <span className="mt-1 h-3" aria-hidden="true" />
+                    )}
                     <span
+                      data-meja-status
                       className={[
                         "mt-1 text-[0.6875rem] font-bold uppercase tracking-wide",
                         aktif ? "text-cream-50/75" : "",
                       ].join(" ")}
                     >
-                      {/*
-                        "minta bill" DIHAPUS dari sini: status itu hanya
-                        pernah diset oleh fitur bill, dan fitur itu sudah
-                        tidak ada. Membiarkannya berarti memelihara label
-                        untuk keadaan yang tidak bisa lagi terjadi — dan
-                        baris mati seperti ini yang nanti membuat orang
-                        mengira fiturnya masih ada.
-
-                        Baris data lama yang telanjur berstatus "minta_bill"
-                        (ada 2 di database) tetap tampil masuk akal: ia jatuh
-                        ke "terisi", yang memang benar — mejanya ada isinya.
-                      */}
-                      {m.status === "kosong"
-                        ? "kosong"
-                        : perluDitagih
-                          ? "tagih"
-                          : "terisi"}
+                      {m.status === "kosong" ? "kosong" : "terisi"}
                     </span>
                     {/*
-                      Total tagihan diletakkan DI DALAM kartu, bukan sebagai
-                      badge yang menonjol keluar. Badge di luar kartu terpotong
-                      oleh tepi grid (terlihat saat uji di 1280 px) sehingga
-                      angkanya tidak terbaca — dan angka ini yang menentukan
-                      meja mana yang perlu ditagih.
-
-                      Nominal ditulis PENUH, bukan "86k". Pembulatan ke ribu
-                      membuat Rp85.500 tampil sebagai 86k — kasir bisa menyebut
-                      angka yang bukan angka tagihannya.
+                      Nominal tagihan TIDAK diulang di sini. Ia sudah naik
+                      ke atas label sebagai angka utama kartu — dulu ada di
+                      sini sebagai teks kecil, dan setelah dipindah akan
+                      tampil dua kali dalam satu kotak 4rem.
                     */}
-                    {m.tagihan && m.status !== "kosong" && (
-                      <span
-                        className={[
-                          "mt-1 rounded px-0.5 text-[0.6875rem] font-bold leading-tight tabular-nums",
-                          aktif ? "text-white/70" : "text-tinta-500",
-                        ].join(" ")}
-                      >
-                        {rupiah(m.tagihan.total)}
-                      </span>
-                    )}
                   </button>
                 </li>
               );
@@ -1489,92 +1496,29 @@ export function PortalKasir() {
               <span className="size-2.5 rounded-[0.25rem] bg-bersih-0 ring-1 ring-inset ring-bersih-300" aria-hidden="true" />
               Kosong
             </li>
-            <li className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-[0.25rem] bg-sela-100 ring-1 ring-inset ring-sela-500/40" aria-hidden="true" />
-              Perlu ditagih
-            </li>
+            {/*
+              "Perlu ditagih" DIHAPUS dari legenda — keadaannya tidak ada
+              (lihat catatan di kartu meja). Legenda yang menyebut warna
+              yang tidak dipakai mengajari kasir mencari sesuatu yang tidak
+              akan pernah ia temukan.
+            */}
           </ul>
 
           {/*
-            ── Ketersediaan menu (K-08) ──
-            Diletakkan di kolom kanan, di bawah denah, dan bisa dilipat.
-            Kasir menandai menu habis beberapa kali per jam sibuk, tetapi
-            hanya butuh sekejap — panel yang selalu terbuka akan mendorong
-            denah meja ke bawah, padahal denah yang dipakai terus-menerus.
-          */}
-          <div className="mt-3 rounded-[0.875rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0">
-            <button
-              type="button"
-              onClick={() => setMenuHabisBuka((b) => !b)}
-              aria-expanded={menuHabisBuka}
-              className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
-            >
-              <span className="flex-1 text-[0.8125rem] font-extrabold text-tinta-900">
-                Ketersediaan menu
-              </span>
-              <span className="text-[0.6875rem] font-semibold text-tinta-500">
-                {habis.length} habis
-              </span>
-              <span
-                className={[
-                  "text-tinta-500 transition-transform",
-                  menuHabisBuka ? "rotate-180" : "",
-                ].join(" ")}
-                aria-hidden="true"
-              >
-                ▾
-              </span>
-            </button>
+            ── KETERSEDIAAN MENU DIHAPUS DARI SINI ──────────────────────
 
-            {/* Dua kolom: dengan satu kolom bergulir, daftar terpotong di
-                tengah baris dan kasir harus menggulir untuk mencari menu
-                yang sedang ia cari. 14 menu muat tanpa gulir. */}
-            {menuHabisBuka && (
-              <ul className="grid border-t border-bersih-200 sm:grid-cols-2">
-                {menu.length === 0 ? (
-                  <li className="px-3 py-3 text-[0.8125rem] text-tinta-500">
-                    Menu tidak terbaca dari database.
-                  </li>
-                ) : (
-                  menu.map((m) => (
-                    <li
-                      key={m.id}
-                      className="flex min-w-0 items-center gap-2 border-b border-bersih-200 px-3 py-1.5 sm:odd:border-r"
-                    >
-                      <span
-                        className={[
-                          "min-w-0 flex-1 truncate text-[0.8125rem]",
-                          m.tersedia ? "text-tinta-900" : "text-tinta-500 line-through",
-                        ].join(" ")}
-                      >
-                        {m.nama}
-                      </span>
-                      {/*
-                        Sakelar, bukan tombol "Habis"/"Tersedia" yang harus
-                        ditebak keadaannya. Label teksnya tetap ada karena
-                        warna saja tidak cukup (aksesibilitas).
-                      */}
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={!m.tersedia}
-                        onClick={() => setTersedia(m.id, !m.tersedia)}
-                        disabled={menuSibuk === m.id}
-                        className={[
-                          "flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[0.6875rem] font-bold transition disabled:opacity-50",
-                          m.tersedia
-                            ? "bg-bersih-50 text-tinta-500"
-                            : "bg-sela-700 text-white",
-                        ].join(" ")}
-                      >
-                        {m.tersedia ? "Ada" : "Habis"}
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-            )}
-          </div>
+            Panel lipat "Ketersediaan menu" dulu ada di bawah denah meja.
+            Pemilik meminta dihilangkan: halaman Meja dipakai untuk melihat
+            meja mana yang terisi dan menagih, bukan untuk mengurus stok
+            menu — dan menandai menu habis SUDAH punya panel sendiri yang
+            penuh (kartu bergambar, semua menu terlihat sekaligus) di menu
+            "Menu" di sidebar.
+
+            Menyisakan salinan kecil di sini berarti dua tempat berbeda
+            untuk satu pekerjaan, dengan yang di Meja selalu kalah lengkap
+            — kasir akan memakainya, lalu kecewa karena tidak semua menu
+            bisa ditandai dari sana.
+          */}
 
           {/* ── Detail tagihan meja terpilih ── */}
           {mejaTerpilih && (
@@ -1766,6 +1710,19 @@ export function PortalKasir() {
               galat={pesanRingkasan}
               memuat={memuatLaporan}
             />
+            {/*
+              Diagram hanya digambar bila angkanya sudah ada. Kerangka abu-
+              abu yang menyerupai diagram lebih buruk daripada tidak ada:
+              bentuknya terbaca sebagai "grafik dengan data aneh" selama
+              satu detik pertama.
+
+              `riwayat` dipakai bersama untuk sebaran per jam dan per
+              metode — satu sumber, jadi diagramnya tidak bisa bercerita
+              berbeda dari tabel di panel Riwayat.
+            */}
+            {ringkasan && (
+              <DiagramPenjualan ringkasan={ringkasan} riwayat={riwayat} />
+            )}
           </section>
         )}
 

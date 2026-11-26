@@ -109,7 +109,21 @@ export function BilahStaf({
         `flex-nowrap` disengaja: kepala yang membungkus ke baris kedua adalah
         persis hal yang diminta untuk dihindari.
       */}
-      <div className="mx-auto flex max-w-[80rem] items-center justify-between gap-3 px-3 py-2.5 sm:px-6">
+      {/*
+        ── RATA KIRI-KANAN, BUKAN DIKURUNG 80rem ────────────────────────
+
+        Dulu `mx-auto max-w-[80rem]`: di layar 1920px isi kepala berhenti
+        di 1280px dan menyisakan 320px kosong di kedua sisi, sementara
+        sidebar dan area kerja di bawahnya memakai lebar penuh. Kepala
+        yang lebih sempit dari isinya terbaca sebagai elemen dari halaman
+        lain — dan mata kasir harus bergerak ke dalam untuk membaca jam
+        atau tombol bunyi yang sejajar dengan panel di bawahnya.
+
+        Sekarang isi kepala menempel ke tepi, sejajar dengan sidebar (kiri)
+        dan tepi area kerja (kanan). `justify-between` tetap: identitas di
+        kiri, alat di kanan, jarak di antaranya yang mengatur.
+      */}
+      <div className="flex w-full items-center justify-between gap-3 px-3 py-2.5 sm:px-6">
         {/* ── KIRI: identitas kafe ── */}
         <div className="flex min-w-0 items-center">
           {tanpaLogo ? (
