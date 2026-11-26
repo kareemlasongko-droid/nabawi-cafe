@@ -71,7 +71,7 @@ export function TabMeja({ meja }: { meja: Meja[] }) {
           type="button"
           onClick={() => window.print()}
           disabled={!dasar}
-          className="h-10 rounded-[0.625rem] bg-tinta-900 px-4 text-[0.8125rem] font-extrabold text-bersih-0 disabled:opacity-40 print:hidden"
+          className="tombol-utama h-10 px-4 text-[0.8125rem] disabled:opacity-40 print:hidden"
         >
           Cetak semua QR
         </button>
@@ -82,13 +82,13 @@ export function TabMeja({ meja }: { meja: Meja[] }) {
         kartu tidak tercetak dan QR tetap terbaca — tetapi tanpa penjelasan
         ini, admin akan mengira hasil cetaknya rusak.
       */}
-      <p className="mb-4 rounded-[0.625rem] border border-bersih-200 bg-bersih-0 px-3 py-2 text-[0.6875rem] leading-snug text-tinta-500 print:hidden">
+      <p className="mb-4 rounded-[0.625rem] border border-bersih-200 bg-cream-50 px-3 py-2 text-[0.6875rem] leading-snug text-tinta-500 print:hidden">
         Menekan &ldquo;Cetak semua QR&rdquo; membuka dialog cetak. Pilih <strong>Save as PDF</strong>{" "}
         untuk menyimpan, atau cetak langsung ke kertas label. Satu meja satu kartu.
       </p>
 
       {jumlah === 0 ? (
-        <div className="rounded-[0.875rem] border border-dashed border-bersih-200 bg-bersih-100 px-4 py-10 text-center">
+        <div className="rounded-[0.875rem] border border-dashed border-bersih-300 bg-cream-100/60 px-4 py-10 text-center">
           <p className="text-[0.9375rem] font-semibold text-tinta-500">Belum ada meja.</p>
           <p className="mt-1 text-[0.8125rem] text-tinta-500">
             Tambahkan meja di database, lalu muat ulang halaman ini.
@@ -114,9 +114,9 @@ export function TabMeja({ meja }: { meja: Meja[] }) {
                   <li
                     key={m.id}
                     /* `break-inside-avoid`: kartu tidak boleh terpotong dua halaman. */
-                    className="flex flex-col items-center rounded-[0.875rem] border border-bersih-200 bg-bersih-0 px-3 py-3 text-center break-inside-avoid print:border-bersih-300"
+                    className="flex flex-col items-center rounded-[0.875rem] border border-bersih-200 bg-bersih-0 px-3 py-3 text-center shadow-[0_1px_2px_rgb(22_19_15/0.04)] break-inside-avoid print:border-bersih-300 print:shadow-none"
                   >
-                    <p className="text-[1.0625rem] font-extrabold leading-none text-tinta-900">
+                    <p className="text-[1.0625rem] font-extrabold leading-none text-forest-900">
                       Meja {m.nomor}
                     </p>
                     <p className="mt-0.5 text-[0.6875rem] text-tinta-500">{m.area}</p>

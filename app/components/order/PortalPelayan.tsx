@@ -107,8 +107,8 @@ export function PortalPelayan() {
   );
 
   return (
-    <div className="min-h-dvh bg-bersih-50 pb-4">
-      <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/92 backdrop-blur-md">
+    <div className="min-h-dvh bg-cream-50 pb-4">
+      <header className="sticky top-0 z-30 border-b border-bersih-200/80 bg-cream-50/92 backdrop-blur-md">
         {/*
           SATU BARIS: identitas kiri, satu tombol ikon kanan.
 
@@ -168,7 +168,9 @@ export function PortalPelayan() {
                   onClick={() => sudahDiantar(p.id)}
                   className={[
                     "flex w-full items-stretch gap-0 overflow-hidden rounded-[0.875rem] border bg-bersih-0 text-left transition active:scale-[0.995]",
-                    terlama ? "border-clay-700/45" : "border-bersih-200",
+                    terlama
+                      ? "border-sela-600/50 shadow-[0_8px_20px_-14px_rgb(201_80_10/0.5)]"
+                      : "border-bersih-200 shadow-[0_1px_2px_rgb(22_19_15/0.04)]",
                   ].join(" ")}
                 >
                   {/* Penanda "paling lama" di kiri, bukan di atas:
@@ -176,12 +178,12 @@ export function PortalPelayan() {
                   <span
                     className={[
                       "w-1.5 shrink-0",
-                      terlama ? "bg-clay-700" : "bg-bersih-300",
+                      terlama ? "bg-sela-600" : "bg-bersih-300",
                     ].join(" ")}
                     aria-hidden="true"
                   />
                   <span className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-[1.125rem] font-extrabold leading-none text-bersih-0">
+                    <span className="grid size-12 shrink-0 place-items-center rounded-[0.75rem] bg-forest-900 text-[1.125rem] font-extrabold leading-none text-cream-50">
                       {p.meja_nomor}
                     </span>
                     <span className="min-w-0 flex-1">
@@ -197,14 +199,14 @@ export function PortalPelayan() {
                         className={[
                           "mt-1 inline-block rounded px-1.5 py-0.5 text-[0.6875rem] font-bold tabular-nums",
                           terlama
-                            ? "bg-tanah-100 text-clay-800"
+                            ? "bg-sela-100 text-sela-800"
                             : "bg-bersih-100 text-tinta-500",
                         ].join(" ")}
                       >
                         siap {sejak(p.siap_at ?? p.created_at, sekarang)}
                       </span>
                     </span>
-                    <span className="flex shrink-0 flex-col items-center gap-1 rounded-[0.625rem] bg-tinta-900 px-2.5 py-2 text-bersih-0">
+                    <span className="flex shrink-0 flex-col items-center gap-1 rounded-[0.75rem] bg-forest-900 px-2.5 py-2 text-cream-50">
                       <IkonCentang className="size-5" />
                       <span className="text-[0.6875rem] font-extrabold uppercase leading-none">
                         Sudah

@@ -165,8 +165,8 @@ export function PortalDapur() {
        teduh dan dinyalakan sepanjang hari; latar gelap dengan teks krem
        mengurangi silau dan menjaga tiket tetap jadi fokus paling terang.
        Ini kebalikan dari portal pelanggan, dan disengaja. */
-    <div className="min-h-dvh bg-tinta-900 text-gelap-isi">
-      <header className="sticky top-0 z-30 border-b border-tinta-700/60 bg-tinta-900/95 backdrop-blur">
+    <div className="min-h-dvh bg-forest-950 text-gelap-isi">
+      <header className="sticky top-0 z-30 border-b border-cream-50/10 bg-forest-900/95 backdrop-blur">
         {/*
           DUA KELOMPOK, SATU BARIS: identitas kiri, alat kanan.
 
@@ -215,7 +215,7 @@ export function PortalDapur() {
               onClick={() => setMenuBuka((b) => !b)}
               expanded={menuBuka}
               judul="Tandai bahan habis"
-              className={habis.length > 0 ? "border-clay-700/60 bg-clay-800 text-gelap-isi" : ""}
+              className={habis.length > 0 ? "bg-sela-700 text-white hover:bg-sela-800" : ""}
               ikon={<IkonHabis className="size-4" />}
               label="Habis"
             >
@@ -246,7 +246,7 @@ export function PortalDapur() {
         apa yang sedang kosong tanpa perlu membuka panel.
       */}
       {menuBuka && (
-        <div className="border-b border-tinta-700/60 bg-tinta-800 px-3 py-2 sm:px-4">
+        <div className="border-b border-cream-50/10 bg-forest-800 px-3 py-2 sm:px-4">
           <div className="mb-1.5 flex items-baseline justify-between gap-3">
             <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-gelap-samar">
               Ketuk untuk menandai bahan habis
@@ -271,8 +271,8 @@ export function PortalDapur() {
                   className={[
                     "h-11 rounded-[0.625rem] border px-3 text-[0.9375rem] font-bold transition disabled:opacity-50",
                     m.tersedia
-                      ? "border-tinta-700 text-gelap-redup active:bg-gelap-isi/10"
-                      : "border-clay-700 bg-clay-800 text-bersih-0 line-through",
+                      ? "border-cream-50/15 text-gelap-redup hover:bg-cream-50/10 active:bg-cream-50/15"
+                      : "border-sela-600 bg-sela-700 text-white line-through",
                   ].join(" ")}
                 >
                   {m.nama}
@@ -290,11 +290,11 @@ export function PortalDapur() {
             <section
               key={kol.kunci}
               aria-labelledby={`kol-${kol.kunci}`}
-              className="min-w-0 rounded-xl border border-tinta-700/60 bg-tinta-800"
+              className="min-w-0 overflow-hidden rounded-[0.875rem] border border-cream-50/10 bg-forest-800"
             >
               <h2
                 id={`kol-${kol.kunci}`}
-                className="flex items-center justify-between gap-2 border-b border-tinta-700/60 px-3 py-2"
+                className="flex items-center justify-between gap-2 border-b border-cream-50/10 bg-forest-900/60 px-3 py-2"
               >
                 <span className="text-[0.9375rem] font-extrabold uppercase tracking-[0.14em] text-gelap-redup">
                   {kol.judul}
@@ -313,12 +313,20 @@ export function PortalDapur() {
 
                 {isi.map((t) => {
                   const menit = menitTunggu(t.created_at, sekarang);
+                  /*
+                    Tiga tingkat urgensi, tiga tingkat permukaan — bukan tiga
+                    warna acak. Tiket baru memakai hijau hutan terang; yang
+                    mulai menua diberi garis oranye kafe; yang terlambat
+                    menjadi bidang oranye penuh. Warnanya tetap satu keluarga
+                    dengan sisa aplikasi, jadi "merah" di dapur tidak terbaca
+                    sebagai galat sistem.
+                  */
                   const warna =
                     menit >= ambang.merah
-                      ? "border-clay-700 bg-clay-800"
+                      ? "border-sela-600 bg-sela-800"
                       : menit >= ambang.kuning
-                        ? "border-aksi-terang/70 bg-tinta-800"
-                        : "border-tinta-700 bg-tinta-800";
+                        ? "border-sela-500/80 bg-forest-700"
+                        : "border-cream-50/10 bg-forest-800";
 
                   return (
                     <article
@@ -328,7 +336,7 @@ export function PortalDapur() {
                       <div className="flex items-center gap-2 px-3 pt-2.5">
                         {/* Nomor meja paling besar di tiket: itu satu-satunya
                             informasi yang dicari saat mengantar. */}
-                        <span className="grid size-11 shrink-0 place-items-center rounded-[0.625rem] bg-gelap-isi text-[1.125rem] font-extrabold leading-none text-tinta-900">
+                        <span className="grid size-11 shrink-0 place-items-center rounded-[0.625rem] bg-cream-50 text-[1.125rem] font-extrabold leading-none text-forest-900">
                           {t.meja_nomor}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -352,7 +360,7 @@ export function PortalDapur() {
                           className={[
                             "shrink-0 rounded-[0.5rem] px-2 py-1 text-[0.8125rem] font-extrabold tabular-nums",
                             menit >= ambang.merah
-                              ? "bg-gelap-isi text-clay-800"
+                              ? "bg-gelap-isi text-sela-800"
                               : menit >= ambang.kuning
                                 ? "bg-aksi-terang text-tinta-900"
                                 : "bg-gelap-isi/10 text-gelap-isi",
@@ -389,7 +397,7 @@ export function PortalDapur() {
                               /* Catatan: tebal, latar terang, tidak dipotong.
                                  Dipotong berarti dapur bisa melewatkan
                                  "tanpa sambal" — kesalahan yang paling mahal. */
-                              <p className="mt-1 ml-8 rounded-[0.5rem] bg-bersih-0 px-2 py-1 text-[0.9375rem] font-extrabold leading-tight text-clay-800">
+                              <p className="mt-1 ml-8 rounded-[0.5rem] bg-bersih-0 px-2 py-1 text-[0.9375rem] font-extrabold leading-tight text-sela-800">
                                 {i.catatan}
                               </p>
                             )}
@@ -400,7 +408,7 @@ export function PortalDapur() {
                       <button
                         type="button"
                         onClick={() => maju(t.id, kol.aksi)}
-                        className="mt-2.5 flex w-full items-center justify-center gap-2 border-t border-tinta-700 bg-gelap-isi/8 py-3.5 text-[1.0625rem] font-extrabold uppercase tracking-wide text-gelap-isi transition active:bg-tinta-700/60"
+                        className="mt-2.5 flex w-full items-center justify-center gap-2 border-t border-cream-50/10 bg-cream-50/10 py-3.5 text-[1.0625rem] font-extrabold uppercase tracking-wide text-cream-50 transition hover:bg-cream-50/15 active:bg-cream-50/20"
                       >
                         {kol.kunci === "siap" ? <IkonSegar className="size-5" /> : null}
                         {kol.label}

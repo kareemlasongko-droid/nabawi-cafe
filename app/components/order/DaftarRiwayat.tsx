@@ -42,9 +42,14 @@ const LABEL_STATUS: Record<string, string> = {
   dibatalkan: "Dibatalkan",
 };
 
+/*
+  Dua keadaan uang, dua warna — bukan tiga. Lunas memakai hijau daun (uang
+  sudah masuk), menunggu memakai oranye kafe (uang belum masuk). Oranye di
+  sini SENGAJA bukan merah: pesanan yang belum dibayar bukan kegagalan.
+*/
 const WARNA_BAYAR: Record<string, string> = {
   lunas: "bg-daun-100 text-forest-700",
-  menunggu: "bg-tanah-100 text-clay-800",
+  menunggu: "bg-sela-100 text-sela-800",
 };
 
 export function DaftarRiwayat({
@@ -79,15 +84,15 @@ export function DaftarRiwayat({
 
   if (galat) {
     return (
-      <div className="rounded-[0.625rem] border border-clay-700/25 bg-tanah-100 px-3 py-2">
-        <p className="text-[0.8125rem] leading-snug text-clay-800">{galat}</p>
+      <div className="rounded-[0.625rem] border border-sela-200 bg-sela-50 px-3 py-2">
+        <p className="text-[0.8125rem] leading-snug text-sela-800">{galat}</p>
       </div>
     );
   }
 
   if (riwayat.length === 0) {
     return (
-      <div className="rounded-[0.875rem] border border-dashed border-bersih-200 bg-bersih-100 px-4 py-8 text-center">
+      <div className="rounded-[0.875rem] border border-dashed border-bersih-300 bg-cream-100/50 px-4 py-8 text-center">
         <p className="text-[0.9375rem] font-semibold text-tinta-500">Belum ada pesanan.</p>
         <p className="mt-1 text-[0.8125rem] text-tinta-500">
           Pesanan yang masuk akan muncul di sini, termasuk yang belum dibayar.
@@ -119,14 +124,14 @@ export function DaftarRiwayat({
       </label>
 
       {tersaring.length === 0 ? (
-        <div className="rounded-[0.625rem] border border-dashed border-bersih-200 bg-bersih-100 px-3 py-6 text-center">
+        <div className="rounded-[0.625rem] border border-dashed border-bersih-300 bg-cream-100/50 px-3 py-6 text-center">
           <p className="text-[0.8125rem] text-tinta-500">
             Tidak ada pesanan yang cocok dengan &ldquo;{cari}&rdquo;.
           </p>
         </div>
       ) : (
         <>
-          <ul className="divide-y divide-bersih-200 overflow-hidden rounded-[0.875rem] border border-bersih-200 bg-bersih-0">
+          <ul className="divide-y divide-bersih-200 overflow-hidden rounded-[0.875rem] border border-bersih-200 bg-bersih-0 shadow-[0_1px_2px_rgb(22_19_15/0.04),0_10px_24px_-18px_rgb(22_19_15/0.25)]">
             {tampil.map((r) => (
               <li key={r.id} className="flex items-center gap-2 px-3 py-2.5">
                 <div className="min-w-0 flex-1">
@@ -139,7 +144,7 @@ export function DaftarRiwayat({
                       Pesanan tanpa tagihan (data lama) diberi tanda pisah,
                       bukan "Rp0". Rp0 terbaca seperti pesanan gratis.
                     */}
-                    <span className="shrink-0 text-[0.8125rem] font-bold tabular-nums text-tinta-900">
+                    <span className="shrink-0 text-[0.8125rem] font-bold tabular-nums text-forest-900">
                       {r.total > 0 ? rupiah(r.total) : "—"}
                     </span>
                   </div>
@@ -167,7 +172,7 @@ export function DaftarRiwayat({
                 <button
                   type="button"
                   onClick={() => setInvoiceId(r.id)}
-                  className="h-9 shrink-0 rounded-[0.5rem] border border-forest-700/40 px-2.5 text-[0.75rem] font-bold text-forest-700"
+                  className="tombol-tenang h-9 shrink-0 px-2.5 text-[0.75rem]"
                 >
                   Invoice
                 </button>
@@ -179,7 +184,7 @@ export function DaftarRiwayat({
             <button
               type="button"
               onClick={() => setSemua(true)}
-              className="mt-2 h-10 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-0 text-[0.8125rem] font-bold text-tinta-900"
+              className="tombol-tenang mt-2 h-10 w-full text-[0.8125rem]"
             >
               Lihat semua ({tersaring.length})
             </button>

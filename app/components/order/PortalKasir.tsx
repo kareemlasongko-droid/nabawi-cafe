@@ -392,7 +392,7 @@ export function PortalKasir() {
   const habis = useMemo(() => menu.filter((m) => !m.tersedia), [menu]);
 
   return (
-    <div className="min-h-dvh bg-bersih-50">
+    <div className="min-h-dvh bg-cream-50">
       <BilahStaf
         judul="Kasir"
         keterangan={
@@ -420,8 +420,8 @@ export function PortalKasir() {
       />
 
       {galat && (
-        <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
-          <p className="text-[0.8125rem] font-semibold text-clay-800">{galat}</p>
+        <div className="border-b border-sela-200 bg-sela-50 px-4 py-2 sm:px-6">
+          <p className="text-[0.8125rem] font-semibold text-sela-800">{galat}</p>
         </div>
       )}
 
@@ -436,14 +436,14 @@ export function PortalKasir() {
       {menungguBayar.length > 0 && (
         <section
           aria-labelledby="menunggu-bayar"
-          className="border-b border-bersih-200 bg-bersih-100 px-4 py-3 sm:px-6"
+          className="border-b border-sela-200/70 bg-sela-50 px-4 py-3 sm:px-6"
         >
           <h2
             id="menunggu-bayar"
-            className="mb-2 flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-clay-800"
+            className="mb-2 flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-sela-800"
           >
             Belum dibayar
-            <span className="rounded-full bg-clay-700 px-2 py-0.5 text-[0.6875rem] font-bold text-bersih-0">
+            <span className="rounded-full bg-sela-700 px-2 py-0.5 text-[0.6875rem] font-bold text-white">
               {menungguBayar.length}
             </span>
           </h2>
@@ -452,7 +452,7 @@ export function PortalKasir() {
             {menungguBayar.map((p) => (
               <li
                 key={p.id}
-                className="min-w-[15rem] shrink-0 rounded-[0.625rem] border border-clay-700/30 bg-bersih-0 p-2.5"
+                className="min-w-[15rem] shrink-0 rounded-[0.75rem] border border-bersih-200 bg-bersih-0 p-2.5 shadow-[0_1px_2px_rgb(22_19_15/0.04)]"
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="text-[0.875rem] font-extrabold text-tinta-900">
@@ -475,7 +475,7 @@ export function PortalKasir() {
                   className={[
                     "mt-1 inline-block rounded-[0.25rem] px-1.5 py-0.5 text-[0.625rem] font-extrabold uppercase tracking-wider",
                     p.metode_bayar === "online"
-                      ? "bg-tanah-100 text-clay-800"
+                      ? "bg-sela-50 text-sela-800"
                       : "bg-daun-100 text-forest-700",
                   ].join(" ")}
                 >
@@ -514,7 +514,7 @@ export function PortalKasir() {
                     type="button"
                     onClick={() => bayarTunai(p)}
                     disabled={memproses === p.id}
-                    className="h-9 flex-1 rounded-[0.5rem] bg-forest-700 text-[0.75rem] font-extrabold text-bersih-0 disabled:opacity-50"
+                    className="tombol-utama h-9 flex-1 text-[0.75rem]"
                   >
                     {memproses === p.id ? "Menyimpan…" : "Uang pas"}
                   </button>
@@ -522,7 +522,7 @@ export function PortalKasir() {
                     type="button"
                     onClick={() => bukaPelunasan(p.meja_id)}
                     disabled={memproses === p.id}
-                    className="h-9 flex-1 rounded-[0.5rem] border border-forest-700/40 text-[0.75rem] font-bold text-forest-700 disabled:opacity-50"
+                    className="tombol-tenang h-9 flex-1 text-[0.75rem]"
                   >
                     Uang lebih
                   </button>
@@ -555,7 +555,7 @@ export function PortalKasir() {
           >
             Menunggu konfirmasi
             {antrean.length > 0 && (
-              <span className="rounded-full bg-clay-700 px-2 py-0.5 text-[0.6875rem] font-bold text-bersih-0">
+              <span className="rounded-full bg-sela-700 px-2 py-0.5 text-[0.6875rem] font-bold text-white">
                 {antrean.length}
               </span>
             )}
@@ -575,10 +575,10 @@ export function PortalKasir() {
               {antrean.map((p) => (
                 <li
                   key={p.id}
-                  className="overflow-hidden rounded-[0.875rem] border-2 border-clay-700/40 bg-bersih-0 shadow-[0_2px_10px_rgba(45,38,75,0.06)]"
+                  className="overflow-hidden rounded-[0.875rem] border border-bersih-200 bg-bersih-0 shadow-[0_2px_10px_rgb(22_19_15/0.05)] ring-1 ring-sela-700/20"
                 >
-                  <div className="flex items-start gap-3 border-b border-bersih-200 bg-tanah-100 px-3.5 py-2.5">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-[0.625rem] bg-tinta-900 text-[1.0625rem] font-extrabold text-bersih-0">
+                  <div className="flex items-start gap-3 border-b border-bersih-200 bg-sela-50 px-3.5 py-2.5">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-[0.625rem] bg-forest-900 text-[1.0625rem] font-extrabold text-cream-50">
                       {p.meja_nomor}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -612,7 +612,7 @@ export function PortalKasir() {
                             </p>
                           )}
                           {i.catatan && (
-                            <p className="mt-0.5 text-[0.6875rem] font-bold text-clay-700">
+                            <p className="mt-0.5 text-[0.6875rem] font-bold text-sela-700">
                               {i.catatan}
                             </p>
                           )}
@@ -629,7 +629,7 @@ export function PortalKasir() {
                       type="button"
                       disabled={sedang}
                       onClick={() => ubah(p.id, "diterima")}
-                      className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 transition active:scale-[0.99] disabled:opacity-50"
+                      className="tombol-utama h-12 flex-1 text-[0.9375rem]"
                     >
                       <IkonCentang className="size-4" />
                       Terima
@@ -638,7 +638,7 @@ export function PortalKasir() {
                       type="button"
                       disabled={sedang}
                       onClick={() => setAlasanTolak({ id: p.id, buka: true })}
-                      className="flex h-12 items-center justify-center gap-2 rounded-[0.625rem] border border-clay-700/40 px-4 text-[0.9375rem] font-bold text-clay-700 transition active:scale-[0.99]"
+                      className="flex h-12 items-center justify-center gap-2 rounded-[0.625rem] border border-sela-200 px-4 text-[0.9375rem] font-bold text-sela-700 transition active:scale-[0.99]"
                     >
                       <IkonSilang className="size-4" />
                       Tolak
@@ -649,8 +649,8 @@ export function PortalKasir() {
                       langsung, bukan modal — supaya tidak menutupi antrean
                       berikutnya yang mungkin perlu dilihat bersamaan. */}
                   {alasanTolak.buka && alasanTolak.id === p.id && (
-                    <div className="border-t border-clay-700/25 bg-tanah-100 p-2.5">
-                      <p className="mb-1.5 text-[0.6875rem] font-bold uppercase tracking-wider text-clay-800">
+                    <div className="border-t border-sela-200 bg-sela-50 p-2.5">
+                      <p className="mb-1.5 text-[0.6875rem] font-bold uppercase tracking-wider text-sela-800">
                         Alasan penolakan
                       </p>
                       <div className="flex flex-wrap gap-1.5">
@@ -662,7 +662,7 @@ export function PortalKasir() {
                               ubah(p.id, "ditolak", a);
                               setAlasanTolak({ id: 0, buka: false });
                             }}
-                            className="h-10 rounded-[0.625rem] bg-bersih-0 px-3 text-[0.8125rem] font-bold text-clay-800 ring-1 ring-clay-700/30"
+                            className="h-10 rounded-[0.625rem] bg-bersih-0 px-3 text-[0.8125rem] font-bold text-sela-800 ring-1 ring-sela-200"
                           >
                             {a}
                           </button>
@@ -732,7 +732,7 @@ export function PortalKasir() {
                     className={[
                       "relative flex h-[4.25rem] w-full flex-col items-center justify-center rounded-[0.625rem] border-2 transition",
                       aktif
-                        ? "border-tinta-900 bg-tinta-900 text-bersih-0 shadow-[0_8px_20px_-12px_rgba(22,19,15,0.7)]"
+                        ? "border-forest-900 bg-forest-900 text-cream-50 shadow-[0_10px_24px_-14px_rgba(20,35,26,0.8)]"
                         : adaIsi
                           ? "border-transparent bg-daun-100 text-tinta-900"
                           : "border-transparent bg-bersih-0 text-tinta-500 shadow-[0_1px_2px_rgba(22,19,15,0.05)]",
@@ -742,7 +742,7 @@ export function PortalKasir() {
                     <span
                       className={[
                         "mt-1 text-[0.6875rem] font-bold uppercase tracking-wide",
-                        aktif ? "text-bersih-0/70" : "",
+                        aktif ? "text-cream-50/75" : "",
                       ].join(" ")}
                     >
                       {/*
@@ -778,7 +778,7 @@ export function PortalKasir() {
                       <span
                         className={[
                           "mt-1 rounded px-0.5 text-[0.6875rem] font-bold leading-tight tabular-nums",
-                          aktif ? "text-bersih-0/70" : "text-tinta-500",
+                          aktif ? "text-white/70" : "text-tinta-500",
                         ].join(" ")}
                       >
                         {rupiah(m.tagihan.total)}
@@ -859,7 +859,7 @@ export function PortalKasir() {
                           "flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[0.6875rem] font-bold transition disabled:opacity-50",
                           m.tersedia
                             ? "bg-bersih-50 text-tinta-500"
-                            : "bg-clay-700 text-bersih-0",
+                            : "bg-sela-700 text-white",
                         ].join(" ")}
                       >
                         {m.tersedia ? "Ada" : "Habis"}
@@ -990,8 +990,8 @@ export function PortalKasir() {
         sesudah gagal.
       */}
       {data?.demo && (
-        <div className="border-t border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
-          <p className="text-[0.6875rem] leading-snug text-clay-800">
+        <div className="border-t border-sela-200 bg-sela-50 px-4 py-2 sm:px-6">
+          <p className="text-[0.6875rem] leading-snug text-sela-800">
             <strong>Mode demo.</strong> Pelunasan dan penandaan siap belum bisa
             dipakai: kunci server database belum dipasang di Cloudflare. Menu dan
             meja tetap terbaca dari database.
@@ -1005,7 +1005,7 @@ export function PortalKasir() {
 function StatusKecil({ status }: { status: string }) {
   const peta: Record<string, { t: string; c: string }> = {
     diterima: { t: "Diterima", c: "bg-daun-100 text-forest-700" },
-    diproses: { t: "Diproses", c: "bg-tanah-100 text-clay-800" },
+    diproses: { t: "Diproses", c: "bg-sela-50 text-sela-800" },
     siap: { t: "Siap", c: "bg-daun-100 text-forest-700" },
   };
   const s = peta[status] ?? { t: status, c: "bg-bersih-100 text-tinta-700" };
@@ -1037,7 +1037,7 @@ function RincianTagihan({ tagihan, onBayar }: { tagihan: Tagihan; onBayar: () =>
         type="button"
         onClick={onBayar}
         disabled={tagihan.total <= 0}
-        className="mt-2.5 h-12 w-full rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 disabled:opacity-40"
+        className="tombol-utama mt-2.5 h-12 w-full text-[0.9375rem]"
       >
         Terima pembayaran
       </button>
@@ -1160,8 +1160,8 @@ function DialogBayar({
                 className={[
                   "h-11 rounded-[0.625rem] text-[0.8125rem] font-bold transition",
                   metode === v
-                    ? "bg-tinta-900 text-bersih-0"
-                    : "border border-bersih-200 bg-bersih-100 text-tinta-700",
+                    ? "bg-forest-900 text-cream-50 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)]"
+                    : "border border-bersih-200 bg-bersih-100 text-tinta-700 hover:bg-bersih-200",
                 ].join(" ")}
               >
                 {t}
@@ -1217,7 +1217,7 @@ function DialogBayar({
         </div>
 
         {galat && (
-          <p className="mt-2 rounded-[0.625rem] bg-clay-700/12 px-3 py-2 text-[0.8125rem] font-semibold text-clay-800">
+          <p className="mt-2 rounded-[0.625rem] bg-sela-50 px-3 py-2 text-[0.8125rem] font-semibold text-sela-800">
             {galat}
           </p>
         )}
@@ -1226,7 +1226,7 @@ function DialogBayar({
           type="button"
           onClick={kirim}
           disabled={!cukup || proses}
-          className="mt-3 h-12 w-full rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 disabled:opacity-40"
+          className="tombol-utama mt-3 h-12 w-full text-[0.9375rem]"
         >
           {proses ? "Menyimpan…" : cukup ? `Bayar ${rupiah(tagihan.total)}` : "Nominal kurang"}
         </button>

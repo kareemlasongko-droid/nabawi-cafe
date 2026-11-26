@@ -73,7 +73,7 @@ export function KartuRingkasan({
   }
 
   return (
-    <div className="rounded-[0.875rem] border border-bersih-200 bg-bersih-0 p-3">
+    <div className="rounded-[0.875rem] border border-bersih-200 bg-bersih-0 p-3 shadow-[0_1px_2px_rgb(22_19_15/0.04)]">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kotak label="Omzet hari ini" nilai={rupiah(r.omzet)} utama />
         <Kotak label="Pesanan lunas" nilai={String(r.jumlah_pesanan)} />
@@ -122,9 +122,9 @@ function Angka({
         className={[
           "tabular-nums",
           utama
-            ? "text-[1.0625rem] font-extrabold text-tinta-900"
+            ? "text-[1.0625rem] font-extrabold text-forest-900"
             : perhatian
-              ? "text-[0.875rem] font-extrabold text-clay-800"
+              ? "text-[0.875rem] font-extrabold text-sela-800"
               : "text-[0.875rem] font-bold text-tinta-900",
         ].join(" ")}
       >
@@ -141,7 +141,7 @@ function Kotak({ label, nilai, utama = false }: { label: string; nilai: string; 
       <p
         className={[
           "mt-0.5 tabular-nums",
-          utama ? "text-[1.25rem] font-extrabold text-tinta-900" : "text-[1rem] font-bold text-tinta-900",
+          utama ? "text-[1.25rem] font-extrabold text-forest-900" : "text-[1rem] font-bold text-tinta-900",
         ].join(" ")}
       >
         {nilai}
@@ -165,7 +165,7 @@ function Kecil({
       <span
         className={[
           "text-[0.8125rem] font-bold tabular-nums",
-          perhatian ? "text-clay-800" : "text-tinta-900",
+          perhatian ? "text-sela-800" : "text-tinta-900",
         ].join(" ")}
       >
         {nilai}
