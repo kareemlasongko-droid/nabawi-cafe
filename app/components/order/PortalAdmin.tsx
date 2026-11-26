@@ -39,6 +39,7 @@ import {
   IkonStok,
 } from "./Ikon";
 import { TombolKepala } from "./TombolKepala";
+import { NavBawahStaf } from "./NavBawahStaf";
 import { saringMenu, hitungPerKategori, type SaringanStatus } from "@/app/lib/order/saring";
 import { TabMeja } from "./TabMeja";
 import { TabStok } from "./TabStok";
@@ -345,61 +346,21 @@ export function PortalAdmin({
       )}
 
       {/*
-        ── DASHBOARD DUA PANEL ────────────────────────────────────────────
+        ── ISI TAB, LEBAR PENUH ───────────────────────────────────────────
 
-        Kiri: navigasi (6 tab, ikon + label, bisa tumbuh jadi 9 tanpa
-        memakan ruang kepala). Kanan: isi tab.
+        Navigasi admin kini ada di bilah BAWAH (lihat NavBawahStaf di akhir
+        berkas), bukan di panel kiri. Yang berubah karena itu: setiap tab
+        mendapat lebar penuh layar, bukan sisa setelah panel 13,5rem.
 
-        Di ponsel panel kiri berubah menjadi baris tab yang digeser
-        horizontal — bukan laci tersembunyi, karena admin sering membuka
-        portal ini satu tangan sambil memegang ponsel. Tab yang tidak
-        terlihat tetap terjangkau dengan menggeser, dan gradien tepi
-        memberi tahu bahwa masih ada tab di kanan.
+        Itu paling terasa di tab Menu dan Stok — dua tabel berkolom banyak
+        yang sebelumnya harus memadatkan kolom harga dan statusnya.
+
+        Di layar lebar isi dibatasi 64rem dan tetap di tengah: tabel yang
+        terentang selebar 1600px menambah jarak mata, bukan menambah
+        keterbacaan. Batas itu dipasang di ISI, bukan di halaman, supaya
+        bilah bawah tetap selebar layar.
       */}
-      <div className="mx-auto flex max-w-[100rem] flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:gap-5 lg:p-6">
-        <nav
-          aria-label="Bagian admin"
-          className="lg:w-[13.5rem] lg:shrink-0"
-        >
-          <ul className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0">
-            {(
-              [
-                { kunci: "penjualan", label: "Penjualan", Ikon: IkonBill, muat: muatPenjualan },
-                { kunci: "menu", label: "Menu", Ikon: IkonMenu, muat: null },
-                { kunci: "biaya", label: "Pajak & layanan", Ikon: IkonPajak, muat: null },
-                { kunci: "meja", label: "Meja", Ikon: IkonMeja, muat: null },
-                { kunci: "stok", label: "Stok", Ikon: IkonStok, muat: null },
-                { kunci: "jam", label: "Jam buka", Ikon: IkonJam, muat: muatJam },
-              ] as const
-            ).map(({ kunci, label, Ikon, muat }) => {
-              const aktif = tab === kunci;
-              return (
-                <li key={kunci} className="shrink-0 lg:shrink">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTab(kunci);
-                      if (muat) muat();
-                    }}
-                    aria-current={aktif ? "page" : undefined}
-                    className={[
-                      "flex h-10 w-full items-center gap-2 rounded-[0.625rem] px-3 text-[0.8125rem] font-bold transition-colors lg:h-11",
-                      "whitespace-nowrap",
-                      aktif
-                        ? "bg-forest-900 text-cream-50 shadow-[0_6px_16px_-10px_rgb(20_35_26/0.8)]"
-                        : "text-tinta-700 hover:bg-bersih-100",
-                    ].join(" ")}
-                  >
-                    <Ikon className="size-4 shrink-0 opacity-80" />
-                    {label}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        <div className="min-w-0 flex-1">
+      <div className="mx-auto max-w-[64rem] p-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:p-6">
       {tab === "penjualan" && (
         <div className="grid gap-4">
           <section aria-labelledby="rangkuman-admin">
@@ -910,13 +871,43 @@ export function PortalAdmin({
       {tersimpan && (
         <div
           role="status"
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-forest-900 px-4 py-2 text-[0.8125rem] font-bold text-cream-50 shadow-[0_10px_30px_-12px_rgb(20_35_26/0.6)]"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 -translate-x-1/2 rounded-full bg-forest-900 px-4 py-2 text-[0.8125rem] font-bold text-cream-50 shadow-[0_10px_30px_-12px_rgb(20_35_26/0.6)]"
         >
           {tersimpan}
         </div>
       )}
-        </div>
       </div>
+
+      {/*
+        ── NAV BAWAH ADMIN ──────────────────────────────────────────────
+
+        Enam bagian, semuanya terlihat sekaligus. Ikon dipakai bersama label
+        karena enam tujuan terlalu banyak untuk dihafal dari ikon saja;
+        label 10px tetap terbaca di layar 360px.
+
+        Dua tab punya efek samping saat dibuka (`muat`): Penjualan mengambil
+        rangkuman + riwayat, Jam buka membaca pengaturan. Keduanya dimuat
+        SAAT DIBUKA, bukan saat halaman dimuat — admin yang datang untuk
+        mengubah harga tidak perlu menunggu kueri yang tidak dipakainya.
+      */}
+      <NavBawahStaf
+        judul="Navigasi admin"
+        aktif={tab}
+        onPilih={(k) => {
+          const tujuan = k as typeof tab;
+          setTab(tujuan);
+          if (tujuan === "penjualan") muatPenjualan();
+          if (tujuan === "jam") muatJam();
+        }}
+        item={[
+          { kunci: "penjualan", label: "Penjualan", Ikon: IkonBill },
+          { kunci: "menu", label: "Menu", Ikon: IkonMenu },
+          { kunci: "biaya", label: "Biaya", Ikon: IkonPajak },
+          { kunci: "meja", label: "Meja", Ikon: IkonMeja },
+          { kunci: "stok", label: "Stok", Ikon: IkonStok },
+          { kunci: "jam", label: "Jam", Ikon: IkonJam },
+        ]}
+      />
     </div>
   );
 }

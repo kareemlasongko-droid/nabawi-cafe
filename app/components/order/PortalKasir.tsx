@@ -32,6 +32,7 @@ import {
 } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
 import { TombolKepala } from "./TombolKepala";
+import { NavBawahStaf } from "./NavBawahStaf";
 import {
   IkonCentang,
   IkonSilang,
@@ -40,6 +41,8 @@ import {
   IkonMuatUlang,
   IkonSuara,
   IkonMatikanSuara,
+  IkonPesanan,
+  IkonBill,
 } from "./Ikon";
 import { BukaInvoice } from "./LembarInvoice";
 import { KartuRingkasan } from "./KartuRingkasan";
@@ -145,7 +148,20 @@ export function PortalKasir() {
   const [pesanRingkasan, setPesanRingkasan] = useState("");
   const [riwayat, setRiwayat] = useState<BarisRiwayat[]>([]);
   const [pesanRiwayat, setPesanRiwayat] = useState("");
-  const [riwayatBuka, setRiwayatBuka] = useState(false);
+  /*
+    ── SATU TAB AKTIF, BUKAN BEBERAPA BAGIAN TERBUKA SEKALIGUS ─────────
+
+    Dulu layar ini menggulung dari atas: "Belum dibayar", antrean, denah
+    meja, lalu rangkuman penjualan dan riwayat di bawahnya. Semuanya ada,
+    tetapi untuk mencapai riwayat kasir harus menggulir melewati denah 10
+    meja — dan setelah menggulir, antrean yang sedang ditangani hilang dari
+    pandangan.
+
+    Sekarang tiap tab adalah satu pekerjaan. `layar` menyimpan pekerjaan
+    yang sedang dibuka; `mejaPilih` tetap terpisah karena ia BUKAN tab,
+    melainkan pilihan di dalam tab Antrean.
+  */
+  const [layar, setLayar] = useState<"antrean" | "meja" | "laporan" | "riwayat">("antrean");
   /** id pesanan yang sedang dicatat pembayarannya — mencegah ketuk ganda. */
   const [memproses, setMemproses] = useState<number | null>(null);
 
@@ -546,7 +562,19 @@ export function PortalKasir() {
         </section>
       )}
 
-      <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      {/*
+        ── PEMBUNGKUS PADDING ───────────────────────────────────────────
+        Padding dipindah ke sini (dari tiap grid) supaya tab yang tinggal
+        satu kolom tidak kehilangan tepi kiri-kanannya.
+
+        `pb-[calc(5.5rem+env(safe-area-inset-bottom))]` memberi ruang untuk
+        nav bawah yang tetap (fixed). Tanpa ini, kartu terakhir — biasanya
+        tombol bayar — tertutup bilah navigasi, dan itu bug yang paling
+        sering muncul saat pola nav bawah dipakai tanpa perhitungan.
+      */}
+      <div className="p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+      {layar === "antrean" && (
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         {/* ── Kolom kiri: antrean ── */}
         <section aria-labelledby="antrean">
           <h2
@@ -976,13 +1004,18 @@ export function PortalKasir() {
           )}
         </section>
       </div>
+      )}
 
-      {/* ── Rangkuman penjualan + riwayat ──
-          Ditaruh SETELAH antrean dan denah, bukan di atasnya: kasir membuka
-          layar ini untuk melayani tamu yang sedang berdiri, bukan untuk
-          membaca laporan. Rangkuman yang menempati posisi teratas akan
-          mendorong antrean ke bawah lipatan layar tablet. */}
-      <div className="grid gap-4 px-4 pb-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      {/*
+        ── LAPORAN & RIWAYAT: DUA TAB, BUKAN SATU KOLOM PANJANG ─────────
+
+        Sebelumnya keduanya berdiri berdampingan di bawah denah dan baru
+        terbaca setelah digulir. Dengan nav bawah, keduanya jadi tujuan yang
+        bisa dicapai langsung — dan masing-masing dapat lebar penuh, jadi
+        angka omzet tidak lagi berdesakan dengan tabel riwayat.
+      */}
+      {layar === "laporan" && (
+      <div>
         <section aria-labelledby="rangkuman-kasir">
           <h2
             id="rangkuman-kasir"
@@ -993,41 +1026,71 @@ export function PortalKasir() {
           <KartuRingkasan ringkasan={ringkasan} galat={pesanRingkasan} />
         </section>
 
+      </div>
+      )}
+
+      {/*
+        ── TAB RIWAYAT ─────────────────────────────────────────────────
+
+        Isinya sama dengan sebelumnya, tetapi tidak lagi disembunyikan di
+        balik panah "▾" di bawah rangkuman. Kalau riwayat punya tab sendiri,
+        menyembunyikannya sekali lagi berarti dua ketukan untuk sampai ke
+        daftar yang tabnya sudah sengaja dipilih — dan panah yang tertutup
+        terbaca seperti bagian yang rusak, bukan bagian yang bisa dibuka.
+      */}
+      {layar === "riwayat" && (
+      <div>
         <section aria-labelledby="riwayat-kasir">
-          <button
-            type="button"
-            onClick={() => setRiwayatBuka((b) => !b)}
-            aria-expanded={riwayatBuka}
-            className="mb-2 flex w-full items-center gap-2 text-left"
+          <h2
+            id="riwayat-kasir"
+            className="mb-2 flex items-center gap-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
           >
-            <h2
-              id="riwayat-kasir"
-              className="flex-1 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
-            >
-              Riwayat pesanan
-            </h2>
+            Riwayat pesanan
             <span className="rounded-full bg-bersih-200 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-tinta-700">
               {riwayat.length}
             </span>
-            <span
-              className={[
-                "text-tinta-500 transition-transform",
-                riwayatBuka ? "rotate-180" : "",
-              ].join(" ")}
-              aria-hidden="true"
-            >
-              ▾
-            </span>
-          </button>
-
-          {/*
-            Tertutup secara bawaan: kasir yang sedang sibuk tidak perlu
-            menggulir 12 baris riwayat setiap kali memuat layar. Yang
-            dibuka hanya saat ia memang mencari pesanan tertentu.
-          */}
-          {riwayatBuka && <DaftarRiwayat riwayat={riwayat} galat={pesanRiwayat} awal={8} />}
+          </h2>
+          <DaftarRiwayat riwayat={riwayat} galat={pesanRiwayat} awal={8} />
         </section>
       </div>
+      )}
+      </div>
+
+      {/*
+        ── NAV BAWAH ────────────────────────────────────────────────────
+
+        Empat pekerjaan kasir, semuanya terlihat tanpa menggeser apa pun:
+        antrean (yang sedang dilayani), meja (denah + tagihan), laporan
+        (omzet hari ini), dan riwayat (mencari pesanan lama).
+
+        Lencana di "Antrean" menghitung MENUNGGU KONFIRMASI + BELUM DIBAYAR
+        sekaligus — keduanya adalah pesanan yang menunggu tindakan kasir, dan
+        itulah satu-satunya angka yang berguna di bilah navigasi. Angka yang
+        butuh dibuka dulu untuk diketahui tidak menolong siapa pun.
+      */}
+      <NavBawahStaf
+        judul="Navigasi kasir"
+        aktif={layar}
+        onPilih={(k) => {
+          const tujuan = k as typeof layar;
+          setLayar(tujuan);
+          // Ringkasan & riwayat dimuat saat tabnya dibuka, bukan saat halaman
+          // dimuat: kasir yang datang untuk melayani tamu tidak perlu
+          // menunggu dua kueri agregat sebelum antrean tampil.
+          if (tujuan === "laporan" || tujuan === "riwayat") muatRiwayat();
+        }}
+        item={[
+          {
+            kunci: "antrean",
+            label: "Antrean",
+            Ikon: IkonPesanan,
+            lencana: antrean.length + menungguBayar.length,
+          },
+          { kunci: "meja", label: "Meja", Ikon: IkonMeja },
+          { kunci: "laporan", label: "Laporan", Ikon: IkonBill },
+          { kunci: "riwayat", label: "Riwayat", Ikon: IkonJam },
+        ]}
+      />
 
       {/* ── Dialog pembayaran ── */}
       {bayar && (
