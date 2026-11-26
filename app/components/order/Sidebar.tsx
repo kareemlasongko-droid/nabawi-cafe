@@ -36,6 +36,17 @@ import type { ComponentType } from "react";
 export type ItemSidebar = {
   kunci: string;
   label: string;
+  /**
+   * Tujuan navigasi. Salah satu:
+   *
+   *   · `onPilih` diisi → item dirender sebagai `<button>` yang memanggil
+   *     `onPilih(kunci)`. Ini yang dipakai kasir: memilih LAYAR, bukan
+   *     melompat ke anchor. `<button>` karena ia mengubah keadaan, bukan
+   *     berpindah dokumen — dan pembaca layar mengumumkannya sebagai
+   *     kontrol, bukan tautan.
+   *   · `onPilih` kosong → `<Link href>`, untuk portal yang memang
+   *     berpindah halaman.
+   */
   href: string;
   Ikon: ComponentType<{ className?: string }>;
   /** Angka kecil di samping label. 0 = tidak ditampilkan. */
@@ -49,12 +60,15 @@ export function Sidebar({
   item,
   aktif,
   kaki,
+  onPilih,
 }: {
   /** Nama portal, tampil di atas. "Kasir", "Dapur & Bar", dst. */
   judul: string;
   item: ItemSidebar[];
   /** `kunci` tujuan yang sedang dibuka. */
   aktif: string;
+  /** Bila diisi, item jadi tombol pemilih layar, bukan tautan. */
+  onPilih?: (kunci: string) => void;
   /** Isi bagian bawah sidebar (mis. penanda mode demo). */
   kaki?: React.ReactNode;
 }) {
@@ -99,56 +113,54 @@ export function Sidebar({
           const ini = kunci === aktif;
           return (
             <li key={kunci}>
-              <Link
-                href={href}
-                aria-current={ini ? "page" : undefined}
-                /*
-                  Area sentuh 48px di ponsel (rail) dan 44px di desktop.
-                  Label disembunyikan di rail, tetapi tetap ada untuk
-                  pembaca layar lewat `sr-only` — ikon tanpa nama aksesibel
-                  adalah tautan tanpa tujuan bagi pengguna screen reader.
-                */
-                className={[
-                  "relative flex h-12 items-center gap-3 rounded-[0.625rem] px-3 transition md:h-11",
+              {(() => {
+                const kelas = [
+                  "relative flex w-full h-12 items-center gap-3 rounded-[0.625rem] px-3 transition md:h-11",
                   "justify-center md:justify-start",
                   ini
                     ? "bg-cream-50 text-forest-900 shadow-[0_4px_14px_-8px_rgba(0,0,0,0.6)]"
                     : "text-cream-50/75 hover:bg-cream-50/10 hover:text-cream-50 active:bg-cream-50/15",
-                ].join(" ")}
-              >
-                <Ikon className="size-[1.25rem] shrink-0" />
-                <span className="hidden min-w-0 flex-1 truncate text-[0.875rem] font-bold md:block">
-                  {label}
-                </span>
-
-                {lencana > 0 && (
-                  <span
-                    className={[
-                      "shrink-0 rounded-full px-1.5 py-0.5 text-[0.625rem] font-extrabold tabular-nums leading-none",
-                      /*
-                        Di rail, lencana MENUNGGU di pojok ikon (badge),
-                        bukan sebaris — tidak ada ruang untuk keduanya.
-
-                        Warna: "sela" (oranye) untuk yang menuntut tindakan
-                        kasir sekarang, "netral" untuk hitungan biasa.
-                        Kalau semua lencana berwarna sama, tidak ada yang
-                        menonjol dan lencananya berhenti berarti.
-                      */
-                      "md:static md:ml-auto",
-                      ini
-                        ? "bg-forest-900 text-cream-50"
-                        : warna === "sela"
-                          ? "bg-sela-500 text-forest-950"
-                          : "bg-cream-50/20 text-cream-50",
-                      /* Di rail: tempel di pojok kanan-atas ikon. */
-                      "absolute right-1.5 top-1.5 md:relative md:right-auto md:top-auto",
-                    ].join(" ")}
-                    aria-label={`${lencana} ${label}`}
+                ].join(" ");
+                const isi = (
+                  <>
+                    <Ikon className="size-[1.25rem] shrink-0" />
+                    <span className="hidden min-w-0 flex-1 truncate text-left text-[0.875rem] font-bold md:block">
+                      {label}
+                    </span>
+                    {lencana > 0 && (
+                      <span
+                        className={[
+                          "shrink-0 rounded-full px-1.5 py-0.5 text-[0.625rem] font-extrabold tabular-nums leading-none",
+                          "md:static md:ml-auto",
+                          ini
+                            ? "bg-forest-900 text-cream-50"
+                            : warna === "sela"
+                              ? "bg-sela-500 text-forest-950"
+                              : "bg-cream-50/20 text-cream-50",
+                          "absolute right-1.5 top-1.5 md:relative md:right-auto md:top-auto",
+                        ].join(" ")}
+                        aria-label={`${lencana} ${label}`}
+                      >
+                        {lencana > 99 ? "99+" : lencana}
+                      </span>
+                    )}
+                  </>
+                );
+                return onPilih ? (
+                  <button
+                    type="button"
+                    onClick={() => onPilih(kunci)}
+                    aria-current={ini ? "page" : undefined}
+                    className={kelas}
                   >
-                    {lencana > 99 ? "99+" : lencana}
-                  </span>
-                )}
-              </Link>
+                    {isi}
+                  </button>
+                ) : (
+                  <Link href={href} aria-current={ini ? "page" : undefined} className={kelas}>
+                    {isi}
+                  </Link>
+                );
+              })()}
             </li>
           );
         })}
