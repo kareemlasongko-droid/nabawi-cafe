@@ -39,7 +39,7 @@ export function GambarQr({
 
   if (!qr.ok) {
     return (
-      <p className="rounded-[0.5rem] border border-clay-700/30 bg-tanah-100 p-2 text-[0.6875rem] text-clay-800">
+      <p className="rounded-[0.5rem] border border-sela-200 bg-sela-50 p-2 text-[0.6875rem] text-sela-800">
         QR gagal dibuat: {qr.pesan}
       </p>
     );

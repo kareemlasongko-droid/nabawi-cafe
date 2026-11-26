@@ -580,11 +580,11 @@ export function PortalPelanggan({
   const adaPesananBerjalan = pesananAktif.length > 0;
 
   return (
-    <div className="min-h-dvh bg-bersih-50">
+    <div className="min-h-dvh bg-cream-50">
       {/* ── Kepala: nomor meja adalah informasi terpenting di layar ini ──
           Kalau salah meja, seluruh pesanan salah antar. Karena itu nomor
           meja ditaruh paling atas, besar, dan area-nya ikut disebut. */}
-      <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/95 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-bersih-200/80 bg-cream-50/92 backdrop-blur-md">
         {/*
           SATU BARIS, DUA KELOMPOK: identitas kafe menempel kiri, nomor meja
           menempel kanan.
@@ -621,7 +621,7 @@ export function PortalPelanggan({
               `hover`/`active`, karena nomor meja memang tidak bisa ditekan.
             */}
             <span
-              className="flex h-10 shrink-0 items-center gap-1 rounded-[0.625rem] bg-tinta-900 px-2 text-[0.8125rem] text-bersih-0"
+              className="flex h-10 shrink-0 items-center gap-1 rounded-full bg-forest-900 px-3 text-[0.8125rem] text-cream-50 shadow-[0_2px_10px_-4px_rgb(20_35_26/0.5)]"
               title={`Meja ${mejaNomor} · ${mejaArea}`}
             >
               <IkonMeja className="size-4 shrink-0" />
@@ -630,7 +630,7 @@ export function PortalPelanggan({
                 hanyalah angka tanpa satuan — tamu yang baru duduk tidak
                 tahu apakah itu nomor meja, nomor pesanan, atau jumlah item.
 
-                Warnanya SAMA dengan angka (mewarisi `text-bersih-0` dari
+                Warnanya SAMA dengan angka (mewarisi `text-white` dari
                 kotak). Sebelumnya diredupkan ke 70%, dan hasilnya justru
                 terbaca sebagai dua informasi berbeda dalam satu kotak —
                 padahal "Meja 3" adalah satu hal. Yang membedakan sekarang
@@ -646,8 +646,8 @@ export function PortalPelanggan({
         {/* Jam buka + status. Kalau tutup, pesan ini muncul SEBELUM pelanggan
             memilih menu — bukan setelah menekan Kirim (P-12). */}
         {!bukaSekarang && (
-          <div className="border-t border-clay-600/20 bg-clay-600/10 px-4 py-2">
-            <p className="mx-auto max-w-[45rem] text-[0.8125rem] font-semibold leading-snug text-clay-800">
+          <div className="border-t border-sela-200 bg-sela-50 px-4 py-2">
+            <p className="mx-auto max-w-[45rem] text-[0.8125rem] font-semibold leading-snug text-sela-800">
               {alasanTutup} Pesanan belum bisa dikirim.
             </p>
           </div>
@@ -691,9 +691,9 @@ export function PortalPelanggan({
             ulang, dan dapur menerima dua pesanan yang sama. */}
         {pesananDiKasir && (
           <section className="mt-4" aria-live="polite">
-            <div className="rounded-[0.75rem] border border-forest-700/30 bg-forest-700/[0.06] p-4">
+            <div className="rounded-[0.875rem] border border-forest-700/25 bg-daun-100/70 p-4">
               <div className="flex items-start gap-2.5">
-                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-forest-700 text-bersih-0">
+                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-forest-700 text-white">
                   <IkonCentang />
                 </span>
                 <div className="min-w-0">
@@ -749,7 +749,7 @@ export function PortalPelanggan({
             "Periksa status", yang menanyakan ulang ke server. */}
         {menungguBayar && (
           <section className="mt-4">
-            <div className="rounded-[0.75rem] border border-forest-700/30 bg-tinta-900/[0.06] p-4">
+            <div className="rounded-[0.875rem] border border-sela-200 bg-sela-50 p-4">
               <p className="text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-tinta-500">
                 Pesanan {menungguBayar.nomor}
               </p>
@@ -767,7 +767,7 @@ export function PortalPelanggan({
               {galatBayar && (
                 <p
                   role="alert"
-                  className="mt-2 rounded-[0.5rem] bg-clay-600/10 p-2 text-[0.75rem] font-semibold leading-snug text-clay-800"
+                  className="mt-2 rounded-[0.5rem] bg-sela-600/10 p-2 text-[0.75rem] font-semibold leading-snug text-sela-800"
                 >
                   {galatBayar}
                 </p>
@@ -777,7 +777,7 @@ export function PortalPelanggan({
                 type="button"
                 onClick={bayarOnline}
                 disabled={membuatInvoice}
-                className="mt-3 flex h-12 w-full items-center justify-center rounded-[0.625rem] bg-forest-700 text-[0.875rem] font-extrabold text-bersih-0 transition active:scale-[0.99] disabled:opacity-45"
+                className="tombol-utama mt-3 h-12 w-full text-[0.875rem] active:scale-[0.99] disabled:opacity-45"
               >
                 {membuatInvoice ? "Menyiapkan pembayaran…" : "Bayar Online (QRIS / e-wallet)"}
               </button>
@@ -908,7 +908,7 @@ export function PortalPelanggan({
               mengira hanya kategori yang terlihat saja yang ada. */}
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-bersih-50 to-transparent"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-cream-50 to-transparent"
           />
           </div>
         </div>
@@ -925,7 +925,7 @@ export function PortalPelanggan({
                   {isi.length} menu
                 </span>
               </h2>
-              <ul className="divide-y divide-bersih-100 overflow-hidden rounded-[0.875rem] bg-bersih-0 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.16)]">
+              <ul className="divide-y divide-bersih-100 overflow-hidden rounded-[1rem] border border-bersih-200/80 bg-bersih-0 shadow-[0_1px_2px_rgb(22_19_15/0.03),0_10px_24px_-18px_rgb(22_19_15/0.25)]">
                 {isi.map((m) => {
                   const opsi = opsiDari(m);
                   /*
@@ -960,7 +960,7 @@ export function PortalPelanggan({
                           </span>
                         )}
                         {habis && (
-                          <span className="absolute inset-0 grid place-items-center bg-tinta-900/60 text-[0.6875rem] font-bold uppercase tracking-wider text-bersih-0">
+                          <span className="absolute inset-0 grid place-items-center bg-forest-950/65 text-[0.6875rem] font-bold uppercase tracking-wider text-cream-50">
                             Habis
                           </span>
                         )}
@@ -971,12 +971,12 @@ export function PortalPelanggan({
                           <p className="text-[0.9375rem] font-extrabold leading-tight text-tinta-900">
                             {m.nama}
                           </p>
-                          {/* Lencana rekomendasi. Warna tanah-100 juga
-                              dipakai chip "habis" di portal staf — satu
-                              aksen untuk "perhatikan ini", bukan warna baru
-                              tiap fitur. */}
+                          {/* Lencana rekomendasi. Warna sela-50 yang sama
+                              dipakai chip "perlu perhatian" di portal staf —
+                              satu aksen untuk "perhatikan ini", bukan warna
+                              baru tiap fitur. */}
                           {m.rekomendasi === true && (
-                            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-tanah-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-clay-800">
+                            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-sela-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-sela-800">
                               <IkonBintang className="size-3" />
                               Rekomendasi
                             </span>
@@ -1003,12 +1003,12 @@ export function PortalPelanggan({
                           Habis
                         </span>
                       ) : diKeranjang ? (
-                        <div className="flex shrink-0 items-center gap-1 self-center rounded-[0.625rem] border border-bersih-200 bg-bersih-100 p-0.5">
+                        <div className="flex shrink-0 items-center gap-0.5 self-center rounded-full bg-forest-900 p-0.5 text-cream-50 shadow-[0_4px_12px_-6px_rgb(20_35_26/0.7)]">
                           <button
                             type="button"
                             onClick={() => ubahJumlah(kunciPertama, -1)}
                             aria-label={`Kurangi ${m.nama}`}
-                            className="grid size-9 place-items-center rounded-[0.625rem] text-tinta-900 transition active:bg-bersih-200"
+                            className="grid size-8 place-items-center rounded-full transition hover:bg-cream-50/15 active:bg-cream-50/25"
                           >
                             <IkonKurang />
                           </button>
@@ -1019,7 +1019,7 @@ export function PortalPelanggan({
                             type="button"
                             onClick={() => ubahJumlah(kunciPertama, 1)}
                             aria-label={`Tambah ${m.nama}`}
-                            className="grid size-9 place-items-center rounded-[0.625rem] text-tinta-900 transition active:bg-bersih-200"
+                            className="grid size-8 place-items-center rounded-full transition hover:bg-cream-50/15 active:bg-cream-50/25"
                           >
                             <IkonTambah />
                           </button>
@@ -1034,7 +1034,7 @@ export function PortalPelanggan({
                               ? `Pilih ${m.nama}`
                               : `Tambah ${m.nama} ke keranjang`
                           }
-                          className="grid size-11 shrink-0 self-center place-items-center rounded-[0.625rem] bg-tinta-900 text-bersih-0 transition active:scale-95 disabled:opacity-40"
+                          className="grid size-11 shrink-0 place-items-center self-center rounded-full bg-forest-900 text-cream-50 shadow-[0_4px_12px_-6px_rgb(20_35_26/0.7)] transition hover:bg-forest-800 active:scale-95 disabled:opacity-40"
                         >
                           {opsi.length > 0 ? (
                             <span className="px-2 text-[0.6875rem] font-bold">Pilih</span>
@@ -1077,7 +1077,7 @@ export function PortalPelanggan({
             <button
               type="button"
               onClick={() => setBukaKeranjang(true)}
-              className="flex h-14 w-full items-center gap-3 rounded-[0.625rem] bg-tinta-900 px-4 text-bersih-0 shadow-[0_8px_24px_-12px_rgba(22,19,15,0.6)] transition active:scale-[0.99]"
+              className="flex h-14 w-full items-center gap-3 rounded-[0.875rem] bg-forest-900 px-4 text-cream-50 shadow-[0_12px_30px_-14px_rgb(20_35_26/0.85)] transition hover:bg-forest-800 active:scale-[0.99]"
             >
               <span className="grid size-9 place-items-center rounded-[0.625rem] bg-bersih-0/15">
                 <IkonKeranjang className="size-4.5" />
@@ -1086,7 +1086,7 @@ export function PortalPelanggan({
                 <span className="block text-[0.8125rem] font-extrabold leading-tight">
                   Lihat keranjang · {totalItem} item
                 </span>
-                <span className="block text-[0.6875rem] leading-tight text-bersih-200">
+                <span className="block text-[0.6875rem] leading-tight text-cream-200/80">
                   {rupiah(rincian.total)} termasuk pajak
                 </span>
               </span>
@@ -1192,7 +1192,7 @@ export function PortalPelanggan({
                         <div className="min-w-0 flex-1">
                           <p className="text-[0.9375rem] font-bold text-tinta-900">{b.menu.nama}</p>
                           {b.pilihan.length > 0 && (
-                            <p className="mt-0.5 text-[0.8125rem] font-semibold text-clay-700">
+                            <p className="mt-0.5 text-[0.8125rem] font-semibold text-sela-700">
                               {b.pilihan
                                 .map((p) => (p.tambah > 0 ? `${p.nama} (+${rupiah(p.tambah)})` : p.nama))
                                 .join(", ")}
@@ -1230,7 +1230,7 @@ export function PortalPelanggan({
                           type="button"
                           onClick={() => hapus(kunci)}
                           aria-label={`Hapus ${b.menu.nama}`}
-                          className="grid size-8 place-items-center rounded-[0.625rem] text-clay-700 active:bg-clay-600/10"
+                          className="grid size-8 place-items-center rounded-[0.625rem] text-sela-700 active:bg-sela-600/10"
                         >
                           <IkonHapus className="size-4" />
                         </button>
@@ -1349,9 +1349,9 @@ export function PortalPelanggan({
                 <div
                   ref={refGalat}
                   role="alert"
-                  className="mt-3 rounded-[0.625rem] border border-clay-600/30 bg-clay-600/10 p-3"
+                  className="mt-3 rounded-[0.625rem] border border-sela-200 bg-sela-50 p-3"
                 >
-                  <p className="text-[0.8125rem] font-semibold leading-snug text-clay-800">
+                  <p className="text-[0.8125rem] font-semibold leading-snug text-sela-800">
                     {pesanGalat}
                   </p>
                 </div>
@@ -1440,7 +1440,7 @@ export function PortalPelanggan({
                   !dataLengkap ||
                   !metode
                 }
-                className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-extrabold text-bersih-0 transition active:scale-[0.99] disabled:opacity-45"
+                className="tombol-utama mt-4 h-14 w-full text-[0.9375rem]"
               >
                 {mengirim
                   ? "Mengirim…"
@@ -1503,7 +1503,7 @@ function KartuPesanan({
         "rounded-[0.625rem] border px-3 py-2.5",
         selesai
           ? "border-bersih-200 bg-bersih-100"
-          : "border-forest-700/30 bg-tinta-900/[0.06]",
+          : "border-bersih-200 bg-bersih-0 shadow-[0_1px_2px_rgb(22_19_15/0.04)]",
       ].join(" ")}
     >
       <div className="flex items-center justify-between gap-3">
@@ -1545,8 +1545,8 @@ function FilterAktif({
       className={[
         "shrink-0 rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold transition",
         aktif
-          ? "bg-tinta-900 text-bersih-0"
-          : "border border-bersih-200 bg-bersih-0 text-tinta-700 active:bg-bersih-100",
+          ? "bg-forest-900 text-cream-50 shadow-[0_4px_12px_-6px_rgb(20_35_26/0.6)]"
+          : "border border-bersih-200 bg-bersih-0 text-tinta-700 hover:bg-bersih-100 active:bg-bersih-100",
       ].join(" ")}
     >
       {children}

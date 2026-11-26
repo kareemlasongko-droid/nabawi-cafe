@@ -33,7 +33,7 @@ export function Kerangka({
   className?: string;
 }) {
   return (
-    <div className="min-h-dvh bg-bersih-50 text-tinta-900">
+    <div className="min-h-dvh bg-cream-50 text-tinta-900">
       <div
         className={[
           "mx-auto min-h-dvh w-full",
@@ -76,7 +76,16 @@ export function BilahStaf({
   ringkasan?: { layar?: string; keteranganPonsel?: string };
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-bersih-200 bg-bersih-0/92 backdrop-blur-md">
+    /*
+      Kepala staf berlatar hijau hutan, bukan putih.
+
+      Portal ini dipakai bergantian dengan layar tamu di perangkat yang sama;
+      sewaktu kasir membuka admin, satu-satunya penanda "ini layar staf"
+      sebelumnya adalah judul kecil 13px. Bidang hijau selebar layar membuat
+      pembeda itu terlihat dari sudut mata, tanpa membaca apa pun — dan itu
+      yang mencegah admin mengedit menu dari layar yang dikira layar tamu.
+    */
+    <header className="sticky top-0 z-30 border-b border-forest-950/40 bg-forest-900 text-cream-50 shadow-[0_1px_0_rgb(255_255_255/0.06)_inset]">
       {/*
         DUA KELOMPOK, SATU BARIS: identitas menempel kiri, alat menempel
         kanan. `justify-between` yang mengatur jarak — bukan `flex-1` pada
@@ -90,6 +99,7 @@ export function BilahStaf({
         {/* ── KIRI: identitas kafe ── */}
         <div className="flex min-w-0 items-center">
           <LogoNabawi
+            tema="gelap"
             keterangan={keterangan}
             layar={ringkasan?.layar ?? judul}
             keteranganPonsel={ringkasan?.keteranganPonsel}
@@ -105,7 +115,7 @@ export function BilahStaf({
               tapi tidak lagi dihitung sebagai bagian kepala. */}
           {demo && (
             <span
-              className="hidden rounded-full bg-tanah-100 px-2.5 py-1 text-[0.6875rem] font-bold text-clay-800 sm:inline"
+              className="hidden rounded-full bg-sela-500/15 px-2.5 py-1 text-[0.6875rem] font-bold text-sela-200 sm:inline"
               title="Kunci server database belum dipasang, jadi pesanan dan pembayaran tidak bisa dicatat."
             >
               Mode demo

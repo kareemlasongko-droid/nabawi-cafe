@@ -51,13 +51,20 @@ export function TombolKepala({
 }) {
   const gelap = tema === "gelap";
 
+  /*
+    Di kepala gelap, tombol TIDAK boleh memakai `bg-bersih-100` seperti dulu:
+    kotak abu terang di atas hijau hutan terbaca sebagai tombol yang
+    "menyala" terus, sehingga status menyala/mati (tombol bunyi) tidak bisa
+    dibedakan. Yang dipakai sekarang adalah permukaan tembus pandang di atas
+    hijau — nyala = oranye kafe, mati = hijau lebih gelap.
+  */
   const dasar = gelap
     ? aktif
-      ? "border-forest-700 bg-daun-100 text-tinta-900"
-      : "border-tinta-700 text-gelap-samar"
+      ? "bg-sela-500 text-forest-950 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.18)]"
+      : "bg-forest-950/55 text-gelap-redup hover:bg-forest-950/80 hover:text-cream-50"
     : aktif
-      ? "border-forest-700/40 bg-daun-100 text-forest-700"
-      : "border-bersih-200 bg-bersih-100 text-tinta-500";
+      ? "bg-daun-100 text-forest-700 shadow-[inset_0_0_0_1px_rgb(47_90_60/0.35)]"
+      : "bg-bersih-100 text-tinta-500 hover:bg-bersih-200 hover:text-tinta-900";
 
   return (
     <button
@@ -67,7 +74,7 @@ export function TombolKepala({
       aria-expanded={expanded}
       title={judul ?? label}
       className={[
-        "flex h-10 shrink-0 items-center gap-1.5 rounded-[0.625rem] border px-2 text-[0.8125rem] font-bold sm:px-3",
+        "flex h-10 shrink-0 items-center gap-1.5 rounded-[0.625rem] px-2 text-[0.8125rem] font-bold transition-colors sm:px-3",
         dasar,
         className,
       ].join(" ")}

@@ -94,7 +94,13 @@
      kebiruan seperti slate bawaan Tailwind. */
   --color-gelap-isi: #f5f3f0;     /* teks utama — 15.1:1 di tinta-800 */
   --color-gelap-redup: #b9b2a8;   /* teks kedua — 7.96:1 */
-  --color-gelap-samar: #a49c92;   /* teks ketiga — 5.6:1 di tinta-800, 6.0:1 di tinta-900 */
+  /*
+    Teks ketiga. Dinaikkan dari #a49c92 karena kepala & papan dapur kini
+    memakai forest-800 (#22402e) — dan di sana #a49c92 hanya 4,21:1, di
+    bawah ambang untuk teks kecil. Nilai ini 4,9:1 di forest-800 dan tetap
+    nyaman di tinta-950/900.
+  */
+  --color-gelap-samar: #b4ada3;   /* teks ketiga — 4.9:1 di forest-800 */
 
   /* Oranye versi terang: dipakai sebagai TEKS/badge di latar gelap.
      #c9500a tidak terbaca di tinta-900, jadi di layar gelap memakai
@@ -106,6 +112,40 @@
      tombol. Jadi tombol memakai aksi-500, sedangkan label teks oranye
      (mis. "belum dibayar") memakai aksi-700. */
   --color-aksi-700: #9c3b06;      /* 6.90:1 di putih, 6.06:1 di bersih-100 */
+
+  /* ───────────────────────────────────────────────────────────────
+     Aksen hangat portal order — #ff7c32 MILIK kafe ini.
+
+     #ff7c32 dengan teks putih = 2,57:1: gagal, dan tidak bisa diperbaiki
+     dengan menebalkan huruf. Tiga nada di bawah adalah keluarga warna yang
+     SAMA, masing-masing untuk satu tugas. Memakai satu nada untuk semua
+     tugas selalu berakhir dengan teks yang tidak terbaca di salah satunya:
+
+       sela-500  #ff7c32  LATAR saja, dengan teks gelap (7,2:1).
+                          Dipakai untuk tombol sekunder sekali-sekali,
+                          bukan tombol utama — terlalu terang untuk
+                          menjadi penanda "ini satu-satunya aksi".
+       sela-600  #ea6114  teks putih = 3,35:1 → hanya untuk teks BESAR
+                          (≥18,7px tebal / 24px biasa). Dipakai lencana.
+       sela-700  #c9500a  teks putih = 4,53:1 → AMAN untuk tombol utama
+                          berteks putih ukuran berapa pun. Ini yang dipakai
+                          `tombol-utama` di portal order.
+       sela-800  #a33f06  teks putih = 6,3:1 → ditekan / tautan teks di
+                          latar putih.
+     ─────────────────────────────────────────────────────────────── */
+  --color-sela-50: #fff4ec;
+  --color-sela-100: #ffe6d5;
+  --color-sela-200: #ffd0b3;
+  --color-sela-500: #ff7c32;
+  --color-sela-600: #ea6114;
+  --color-sela-700: #c9500a;
+  --color-sela-800: #a33f06;
+
+  /* Hijau hutan versi terang untuk latar gelap (portal dapur).
+     forest-900 di atas forest-950 hanya 1,35:1 — terlalu tipis untuk
+     memisahkan kepala dari badan. forest-800 memberi 1,9:1. */
+  --color-forest-800: #22402e;
+  --color-forest-600: #3a6b47;
 
   /* Dua warna status di portal staf. Bukan merah/hijau bawaan Tailwind:
      keduanya ditarik ke arah terracotta & hijau hutan yang sudah dipakai
@@ -264,6 +304,100 @@
    kedua dan ketiga menyusul tanpa JavaScript sama sekali.
    `both` menahan keadaan awal (tembus pandang) sebelum animasi mulai dan
    menahan keadaan akhir setelah selesai. */
+/* ───────────────────────────────────────────────────────────────
+   TOMBOL — satu anatomi untuk lima portal.
+
+   Sebelum ini tiap portal menulis sendiri-sendiri: `bg-tinta-900` di satu
+   tempat, `bg-forest-700` di tempat lain, tinggi h-9 di sini dan h-12 di
+   sana untuk aksi yang sama pentingnya. Akibatnya "tombol utama" tidak
+   punya arti yang konsisten, dan tidak ada cara memeriksanya.
+
+   Aturannya sekarang tiga tingkat, dan hanya tiga:
+
+     tombol-utama    aksi yang diharapkan ditekan. Hijau hutan #1b3325
+                     dengan teks krem: 13,6:1. Hijau, bukan oranye, supaya
+                     oranye tetap berarti "harga" dan "perhatian".
+     tombol-aksen    aksi pada layar gelap / aksi beli. Oranye #c9500a
+                     dengan teks putih: 4,53:1 (batas AA, terukur).
+     tombol-tenang   aksi kedua. Garis tipis, latar transparan.
+
+   Semua `inline-flex` + `gap`, karena hampir setiap tombol di portal ini
+   berpasangan dengan ikon; `justify-center` supaya label tetap di tengah
+   walau ikonnya tidak sama lebar.
+   ─────────────────────────────────────────────────────────────── */
+@utility tombol-utama {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--color-forest-900);
+  color: var(--color-cream-50);
+  font-weight: 800;
+  border-radius: 0.625rem;
+  transition: background-color 140ms ease, transform 140ms ease;
+  &:hover { background-color: var(--color-forest-800); }
+  &:active { transform: scale(0.99); }
+  &:disabled { opacity: 0.45; transform: none; }
+}
+
+@utility tombol-aksen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--color-sela-700);
+  color: #ffffff;
+  font-weight: 800;
+  border-radius: 0.625rem;
+  transition: background-color 140ms ease, transform 140ms ease;
+  &:hover { background-color: var(--color-sela-800); }
+  &:active { transform: scale(0.99); }
+  &:disabled { opacity: 0.45; transform: none; }
+}
+
+@utility tombol-tenang {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: transparent;
+  color: var(--color-forest-900);
+  font-weight: 700;
+  border-radius: 0.625rem;
+  box-shadow: inset 0 0 0 1px var(--color-bersih-300);
+  transition: background-color 140ms ease;
+  &:hover { background-color: var(--color-bersih-100); }
+  &:disabled { opacity: 0.45; }
+}
+
+/* Kartu permukaan: satu bayangan untuk seluruh portal order.
+   Tiga lapis bayangan berbeda yang ditulis tangan di berbagai berkas
+   membuat kartu yang seharusnya setara terlihat berbeda ketinggian. */
+@utility kartu {
+  background-color: var(--color-bersih-0);
+  border-radius: 0.875rem;
+  border: 1px solid var(--color-bersih-200);
+  box-shadow:
+    0 1px 2px rgb(22 19 15 / 0.04),
+    0 8px 20px -12px rgb(22 19 15 / 0.18);
+}
+
+@utility kartu-datar {
+  background-color: var(--color-bersih-0);
+  border-radius: 0.875rem;
+  border: 1px solid var(--color-bersih-200);
+}
+
+/* Label kecil di atas judul (MEJA 3 · AREA TERAS). */
+@utility label-mikro {
+  font-size: 0.6875rem;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-tinta-500);
+}
+
 @utility card-enter {
   animation: card-in 620ms cubic-bezier(0.22, 1, 0.36, 1) var(--card-delay, 0ms) both;
 }

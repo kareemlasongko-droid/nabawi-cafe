@@ -271,7 +271,7 @@ export function PortalAdmin({
   }
 
   return (
-    <div className="min-h-dvh bg-bersih-50">
+    <div className="min-h-dvh bg-cream-50">
       <BilahStaf
         judul="Admin menu"
         keterangan={
@@ -300,8 +300,10 @@ export function PortalAdmin({
                 muatPenjualan();
               }}
               className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
-                tab === "penjualan" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
+                tab === "penjualan"
+                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
+                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
               ].join(" ")}
             >
               Penjualan
@@ -310,8 +312,10 @@ export function PortalAdmin({
               type="button"
               onClick={() => setTab("menu")}
               className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
-                tab === "menu" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
+                tab === "menu"
+                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
+                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
               ].join(" ")}
             >
               Menu
@@ -320,8 +324,10 @@ export function PortalAdmin({
               type="button"
               onClick={() => setTab("biaya")}
               className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
-                tab === "biaya" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
+                tab === "biaya"
+                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
+                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
               ].join(" ")}
             >
               <span className="sm:hidden">Pajak</span>
@@ -331,8 +337,10 @@ export function PortalAdmin({
               type="button"
               onClick={() => setTab("meja")}
               className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
-                tab === "meja" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
+                tab === "meja"
+                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
+                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
               ].join(" ")}
             >
               Meja
@@ -341,8 +349,10 @@ export function PortalAdmin({
               type="button"
               onClick={() => setTab("stok")}
               className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
-                tab === "stok" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
+                tab === "stok"
+                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
+                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
               ].join(" ")}
             >
               Stok
@@ -354,8 +364,10 @@ export function PortalAdmin({
                 muatJam();
               }}
               className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold sm:px-3",
-                tab === "jam" ? "bg-tinta-900 text-bersih-0" : "border border-bersih-200 text-tinta-700",
+                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
+                tab === "jam"
+                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
+                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
               ].join(" ")}
             >
               Jam buka
@@ -365,8 +377,8 @@ export function PortalAdmin({
       />
 
       {!bisaUbah && (
-        <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
-          <p className="text-[0.6875rem] leading-snug text-clay-800">
+        <div className="border-b border-sela-200 bg-sela-50 px-4 py-2 sm:px-6">
+          <p className="text-[0.6875rem] leading-snug text-sela-800">
             <strong>Hanya-baca.</strong> Perubahan menu memerlukan kunci server database
             (SUPABASE_SERVICE_KEY) yang dipasang di Cloudflare. Tanpa itu, halaman ini hanya
             menampilkan data.
@@ -381,8 +393,8 @@ export function PortalAdmin({
         membuat admin mengira ada dua masalah berbeda.
       */}
       {galat && bisaUbah && (
-        <div className="border-b border-clay-700/25 bg-tanah-100 px-4 py-2 sm:px-6">
-          <p className="text-[0.8125rem] font-semibold text-clay-800">{galat}</p>
+        <div className="border-b border-sela-200 bg-sela-50 px-4 py-2 sm:px-6">
+          <p className="text-[0.8125rem] font-semibold text-sela-800">{galat}</p>
         </div>
       )}
 
@@ -400,7 +412,7 @@ export function PortalAdmin({
                 type="button"
                 onClick={muatPenjualan}
                 disabled={muatPenjualanSibuk}
-                className="h-9 rounded-[0.5rem] border border-bersih-200 px-3 text-[0.75rem] font-bold text-tinta-700 disabled:opacity-50"
+                className="tombol-tenang h-9 px-3 text-[0.75rem]"
               >
                 {muatPenjualanSibuk ? "Memuat…" : "Muat ulang"}
               </button>
@@ -441,7 +453,7 @@ export function PortalAdmin({
               type="button"
               onClick={() => setBaru(true)}
               disabled={!bisaUbah}
-              className="flex h-10 shrink-0 items-center gap-1.5 rounded-[0.625rem] bg-tinta-900 px-3 text-[0.8125rem] font-bold text-bersih-0 disabled:opacity-40"
+              className="tombol-utama h-10 shrink-0 px-3.5 text-[0.8125rem]"
             >
               <IkonTambah className="size-4" />
               Menu baru
@@ -541,8 +553,8 @@ export function PortalAdmin({
                 className={[
                   "flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[0.6875rem] font-bold transition",
                   hanyaRekomendasi
-                    ? "bg-tinta-900 text-bersih-0"
-                    : "bg-bersih-100 text-tinta-700 active:bg-bersih-200",
+                    ? "bg-forest-900 text-cream-50"
+                    : "bg-bersih-100 text-tinta-700 hover:bg-bersih-200 active:bg-bersih-200",
                 ].join(" ")}
               >
                 <IkonBintang className="size-3.5" />
@@ -633,7 +645,7 @@ export function PortalAdmin({
                           tamu melihat hal yang sama.
                         */}
                         {m.rekomendasi === true && (
-                          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-tanah-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-clay-800">
+                          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-sela-50 px-1.5 py-0.5 text-[0.6875rem] font-bold text-sela-800">
                             <IkonBintang className="size-3" />
                             Rekomendasi
                           </span>
@@ -651,7 +663,7 @@ export function PortalAdmin({
                             {m.pilihan.length} pilihan
                           </span>
                           {m.pilihan.some((p) => p.tambah > 0) && (
-                            <span className="rounded-full bg-tanah-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-clay-800">
+                            <span className="rounded-full bg-sela-50 px-1.5 py-0.5 text-[0.6875rem] font-bold text-sela-800">
                               ada tambahan harga
                             </span>
                           )}
@@ -674,7 +686,7 @@ export function PortalAdmin({
                           "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[0.6875rem] font-bold transition disabled:opacity-50",
                           m.tersedia
                             ? "bg-daun-100 text-forest-700"
-                            : "bg-tanah-100 text-clay-800",
+                            : "bg-sela-50 text-sela-800",
                         ].join(" ")}
                       >
                         {m.tersedia ? (
@@ -711,7 +723,7 @@ export function PortalAdmin({
                           className={[
                             "grid size-8 place-items-center rounded-[0.5rem] border transition disabled:opacity-40",
                             m.rekomendasi
-                              ? "border-aksi-700/40 bg-tanah-100 text-clay-800"
+                              ? "border-aksi-700/40 bg-sela-50 text-sela-800"
                               : "border-bersih-200 text-tinta-500",
                           ].join(" ")}
                         >
@@ -811,7 +823,7 @@ export function PortalAdmin({
                   lama tetap berlaku dan menyimpulkan aplikasinya rusak.
                 */}
                 {jam.catatan && (
-                  <p className="mt-2 rounded-[0.5rem] bg-clay-600/10 p-2 text-[0.75rem] font-semibold leading-snug text-clay-800">
+                  <p className="mt-2 rounded-[0.5rem] bg-sela-600/10 p-2 text-[0.75rem] font-semibold leading-snug text-sela-800">
                     {jam.catatan}
                   </p>
                 )}
@@ -821,7 +833,7 @@ export function PortalAdmin({
                     type="button"
                     onClick={() => simpanJam(jam.contoh24Jam)}
                     disabled={sibukJam || jam.buka24Jam}
-                    className="h-10 rounded-[0.625rem] bg-forest-700 px-3 text-[0.8125rem] font-extrabold text-bersih-0 disabled:opacity-45"
+                    className="tombol-utama h-10 px-3 text-[0.8125rem] disabled:opacity-45"
                   >
                     Buka 24 jam
                   </button>
@@ -896,7 +908,7 @@ export function PortalAdmin({
       {tersimpan && (
         <div
           role="status"
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-tinta-900 px-4 py-2 text-[0.8125rem] font-bold text-bersih-0 shadow-lg"
+          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-forest-900 px-4 py-2 text-[0.8125rem] font-bold text-cream-50 shadow-[0_10px_30px_-12px_rgb(20_35_26/0.6)]"
         >
           {tersimpan}
         </div>
@@ -1098,7 +1110,7 @@ function DialogMenu({
                     type="button"
                     onClick={() => setPilihan((d) => d.filter((_, j) => j !== i))}
                     aria-label={`Hapus pilihan ${p.nama || i + 1}`}
-                    className="grid size-10 shrink-0 place-items-center rounded-[0.5rem] text-tinta-500 transition active:bg-tanah-100 active:text-clay-800"
+                    className="grid size-10 shrink-0 place-items-center rounded-[0.5rem] text-tinta-500 transition active:bg-sela-50 active:text-sela-800"
                   >
                     <IkonHapus className="size-4" />
                   </button>
@@ -1108,7 +1120,7 @@ function DialogMenu({
           )}
 
           {namaPilihanGanda && (
-            <p className="mt-1.5 text-[0.75rem] font-semibold text-clay-800">
+            <p className="mt-1.5 text-[0.75rem] font-semibold text-sela-800">
               Ada nama pilihan yang sama. Samakan ejaannya atau hapus salah satu.
             </p>
           )}
@@ -1174,7 +1186,7 @@ function DialogMenu({
                 rekomendasi,
               })
             }
-            className="h-11 flex-1 rounded-[0.625rem] bg-tinta-900 text-[0.9375rem] font-bold text-bersih-0 disabled:opacity-40"
+            className="tombol-utama h-11 flex-1 text-[0.9375rem]"
           >
             {sibuk ? "Menyimpan…" : "Simpan"}
           </button>
@@ -1215,8 +1227,8 @@ function ChipSaring({
         "flex shrink-0 items-center gap-1 rounded-full font-bold transition",
         kecil ? "h-8 px-2.5 text-[0.6875rem]" : "h-9 px-3 text-[0.8125rem]",
         aktif
-          ? "bg-tinta-900 text-bersih-0"
-          : "bg-bersih-100 text-tinta-700 active:bg-bersih-200",
+          ? "bg-forest-900 text-cream-50"
+          : "bg-bersih-100 text-tinta-700 hover:bg-bersih-200 active:bg-bersih-200",
       ].join(" ")}
     >
       {children}

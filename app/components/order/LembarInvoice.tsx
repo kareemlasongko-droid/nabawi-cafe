@@ -109,7 +109,7 @@ function ModalGalat({ pesan, onTutup }: { pesan: string; onTutup: () => void }) 
         <button
           type="button"
           onClick={onTutup}
-          className="mt-3 h-10 w-full rounded-[0.625rem] bg-tinta-900 text-[0.8125rem] font-bold text-bersih-0"
+          className="tombol-utama mt-3 h-10 w-full text-[0.8125rem]"
         >
           Tutup
         </button>
@@ -185,7 +185,7 @@ export function LembarInvoice({
             "rounded-[0.25rem] border px-2 py-1 text-[0.625rem] font-extrabold uppercase tracking-wider",
             lunas
               ? "border-forest-700/40 bg-daun-100 text-forest-700"
-              : "border-clay-700/40 bg-tanah-100 text-clay-800",
+              : "border-sela-200 bg-sela-50 text-sela-800",
           ].join(" ")}
         >
           {lunas ? "Lunas" : "Belum dibayar"}
@@ -328,7 +328,7 @@ export function LembarInvoice({
         <button
           type="button"
           onClick={cetak}
-          className="h-10 flex-1 rounded-[0.625rem] border border-bersih-200 text-[0.8125rem] font-bold text-tinta-900"
+          className="tombol-tenang h-10 flex-1 text-[0.8125rem]"
         >
           Cetak / PDF
         </button>
@@ -336,7 +336,7 @@ export function LembarInvoice({
           <button
             type="button"
             onClick={onTutup}
-            className="h-10 flex-1 rounded-[0.625rem] bg-tinta-900 text-[0.8125rem] font-bold text-bersih-0"
+            className="tombol-utama h-10 flex-1 text-[0.8125rem]"
           >
             Tutup
           </button>

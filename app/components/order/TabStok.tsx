@@ -121,7 +121,7 @@ export function TabStok() {
             className={[
               "h-9 rounded-[0.625rem] px-3 text-[0.8125rem] font-bold",
               bagian === k
-                ? "bg-tinta-900 text-bersih-0"
+                ? "bg-forest-900 text-cream-50"
                 : "border border-bersih-200 text-tinta-700",
             ].join(" ")}
           >
@@ -193,7 +193,7 @@ function BagianBahan() {
         <button
           type="button"
           onClick={() => setFormBuka((b) => !b)}
-          className="h-9 rounded-[0.625rem] bg-forest-700 px-3 text-[0.8125rem] font-bold text-bersih-0"
+          className="tombol-utama h-9 px-3 text-[0.8125rem]"
         >
           {formBuka ? "Tutup" : "+ Bahan"}
         </button>
@@ -217,11 +217,11 @@ function BagianBahan() {
         setelah membuka tab yang tidak pernah ia buka.
       */}
       {perluNyata.length > 0 && (
-        <div className="rounded-[0.625rem] border border-clay-700/25 bg-tanah-100 px-3 py-2">
-          <p className="text-[0.75rem] font-extrabold text-clay-800">
+        <div className="rounded-[0.625rem] border border-sela-200 bg-sela-50 px-3 py-2">
+          <p className="text-[0.75rem] font-extrabold text-sela-800">
             Perlu dipesan ({perluNyata.length})
           </p>
-          <p className="mt-0.5 text-[0.75rem] leading-snug text-clay-800">
+          <p className="mt-0.5 text-[0.75rem] leading-snug text-sela-800">
             {perluNyata.map((b) => `${b.nama} (${fmt(b.stok)} ${b.satuan})`).join(" · ")}
           </p>
         </div>
@@ -257,9 +257,9 @@ function BagianBahan() {
                     className={[
                       "shrink-0 rounded px-1 py-px text-[0.5625rem] font-extrabold uppercase",
                       b.status === "habis"
-                        ? "bg-clay-800 text-bersih-0"
+                        ? "bg-sela-700 text-white"
                         : b.status === "kritis"
-                          ? "bg-tanah-100 text-clay-800"
+                          ? "bg-sela-50 text-sela-800"
                           : b.status === "belum_dicatat"
                             ? "bg-bersih-200 text-tinta-700"
                             : "bg-daun-100 text-forest-700",
@@ -347,7 +347,7 @@ function FormBahan({
         type="button"
         onClick={simpan}
         disabled={sibuk}
-        className="mt-2 h-10 w-full rounded-[0.625rem] bg-forest-700 text-[0.8125rem] font-bold text-bersih-0 disabled:opacity-50"
+        className="tombol-utama mt-2 h-10 w-full text-[0.8125rem] disabled:opacity-50"
       >
         {sibuk ? "Menyimpan…" : "Simpan bahan"}
       </button>
@@ -431,7 +431,7 @@ function OpnameKecil({
           type="button"
           onClick={kirim}
           disabled={sibuk || fisik === ""}
-          className="h-8 shrink-0 rounded-[0.5rem] bg-tinta-900 px-2 text-[0.6875rem] font-bold text-bersih-0 disabled:opacity-40"
+          className="h-8 shrink-0 rounded-[0.5rem] bg-forest-900 px-2 text-[0.6875rem] font-bold text-cream-50 transition hover:bg-forest-800 disabled:opacity-40"
         >
           OK
         </button>
@@ -644,7 +644,7 @@ function EditorResep({
       </div>
 
       {resep?.perkiraan && (
-        <p className="mt-1 rounded bg-tanah-100 px-2 py-1 text-[0.625rem] leading-snug text-clay-800">
+        <p className="mt-1 rounded bg-sela-50 px-2 py-1 text-[0.625rem] leading-snug text-sela-800">
           Resep ini <strong>perkiraan</strong> — diisi sistem, belum dicocokkan dengan takaran
           dapur. HPP-nya belum bisa dipakai mengambil keputusan harga.
         </p>
@@ -711,7 +711,7 @@ function EditorResep({
       </div>
 
       {hppDraf.adaKosong && (
-        <p className="mt-1 text-[0.625rem] leading-snug text-clay-800">
+        <p className="mt-1 text-[0.625rem] leading-snug text-sela-800">
           Ada bahan yang harganya belum diisi — HPP ini <strong>kurang</strong> dari biaya
           sebenarnya. Isi harga lewat pembelian.
         </p>
@@ -729,7 +729,7 @@ function EditorResep({
         type="button"
         onClick={simpan}
         disabled={sibuk}
-        className="mt-2 h-10 w-full rounded-[0.625rem] bg-forest-700 text-[0.8125rem] font-bold text-bersih-0 disabled:opacity-50"
+        className="tombol-utama mt-2 h-10 w-full text-[0.8125rem] disabled:opacity-50"
       >
         {sibuk ? "Menyimpan…" : "Simpan resep"}
       </button>
@@ -796,7 +796,7 @@ function BagianCatat() {
               <span
                 className={[
                   "shrink-0 text-[0.75rem] font-bold tabular-nums",
-                  Number(g.jumlah) < 0 ? "text-clay-800" : "text-forest-700",
+                  Number(g.jumlah) < 0 ? "text-sela-800" : "text-forest-700",
                 ].join(" ")}
               >
                 {Number(g.jumlah) > 0 ? "+" : ""}
@@ -948,7 +948,7 @@ function FormPembelian({ bahan, onSelesai }: { bahan: Bahan[]; onSelesai: () => 
         type="button"
         onClick={kirim}
         disabled={sibuk}
-        className="mt-2 h-10 w-full rounded-[0.625rem] bg-forest-700 text-[0.8125rem] font-bold text-bersih-0 disabled:opacity-50"
+        className="tombol-utama mt-2 h-10 w-full text-[0.8125rem] disabled:opacity-50"
       >
         {sibuk ? "Menyimpan…" : "Simpan pembelian"}
       </button>
@@ -1029,7 +1029,7 @@ function FormBuang({ bahan, onSelesai }: { bahan: Bahan[]; onSelesai: () => void
           type="button"
           onClick={kirim}
           disabled={sibuk || !jumlah}
-          className="h-8 shrink-0 rounded-[0.5rem] bg-tinta-900 px-3 text-[0.75rem] font-bold text-bersih-0 disabled:opacity-40"
+          className="h-8 shrink-0 rounded-[0.5rem] bg-forest-900 px-3 text-[0.75rem] font-bold text-cream-50 transition hover:bg-forest-800 disabled:opacity-40"
         >
           Catat
         </button>
@@ -1121,14 +1121,14 @@ function BagianHpp() {
                 <span
                   className={[
                     "w-12 text-right text-[0.75rem] font-bold tabular-nums",
-                    h.laba < 0 ? "text-clay-800" : "text-forest-700",
+                    h.laba < 0 ? "text-sela-800" : "text-forest-700",
                   ].join(" ")}
                 >
                   {h.persen === null ? "—" : `${h.persen}%`}
                 </span>
               </div>
               {h.hppTidakLengkap > 0 && (
-                <p className="mt-0.5 text-[0.5625rem] text-clay-800">
+                <p className="mt-0.5 text-[0.5625rem] text-sela-800">
                   Termasuk {rupiah(h.hppTidakLengkap)} dari resep yang belum lengkap — laba
                   sebenarnya lebih kecil.
                 </p>
@@ -1158,7 +1158,7 @@ function BagianHpp() {
         </div>
 
         {(belumResep > 0 || perkiraan > 0) && (
-          <p className="mb-1.5 rounded bg-tanah-100 px-2 py-1 text-[0.625rem] leading-snug text-clay-800">
+          <p className="mb-1.5 rounded bg-sela-50 px-2 py-1 text-[0.625rem] leading-snug text-sela-800">
             {belumResep > 0 && <>{belumResep} menu belum punya resep. </>}
             {perkiraan > 0 && <>{perkiraan} menu memakai resep perkiraan yang belum diverifikasi.</>}
           </p>
@@ -1169,7 +1169,7 @@ function BagianHpp() {
             <li key={m.menu_id} className="flex items-baseline gap-2 px-3 py-1.5">
               <span className="min-w-0 flex-1 truncate text-[0.75rem] text-tinta-900">{m.nama}</span>
               {m.jumlah_bahan === 0 ? (
-                <span className="shrink-0 text-[0.625rem] font-bold text-clay-800">tanpa resep</span>
+                <span className="shrink-0 text-[0.625rem] font-bold text-sela-800">tanpa resep</span>
               ) : (
                 <>
                   <span className="w-16 shrink-0 text-right text-[0.6875rem] tabular-nums text-tinta-500">
@@ -1181,7 +1181,7 @@ function BagianHpp() {
                   <span
                     className={[
                       "w-12 shrink-0 text-right text-[0.75rem] font-bold tabular-nums",
-                      (m.persen ?? 0) < 0 ? "text-clay-800" : "text-forest-700",
+                      (m.persen ?? 0) < 0 ? "text-sela-800" : "text-forest-700",
                     ].join(" ")}
                   >
                     {m.persen === null ? "—" : `${m.persen}%`}
@@ -1237,8 +1237,8 @@ function Isian({
 
 function KotakPesan({ pesan }: { pesan: string }) {
   return (
-    <div className="rounded-[0.625rem] border border-clay-700/25 bg-tanah-100 px-3 py-2">
-      <p className="text-[0.75rem] leading-snug text-clay-800">{pesan}</p>
+    <div className="rounded-[0.625rem] border border-sela-200 bg-sela-50 px-3 py-2">
+      <p className="text-[0.75rem] leading-snug text-sela-800">{pesan}</p>
     </div>
   );
 }

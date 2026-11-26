@@ -1,3 +1,9 @@
+> **Catatan status.** Dokumen ini merekam arah **palet B (putih bersih)** yang
+> berlaku sampai November 2026. Arah yang berlaku sekarang — latar krem,
+> tombol hijau hutan, oranye khusus untuk harga & perhatian — ada di
+> [`arah-visual-order.md`](./arah-visual-order.md). Angka kontras dan aturan
+> tata letak kepala di bawah tetap berlaku dan tidak dibatalkan.
+
 # Desain portal staf — palet B
 
 Catatan ini menjelaskan **apa yang berubah, mengapa, dan angka apa yang dipakai**.
