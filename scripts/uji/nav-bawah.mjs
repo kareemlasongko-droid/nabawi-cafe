@@ -61,7 +61,19 @@ async function main() {
     cek(`${label}: halaman terbuka`, html.length > 0, `${html.length} byte`);
 
     // ── 1. Nav-nya ada, di bawah, dan tetap ──────────────────────────
-    const nav = html.slice(html.indexOf("<nav"), html.indexOf("</nav>") + 6);
+    /*
+      Cari nav STAF, bukan nav pertama di dokumen.
+
+      Sejak tabel menu admin memakai <nav aria-label="Halaman menu"> untuk
+      paginasi, `indexOf("<nav")` mengambil nav paginasi itu — dan ujinya
+      menuduh navbar bawah kehilangan semua atributnya. Navbar staf
+      dikenali dari aria-label-nya, bukan dari urutan di dokumen.
+    */
+    const buka = html.search(/<nav[^>]*aria-label="Navigasi (kasir|admin)"/);
+    const nav =
+      buka === -1
+        ? ""
+        : html.slice(buka, html.indexOf("</nav>", buka) + 6);
     cek(
       `${label}: nav berlabel untuk pembaca layar`,
       /aria-label="Navigasi (kasir|admin)"/.test(nav),

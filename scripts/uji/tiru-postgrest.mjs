@@ -246,7 +246,16 @@ const bawaan = {
   hpp_pesanan: (b) => ({ dibuat_at: sekarang(), lengkap: true, ...b }),
   pembelian: (b) => ({ no_nota: "", total: 0, dibayar: true, catatan: "", oleh: "sistem", dibeli_at: sekarang(), ...b }),
   bahan: (b) => ({ aktif: true, catatan: "", stok_minimum: 0, ...b }),
-  gerakan_stok: (b) => ({ created_at: sekarang(), ...b }),
+  /*
+    Kolomnya `dibuat_at` (lihat migrasi stok_hpp), BUKAN `created_at`.
+    Selama di sini tertulis `created_at`, `order=dibuat_at.desc` tidak
+    menemukan kolomnya dan tiruan mengembalikan baris sesuai urutan
+    sisip — yaitu yang TERTUA. Akibatnya `?lihat=gerakan&batas=20`
+    menyembunyikan gerakan yang baru saja dibuat, dan uji HPP gagal
+    dengan pesan yang menuduh kode aplikasi, padahal tiruannya yang
+    salah kolom.
+  */
+  gerakan_stok: (b) => ({ dibuat_at: sekarang(), ...b }),
 };
 
 /*

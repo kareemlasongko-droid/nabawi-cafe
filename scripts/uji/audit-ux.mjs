@@ -145,7 +145,10 @@ async function main() {
   console.log("\n── 6. Nav bawah tetap satu baris ──");
 
   const adminHtml = await teks("/order/admin");
-  const navAdmin = adminHtml.slice(adminHtml.indexOf("<nav"), adminHtml.indexOf("</nav>") + 6);
+  // Nav STAF — bukan <nav> paginasi tabel yang muncul lebih dulu di dokumen.
+  const bukaNav = adminHtml.search(/<nav[^>]*aria-label="Navigasi (kasir|admin)"/);
+  const navAdmin =
+    bukaNav === -1 ? "" : adminHtml.slice(bukaNav, adminHtml.indexOf("</nav>", bukaNav) + 6);
   cek(
     "admin: label nav memakai huruf yang bisa menyusut",
     navAdmin.includes("clamp("),
@@ -155,6 +158,56 @@ async function main() {
     "admin: label nav tidak membungkus ke baris kedua",
     navAdmin.includes("whitespace-nowrap"),
     "label yang membungkus mengubah tinggi bilah dan menggeser tombol di bawah jari",
+  );
+
+  // ═══ 7. Tabel menu: paginasi + kartu ponsel ═════════════════════════
+  console.log("\n── 7. Tabel menu admin dijangkau di ponsel ──");
+
+  // Komponen admin adalah klien: kelasnya hanya ada di bundel, bukan HTML.
+  const adminBundel = await gabungBundel(adminHtml);
+
+  cek(
+    "admin: tabel hanya merender satu halaman",
+    adminBundel.includes("PER_HALAMAN") || /\.slice\(\w+,\w+\+10\)/.test(adminBundel),
+    "126 baris sekaligus membuat 116 menu terakhir tak pernah terlihat",
+  );
+  cek(
+    "admin: ada tombol halaman sebelumnya/berikutnya",
+    adminBundel.includes("Halaman sebelumnya") && adminBundel.includes("Halaman berikutnya"),
+    "tanpa ini halaman 2+ tidak terjangkau",
+  );
+  cek(
+    "admin: jangkauan disebut ('Menampilkan X dari Y')",
+    adminBundel.includes("Menampilkan"),
+    "nomor halaman tanpa keterangan jangkauan tidak berarti setelah disaring",
+  );
+  cek(
+    "admin: tabel jadi kartu di ponsel (grid → table-row)",
+    adminBundel.includes("sm:table-row") && adminBundel.includes("grid-cols-1"),
+    "5 kolom dalam 360px menyisakan ~110px untuk nama menu",
+  );
+  cek(
+    "admin: kepala tabel disembunyikan di ponsel",
+    adminBundel.includes("hidden sm:table-header-group"),
+    "label kolom tak berguna saat barisnya jadi kartu",
+  );
+
+  console.log("\n── 8. Target sentuh tab stok ──");
+
+  const stokBundel = await gabungBundel(await teks("/order/admin"));
+
+  // Hitung tombol/isian yang di PONSEL masih di bawah 44px.
+  const sempit = [...stokBundel.matchAll(/className:"([^"]{0,300}?)"/g)]
+    .map((m) => m[1])
+    .filter((c) => {
+      if (c.includes("sm:") && !c.match(/(?:^|\s)(?:h|size)-1[01](?:\s|$)/)) return false;
+      return /(?:^|\s)(?:h|size)-(?:7|8|9|10)(?:\s|$)/.test(c);
+    });
+
+  cek(
+    "stok/admin: elemen di bawah 44px hanya tersisa sedikit",
+    sempit.length <= 30,
+    `tersisa ${sempit.length} (sebelum redesain: 52) — sisanya ikon & chip bertumpuk`,
   );
 
   console.log(`\n═══ ${lulus} lulus, ${gagal} gagal ═══`);
