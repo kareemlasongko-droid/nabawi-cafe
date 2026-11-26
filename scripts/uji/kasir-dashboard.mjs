@@ -170,63 +170,37 @@ async function main() {
     html.search(/<nav[^>]*aria-label="Navigasi Kasir"/i),
     html.indexOf("</nav>", html.search(/<nav[^>]*aria-label="Navigasi Kasir"/i)),
   );
-  const idPanel = [...html.matchAll(/id="(antrean|meja|menu|laporan|riwayat)"/g)].map((m) => m[1]);
-  const unik = [...new Set(idPanel)];
-
-  cek("lima panel ada dengan id yang dituju sidebar", unik.length === 5, unik.join(", "));
-  cek(
-    "setiap item sidebar menunjuk panel yang benar-benar ada",
-    (nav.match(/href="#(\w+)"/g) ?? []).every((h) => html.includes(`id="${h.slice(7, -1)}"`)),
-    "tautan mati = tombol yang tidak melakukan apa pun",
-  );
   /*
-    ── TIDAK ADA PANEL YANG BERSARANG DI PANEL LAIN ──────────────────
+    ── SATU LAYAR, SATU PANEL ──────────────────────────────────────────
+    Permintaan pemilik: "jangan ditumpuk jadi 1 halaman, buat sesuai
+    fungsi pada umumnya". Dashboard POS normal menampilkan satu pekerjaan
+    per layar; sidebar memindahkannya.
 
-    Bug yang membuat dashboard terlihat kacau: `<section id="menu">`
-    berada DI DALAM `<section id="meja">`. Akibatnya kolom kanan
-    memanjang 126 kartu produk sementara kolom kiri selesai di layar
-    pertama — sisa halaman jadi satu kolom kosong di kiri.
-
-    Yang diperiksa: saat tag `<section` dibuka, tidak boleh ada `<section`
-    lain yang masih terbuka. Dihitung dengan menyusuri dokumen, bukan
-    dengan mencocokkan teks — bersarang bisa terjadi dengan `id` apa pun.
+    Yang diperiksa: HTML awal hanya memuat panel Antrean, dan panel lain
+    TIDAK ada di DOM (bukan sekadar disembunyikan dengan CSS). Kalau
+    disembunyikan, tingginya tetap dihitung dan halaman bisa digulir ke
+    ruang kosong.
   */
-  {
-    const tumpukan = [];
-    let bersarang = "";
-    for (const m of html.matchAll(/<(\/?)section\b[^>]*?(?:id="([^"]+)")?[^>]*>/g)) {
-      const tutup = m[1] === "/";
-      if (!tutup) {
-        if (tumpukan.length > 0 && !bersarang) {
-          bersarang = `#${m[2] ?? "?"} di dalam #${tumpukan[tumpukan.length - 1]}`;
-        }
-        tumpukan.push(m[2] ?? "?");
-      } else {
-        tumpukan.pop();
-      }
-    }
-    cek(
-      "tidak ada panel yang bersarang di panel lain",
-      bersarang === "",
-      bersarang || "antrean, meja, menu sejajar sebagai anak grid",
-    );
-    cek(
-      "semua <section> tertutup rapi",
-      tumpukan.length === 0,
-      `${tumpukan.length} section tidak ditutup`,
-    );
-  }
+  const adaPanel = (id) => new RegExp(`id="${id}"`).test(html);
 
+  cek("panel awal yang dirender adalah Antrean", adaPanel("antrean"));
   cek(
-    "panel menu punya tinggi sendiri (tidak memanjangkan halaman)",
-    /lg:max-h-\[calc\(100dvh/.test(html),
-    "126 kartu tanpa batas tinggi = halaman sepanjang ribuan piksel",
+    "panel lain tidak ikut ditumpuk di halaman yang sama",
+    !adaPanel("menu") && !adaPanel("riwayat"),
+    "halaman sepanjang ribuan piksel menyulitkan pencarian pekerjaan",
   );
-
   cek(
-    "strip status menampilkan empat angka",
-    ["Baru", "Belum bayar", "Berjalan", "Meja terisi"].every((t) => html.includes(t)),
-    "kasir tidak perlu membaca tiga panel untuk tahu keadaan",
+    "sidebar menjadi pemilih layar (tombol, bukan tautan anchor)",
+    nav.includes('type="button"') && !nav.includes('href="#antrean"'),
+    "mengubah keadaan = tombol; tautan anchor hanya menggulir halaman",
+  );
+  cek(
+    "sidebar menandai tepat satu tujuan aktif",
+    (nav.match(/aria-current="page"/g) ?? []).length === 1,
+  );
+  cek(
+    "strip status memindahkan layar, bukan menggulir",
+    html.includes("Meja terisi") && !/href="#meja"/.test(html),
   );
 
   cek(

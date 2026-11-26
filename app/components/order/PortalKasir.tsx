@@ -221,50 +221,13 @@ export function PortalKasir() {
   const oleh = namaKasir.trim() || "kasir";
 
   /*
-    ── PENANDA AKTIF MENGIKUTI APA YANG TERLIHAT ────────────────────────
+    ── PENANDA AKTIF = LAYAR YANG DIPILIH ──────────────────────────────
 
-    Sidebar menandai satu tujuan sebagai `aria-current`. Kalau nilainya
-    dibiarkan "antrean" selamanya, kasir yang sudah menggulir ke Riwayat
-    tetap melihat Antrean menyala — penanda yang berbohong lebih buruk
-    daripada tidak ada penanda, karena ia mengarahkan mata ke tempat yang
-    salah.
-
-    IntersectionObserver, bukan listener `scroll`: browser menghitung
-    irisan di luar main thread, jadi menggulir tidak memicu puluhan
-    pembacaan layout. Ambang 0,35 dipilih supaya panel yang baru muncul
-    sedikit di tepi bawah belum merebut penanda.
+    Dulu penanda mengikuti panel yang terlihat saat menggulir, karena
+    kelima panel ditumpuk di satu halaman. Sekarang hanya satu panel
+    dirender, jadi tidak ada yang perlu diamati: `layar` adalah
+    kebenarannya, dan sidebar membacanya langsung.
   */
-  useEffect(() => {
-    const panel = ["antrean", "meja", "menu", "laporan", "riwayat"]
-      .map((k) => document.getElementById(k))
-      .filter((el): el is HTMLElement => el !== null);
-    if (panel.length === 0) return;
-
-    const terlihat = new Map<string, number>();
-    const pengamat = new IntersectionObserver(
-      (entri) => {
-        for (const e of entri) {
-          if (e.isIntersecting) terlihat.set(e.target.id, e.intersectionRatio);
-          else terlihat.delete(e.target.id);
-        }
-        let teratas: string | null = null;
-        let rasio = 0;
-        for (const [id, r] of terlihat) {
-          if (r > rasio) {
-            rasio = r;
-            teratas = id;
-          }
-        }
-        if (teratas) setLayar(teratas as typeof layar);
-      },
-      { threshold: [0.35], rootMargin: "-10% 0px -35% 0px" },
-    );
-    for (const el of panel) pengamat.observe(el);
-    return () => pengamat.disconnect();
-    // `layar` sengaja tidak masuk dependensi: pengamat tidak perlu dibuat
-    // ulang tiap kali penanda berpindah.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data !== null]);
 
   function simpanNamaKasir(nama: string) {
     const bersih = nama.trim().slice(0, 40);
@@ -664,6 +627,15 @@ export function PortalKasir() {
       <Sidebar
         judul="Kasir"
         aktif={layar}
+        onPilih={(k) => {
+          setLayar(k as typeof layar);
+          /*
+            Gulir ke atas saat berpindah layar. Tanpa ini, kasir yang
+            menggulir jauh di panel Menu lalu memilih Antrean akan
+            mendarat di tengah panel baru — dan mengira isinya kosong.
+          */
+          window.scrollTo({ top: 0 });
+        }}
         item={[
           {
             kunci: "antrean",
@@ -783,34 +755,35 @@ export function PortalKasir() {
             label: "Baru",
             nilai: antrean.length,
             aksen: antrean.length > 0,
-            href: "#antrean",
+            tujuan: "antrean",
           },
           {
             kunci: "belum-bayar",
             label: "Belum bayar",
             nilai: menungguBayar.length,
             aksen: menungguBayar.length > 0,
-            href: "#belum-dibayar",
+            tujuan: "antrean",
           },
           {
             kunci: "berjalan",
             label: "Berjalan",
             nilai: diproses.length,
             aksen: false,
-            href: "#antrean",
+            tujuan: "antrean",
           },
           {
             kunci: "terisi",
             label: "Meja terisi",
             nilai: mejaTerisi,
             aksen: false,
-            href: "#meja",
+            tujuan: "meja",
           },
         ].map((k) => (
-          <a
+          <button
             key={k.kunci}
-            href={k.href}
-            className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2 transition hover:bg-bersih-100 sm:px-4"
+            type="button"
+            onClick={() => setLayar(k.tujuan as typeof layar)}
+            className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2 text-left transition hover:bg-bersih-100 sm:px-4"
           >
             <span className="truncate text-[0.625rem] font-bold uppercase tracking-[0.1em] text-tinta-500">
               {k.label}
@@ -823,7 +796,7 @@ export function PortalKasir() {
             >
               {k.nilai}
             </span>
-          </a>
+          </button>
         ))}
       </div>
 
@@ -835,7 +808,7 @@ export function PortalKasir() {
         batas waktu — jadi kalau kasir tidak melihatnya, tamu tidak dapat
         makanan tanpa ada yang tahu kenapa.
       */}
-      {menungguBayar.length > 0 && (
+      {layar === "antrean" && (
         <section
           id="belum-dibayar"
           aria-labelledby="menunggu-bayar"
@@ -993,32 +966,23 @@ export function PortalKasir() {
       )}
 
       {/*
-        ── DASHBOARD PADAT: SEMUA PANEL TERLIHAT ───────────────────────
-        Tidak ada `layar ===` di sini. Sidebar dipakai untuk MELOMPAT ke
-        anchor, bukan untuk menyembunyikan panel — kasir membaca antrean
-        dan denah meja bersamaan, jadi keduanya harus ada di layar yang
-        sama. Urutan penumpukan di ponsel mengikuti urgensi: antrean →
-        meja → menu → laporan → riwayat.
+        ── SATU LAYAR, SATU PEKERJAAN ──────────────────────────────────
+
+        Sebelumnya kelima panel ditumpuk di satu halaman panjang dan
+        sidebar hanya dipakai untuk melompat ke anchor. Itu salah untuk
+        alat kerja: kasir yang sedang menerima pesanan tidak perlu
+        melihat denah meja, dan sebaliknya. Halaman sepanjang ribuan
+        piksel membuat semuanya terasa sesak sekaligus menyulitkan —
+        menggulir jauh untuk pekerjaan yang tidak sedang dikerjakan.
+
+        Sekarang pola yang lazim untuk POS: sidebar memilih SATU panel,
+        dan isinya mengisi sisa layar. `layar` menentukan panel mana yang
+        dirender; sisanya tidak ada di DOM (bukan sekadar disembunyikan),
+        jadi tidak ada tinggi tersembunyi yang membuat halaman bisa
+        digulir ke ruang kosong.
       */}
       <div className="min-w-0 flex-1 p-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4">
-      {/*
-        ── GRID PADAT: DUA KOLOM KERJA, BUKAN TIGA KARTU BESAR ────────
-
-        Sebelumnya `gap-4` dengan panel Menu BERSARANG di dalam panel
-        Meja. Akibatnya kolom kanan memanjang sepanjang 126 kartu produk
-        sementara kolom kiri selesai di layar pertama — sisa halaman jadi
-        satu kolom kosong di kiri dan daftar panjang di kanan. Itu yang
-        membuat dashboard terlihat kacau, bukan pilihan warnanya.
-
-        Sekarang tiga panel sejajar sebagai anak grid langsung:
-        antrean (kiri, pekerjaan mendesak), meja (kanan-atas), menu
-        (kanan, dengan tinggi terbatas + gulir sendiri).
-
-        `items-start` WAJIB: tanpa itu tiap anak grid meregang setinggi
-        barisnya, jadi panel Meja ikut memanjang mengikuti Menu.
-      */}
-      <div className="grid min-w-0 items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] 2xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
-        {/* ── Kolom kiri: antrean ── */}
+        {layar === "antrean" && (
         <section id="antrean" aria-labelledby="antrean" className="min-w-0 scroll-mt-4">
           <h2
             id="antrean"
@@ -1243,9 +1207,10 @@ export function PortalKasir() {
             </>
           )}
         </section>
+        )}
 
-        {/* ── Kolom kanan: meja & tagihan ── */}
-        <section id="meja" aria-labelledby="meja" className="min-w-0 scroll-mt-4 lg:col-start-2 lg:row-start-1 2xl:col-start-2">
+        {layar === "meja" && (
+        <section id="meja" aria-labelledby="meja" className="min-w-0 scroll-mt-4">
           <h2
             id="meja"
             className="mb-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
@@ -1491,6 +1456,7 @@ export function PortalKasir() {
             </div>
           )}
         </section>
+        )}
 
         {/*
           ── PANEL MENU: KARTU PRODUK, BUKAN DAFTAR TEKS ──────────────
@@ -1505,11 +1471,8 @@ export function PortalKasir() {
           pelanggan: gambar/ikon di atas, teks di bawah, harga tebal.
           Satu bahasa visual untuk staf dan tamu.
         */}
-        <section
-          id="menu"
-          aria-labelledby="menu-kasir"
-          className="min-w-0 scroll-mt-4 lg:col-start-2 lg:row-start-2 2xl:col-start-3 2xl:row-span-2 2xl:row-start-1"
-        >
+        {layar === "menu" && (
+        <section id="menu" aria-labelledby="menu-kasir" className="min-w-0 scroll-mt-4">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h2
               id="menu-kasir"
@@ -1609,7 +1572,7 @@ export function PortalKasir() {
             bergulir, dan memaksa dua area gulir bersarang di ponsel
             membuat gestur terasa macet.
           */}
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:max-h-[calc(100dvh-17rem)] lg:overflow-y-auto lg:pr-1 min-[1500px]:grid-cols-4">
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {menuTersaring.map((m) => (
               <KartuProduk
                 key={m.id}
@@ -1629,55 +1592,52 @@ export function PortalKasir() {
             </p>
           )}
         </section>
-      </div>{/* tutup grid utama */}
+        )}
 
-      {/*
-        ── BARIS BAWAH: LAPORAN & RIWAYAT ───────────────────────────────
+        {/*
+          ── LAPORAN: PANEL SENDIRI ─────────────────────────────────────
+          Dulu berbagi baris dengan Riwayat di bawah semua panel lain.
+          Sebagai panel sendiri, ia bisa memakai lebar penuh untuk tabel
+          dan grafik yang memang butuh ruang — bukan terjepit separuh
+          layar di bawah daftar yang panjang.
+        */}
+        {layar === "laporan" && (
+          <section id="laporan" aria-labelledby="rangkuman-kasir" className="min-w-0 scroll-mt-4">
+            <h2
+              id="rangkuman-kasir"
+              className="mb-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+            >
+              Penjualan hari ini
+            </h2>
+            <KartuRingkasan
+              ringkasan={ringkasan}
+              galat={pesanRingkasan}
+              memuat={memuatLaporan}
+            />
+          </section>
+        )}
 
-        Keduanya bukan pekerjaan yang menuntut tindakan saat tamu
-        menunggu, jadi ditaruh di bawah grid utama — bukan disembunyikan.
-        Di ≥1024px berdampingan; di bawahnya menumpuk.
-
-        `min-w-0` pada tiap kolom: tanpa itu, tabel riwayat yang lebar
-        memaksa grid melebar dan seluruh dashboard bisa digeser
-        horizontal — kesalahan klasik saat sidebar + grid digabung.
-      */}
-      <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-2">
-        <section
-          id="laporan"
-          aria-labelledby="rangkuman-kasir"
-          className="min-w-0 scroll-mt-4"
-        >
-          <h2
-            id="rangkuman-kasir"
-            className="mb-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
-          >
-            Penjualan hari ini
-          </h2>
-          <KartuRingkasan
-            ringkasan={ringkasan}
-            galat={pesanRingkasan}
-            memuat={memuatLaporan}
-          />
-        </section>
-
-        <section
-          id="riwayat"
-          aria-labelledby="riwayat-kasir"
-          className="min-w-0 scroll-mt-4"
-        >
-          <h2
-            id="riwayat-kasir"
-            className="mb-2 flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
-          >
-            Riwayat pesanan
-            <span className="rounded-full bg-bersih-200 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-tinta-700">
-              {riwayat.length}
-            </span>
-          </h2>
-          <DaftarRiwayat riwayat={riwayat} galat={pesanRiwayat} awal={8} />
-        </section>
-      </div>
+        {/*
+          ── RIWAYAT: PANEL SENDIRI ─────────────────────────────────────
+          Tabel riwayat butuh lebar untuk menampilkan nomor, meja, waktu,
+          metode bayar, dan nominal dalam satu baris. Di kolom separuh ia
+          memaksa gulir horizontal — dan gulir horizontal di tabel adalah
+          hal pertama yang membuat layar terasa rusak.
+        */}
+        {layar === "riwayat" && (
+          <section id="riwayat" aria-labelledby="riwayat-kasir" className="min-w-0 scroll-mt-4">
+            <h2
+              id="riwayat-kasir"
+              className="mb-2 flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+            >
+              Riwayat pesanan
+              <span className="rounded-full bg-bersih-200 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-tinta-700">
+                {riwayat.length}
+              </span>
+            </h2>
+            <DaftarRiwayat riwayat={riwayat} galat={pesanRiwayat} awal={20} />
+          </section>
+        )}
       </div>{/* tutup padding area kerja */}
 
       {/*
