@@ -26,10 +26,12 @@ export const dynamic = "force-dynamic";
 export default async function HalamanOrder({
   searchParams,
 }: {
-  searchParams: Promise<{ meja?: string }>;
+  searchParams: Promise<{ meja?: string; menu?: string }>;
 }) {
-  const { meja: mejaParam } = await searchParams;
+  const { meja: mejaParam, menu: menuParam } = await searchParams;
   const nomor = (mejaParam ?? "").trim();
+  /** Id menu yang dibawa dari katalog /menu — hanya untuk pesan bantuan. */
+  const idMenu = Number((menuParam ?? "").trim()) || null;
 
   /*
     Jam buka DIBACA DARI DATABASE, bukan dipakai bawaan `cekBuka()`.
@@ -49,10 +51,30 @@ export default async function HalamanOrder({
 
   // Tanpa nomor meja: tampilkan petunjuk scan, bukan menu tanpa konteks.
   if (!nomor) {
+    /*
+      ── TAMU YANG DATANG DARI KATALOG ───────────────────────────────────
+
+      Dulu layar ini SELALU berbunyi "Scan QR di meja Anda", walau tamu
+      datang dari tombol pesan di /menu yang membawa pilihan menunya.
+      Pilihannya hilang tanpa jejak, dan halaman yang seharusnya
+      mempermudah justru jadi jalan buntu.
+
+      Nomor meja TIDAK ditebak: salah meja berarti salah antar dan salah
+      tagihan, dan itu jauh lebih mahal daripada satu pindai QR. Yang
+      diperbaiki di sini hanya pesannya — tamu diberi tahu bahwa
+      pilihannya masih menunggu, dan cara melanjutkannya cukup satu
+      langkah.
+    */
     return (
       <LayarPesan
         judul="Scan QR di meja Anda"
-        isi="Portal ini dibuka lewat QR yang tertempel di meja. Arahkan kamera ke QR tersebut, lalu menu akan terbuka dengan nomor meja Anda."
+        isi={
+          idMenu
+            ? "Menu pilihan Anda sudah tersimpan di halaman katalog. Pindai QR yang tertempel di meja, lalu pesanan Anda bisa dilanjutkan dari meja itu."
+            : "Portal ini dibuka lewat QR yang tertempel di meja. Arahkan kamera ke QR tersebut, lalu menu akan terbuka dengan nomor meja Anda."
+        }
+        kembaliKe={idMenu ? "/menu#daftar-menu" : "/"}
+        labelKembali={idMenu ? "Kembali ke daftar menu" : "Kembali ke beranda"}
       />
     );
   }
@@ -161,11 +183,16 @@ function LayarPesan({
   judul,
   isi,
   teknis,
+  kembaliKe = "/",
+  labelKembali = "Kembali ke beranda",
 }: {
   judul: string;
   isi: string;
   /** Keterangan untuk pemilik/staf; tidak ditampilkan ke tamu biasa. */
   teknis?: string;
+  /** Ke mana tautan bawah mengarah. */
+  kembaliKe?: string;
+  labelKembali?: string;
 }) {
   return (
     <main className="grid min-h-dvh place-items-center bg-cream-200 px-6">
@@ -187,10 +214,10 @@ function LayarPesan({
             </p>
           )}
           <a
-            href="/"
+            href={kembaliKe}
             className="mt-4 flex h-11 items-center justify-center rounded-xl border border-ink-900/15 text-[0.8125rem] font-bold text-ink-900"
           >
-            Kembali ke beranda
+            {labelKembali}
           </a>
         </div>
       </div>
