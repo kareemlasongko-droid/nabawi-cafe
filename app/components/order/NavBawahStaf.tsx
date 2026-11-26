@@ -71,14 +71,14 @@ export function NavBawahStaf({
                 onClick={() => onPilih(kunci)}
                 aria-current={iniAktif ? "page" : undefined}
                 className={[
-                  "flex w-full flex-col items-center gap-1 rounded-[0.625rem] px-0.5 py-1.5 text-[0.625rem] font-bold transition",
+                  "flex w-full flex-col items-center gap-1 rounded-[0.625rem] px-0.5 py-1.5 font-bold transition",
                   iniAktif
                     ? "text-forest-900"
                     : "text-tinta-500 hover:text-tinta-700",
                 ].join(" ")}
               >
                 <span className="relative">
-                  <Ikon className={iniAktif ? "size-5" : "size-5 opacity-70"} />
+                  <Ikon className={iniAktif ? "size-[1.375rem]" : "size-[1.375rem] opacity-70"} />
                   {/*
                     Lencana jumlah: tanpa ini kasir harus membuka tab untuk
                     tahu ada pesanan baru. Angkanya dibatasi "9+" supaya
@@ -93,7 +93,26 @@ export function NavBawahStaf({
                     </span>
                   )}
                 </span>
-                {label}
+                {/*
+                  ── LABEL TIDAK BOLEH MEMBUNGKUS ──────────────────────
+
+                  Di layar 360px, enam tab menyisakan ~57px per slot, dan
+                  "Penjualan" memakan ~56px. Itu sisa 1,5px — cukup untuk
+                  hari ini, tetapi tidak cukup kalau pengguna memperbesar
+                  huruf sistem (dan banyak staf melakukannya), atau kalau
+                  kelak ada tab dengan label lebih panjang.
+
+                  Kalau label membungkus dua baris, TINGGI bilah ikut
+                  berubah, dan tombol yang sedang ditekan bergeser di
+                  bawah jari. Karena itu label dibuat satu baris dengan
+                  ukuran 10px (bukan 9.5px) dan huruf yang bisa menyusut
+                  sendiri (`text-[clamp()]`) — bukan dipotong dengan
+                  elipsis, karena "Penjua…" lebih buruk daripada huruf
+                  yang sedikit lebih kecil.
+                */}
+                <span className="block w-full whitespace-nowrap text-center text-[clamp(0.5625rem,2.6vw,0.6875rem)] leading-tight">
+                  {label}
+                </span>
                 {typeof lencana === "number" && lencana > 0 && (
                   <span className="sr-only">({lencana} menunggu)</span>
                 )}

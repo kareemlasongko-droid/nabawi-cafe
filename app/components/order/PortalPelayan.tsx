@@ -235,8 +235,22 @@ export function PortalPelayan() {
                         `${p.nomor}`}
                     </span>
 
-                    <span className="flex items-center justify-center gap-1.5 rounded-[0.625rem] bg-forest-900 px-2.5 py-2 text-[0.75rem] font-extrabold uppercase tracking-[0.06em] text-cream-50">
-                      <IkonCentang className="size-4" />
+                    {/*
+                      ── SATU-SATUNYA AKSI, DIKETUK SAMBIL MEMBAWA NAMPAN ──
+
+                      Tombol ini sebelumnya hanya setinggi isinya (~34px)
+                      dan merupakan SATU-SATUNYA aksi di kartu. Pelayan
+                      menekannya dengan satu tangan saat tangan lainnya
+                      memegang nampan — pada saat itu sasaran 34px terlalu
+                      kecil dan terlalu dekat dengan kartu berikutnya.
+
+                      48px dan teks 13px. Umpan balik ketukan sudah datang
+                      dari `active:scale` di seluruh kartu (kartunya sendiri
+                      adalah tombol), jadi tidak perlu efek tambahan di sini
+                      yang justru bisa bertabrakan.
+                    */}
+                    <span className="mt-0.5 flex min-h-12 items-center justify-center gap-2 rounded-[0.625rem] bg-forest-900 px-2.5 py-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.06em] text-cream-50">
+                      <IkonCentang className="size-[1.125rem]" />
                       Sudah diantar
                     </span>
                   </span>

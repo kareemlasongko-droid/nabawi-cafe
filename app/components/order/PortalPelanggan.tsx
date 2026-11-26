@@ -1075,24 +1075,42 @@ export function PortalPelanggan({
                             </span>
                           ) : diKeranjang ? (
                             <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-forest-900 p-0.5 text-cream-50">
+                              {/*
+                                ── 44px, BUKAN 28px ──────────────────────
+
+                                Tombol kurangi/tambah sebelumnya 28×28px.
+                                Itu di bawah ambang sentuh yang aman (44px,
+                                panduan Apple/Material) dan merupakan dua
+                                tombol paling sering ditekan di seluruh
+                                layar ini — pelanggan menambah porsi sambil
+                                memegang ponsel satu tangan, sering sambil
+                                mengobrol.
+
+                                Yang berubah: kotak sentuhnya 44px, ikonnya
+                                tetap kecil. Angka jumlah ditaruh di antara
+                                keduanya dengan `min-w-5` supaya tidak
+                                bergeser saat jumlah digitnya bertambah
+                                (9 → 10), karena tombol yang bergerak di
+                                bawah jari adalah tombol yang salah tekan.
+                              */}
                               <button
                                 type="button"
                                 onClick={() => ubahJumlah(kunciPertama, -1)}
                                 aria-label={`Kurangi ${m.nama}`}
-                                className="grid size-7 place-items-center rounded-full transition hover:bg-cream-50/15 active:bg-cream-50/25"
+                                className="-m-2 grid size-11 place-items-center rounded-full transition hover:bg-cream-50/15 active:bg-cream-50/25"
                               >
-                                <IkonKurang className="size-3.5" />
+                                <IkonKurang className="size-4" />
                               </button>
-                              <span className="min-w-4 text-center text-[0.75rem] font-extrabold tabular-nums">
+                              <span className="min-w-5 text-center text-[0.8125rem] font-extrabold tabular-nums">
                                 {diKeranjang.jumlah}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => (opsi.length > 0 ? setPilihUntuk(m) : tambah(m))}
                                 aria-label={`Tambah ${m.nama}`}
-                                className="grid size-7 place-items-center rounded-full transition hover:bg-cream-50/15 active:bg-cream-50/25"
+                                className="-m-2 grid size-11 place-items-center rounded-full transition hover:bg-cream-50/15 active:bg-cream-50/25"
                               >
-                                <IkonTambah className="size-3.5" />
+                                <IkonTambah className="size-4" />
                               </button>
                             </div>
                           ) : (
@@ -1105,9 +1123,9 @@ export function PortalPelanggan({
                                   ? `Pilih ${m.nama}`
                                   : `Tambah ${m.nama} ke keranjang`
                               }
-                              className="grid size-8 shrink-0 place-items-center rounded-full bg-forest-900 text-cream-50 shadow-[0_4px_12px_-6px_rgb(20_35_26/0.7)] transition hover:bg-forest-800 active:scale-95 disabled:opacity-40"
+                              className="grid size-11 shrink-0 place-items-center rounded-full bg-forest-900 text-cream-50 shadow-[0_4px_12px_-6px_rgb(20_35_26/0.7)] transition hover:bg-forest-800 active:scale-95 disabled:opacity-40"
                             >
-                              <IkonTambah className="size-4" />
+                              <IkonTambah className="size-[1.125rem]" />
                             </button>
                           )}
                         </div>

@@ -108,6 +108,8 @@ type MenungguBayar = {
   kedaluwarsa_at: string | null;
   /** Pilihan tamu: "online" atau "kasir". */
   metode_bayar: string | null;
+  /** Total tagihannya. null = pesanan lama tanpa tagihan (bukan Rp0). */
+  total: number | null;
 };
 
 type DataKasir = {
@@ -146,6 +148,12 @@ export function PortalKasir() {
   /** Rangkuman penjualan hari ini + riwayat pesanan (lihat /api/order/riwayat). */
   const [ringkasan, setRingkasan] = useState<RingkasanPenjualan | null>(null);
   const [pesanRingkasan, setPesanRingkasan] = useState("");
+  /*
+    `memuatLaporan` membedakan "sedang mengambil" dari "gagal dibaca".
+    Tanpa ini, tab Laporan menampilkan pesan KEGAGALAN selama satu detik
+    setiap kali dibuka — dan kasir mengira laporannya rusak.
+  */
+  const [memuatLaporan, setMemuatLaporan] = useState(false);
   const [riwayat, setRiwayat] = useState<BarisRiwayat[]>([]);
   const [pesanRiwayat, setPesanRiwayat] = useState("");
   /*
@@ -202,6 +210,7 @@ export function PortalKasir() {
    * kali pembayaran berhasil, dan saat tab riwayat dibuka.
    */
   const muatRiwayat = useCallback(async () => {
+    setMemuatLaporan(true);
     try {
       const res = await fetch("/api/order/riwayat", { cache: "no-store" });
       const j = (await res.json()) as {
@@ -223,6 +232,8 @@ export function PortalKasir() {
     } catch {
       setPesanRingkasan("Koneksi terputus. Rangkuman belum diperbarui.");
       setPesanRiwayat("Koneksi terputus. Riwayat belum diperbarui.");
+    } finally {
+      setMemuatLaporan(false);
     }
   }, []);
 
@@ -476,7 +487,32 @@ export function PortalKasir() {
                   </p>
                   <span className="font-mono text-[0.6875rem] text-tinta-500">{p.nomor}</span>
                 </div>
-                <p className="mt-0.5 truncate text-[0.75rem] text-tinta-500">
+                {/*
+                  TOTAL TAGIHAN, BESAR DAN LEBIH DULU DARIPADA NAMA.
+
+                  Kartu ini sebelumnya hanya memberi tahu bahwa ADA yang
+                  belum dibayar, tanpa berapa. Kasir lalu menekan "Uang
+                  pas" tanpa tahu nominal yang akan diterima tamu — pada
+                  tagihan Rp146.600 itu perbedaan yang membuat kasir salah
+                  menyebut angka di depan tamu.
+
+                  Kasir memegang layar ini sambil berdiri: angka yang akan
+                  disebut adalah yang harus paling cepat terbaca, bukan
+                  nama pemesan yang sudah diketahui dari mejanya.
+                */}
+                {/*
+                  Hanya bila ADA yang perlu dibayar. Tagihan bersaldo nol
+                  (semua itemnya sudah dibatalkan) akan tampil "Rp0" — dan
+                  itu terbaca sebagai "tidak perlu bayar", bukan sebagai
+                  "tagihan ini sudah kosong". Lebih baik angkanya tidak ada
+                  sama sekali daripada angkanya salah arti.
+                */}
+                {p.total !== null && p.total > 0 && (
+                  <p className="mt-0.5 text-[1.125rem] font-extrabold tabular-nums leading-tight text-forest-900">
+                    {rupiah(p.total)}
+                  </p>
+                )}
+                <p className="truncate text-[0.75rem] text-tinta-500">
                   {p.nama_pemesan ?? "Tanpa nama"} · {p.total_item} item
                 </p>
 
@@ -530,7 +566,7 @@ export function PortalKasir() {
                     type="button"
                     onClick={() => bayarTunai(p)}
                     disabled={memproses === p.id}
-                    className="tombol-utama h-9 flex-1 text-[0.75rem]"
+                    className="tombol-utama h-11 flex-1 text-[0.8125rem]"
                   >
                     {memproses === p.id ? "Menyimpan…" : "Uang pas"}
                   </button>
@@ -538,7 +574,7 @@ export function PortalKasir() {
                     type="button"
                     onClick={() => bukaPelunasan(p.meja_id)}
                     disabled={memproses === p.id}
-                    className="tombol-tenang h-9 flex-1 text-[0.75rem]"
+                    className="tombol-tenang h-11 flex-1 text-[0.8125rem]"
                   >
                     Uang lebih
                   </button>
@@ -620,18 +656,27 @@ export function PortalKasir() {
                   */}
                   <div className="flex items-start justify-between gap-2 border-b border-bersih-200 bg-cream-50 px-3.5 py-3">
                     <div className="min-w-0">
+                      {/*
+                        ── NOMOR PESANAN HANYA SEKALI ────────────────────
+
+                        Versi sebelumnya menulis nomor yang SAMA dua kali:
+                        sekali kecil di baris lencana dan sekali besar tepat
+                        di bawahnya. Itu satu baris tinggi yang tidak
+                        menambah informasi apa pun, di kartu yang tingginya
+                        paling mahal — setiap piksel di sini menggeser
+                        kartu berikutnya keluar dari layar.
+
+                        Lencana "Baru" pindah sebaris dengan nomor besar,
+                        jadi kepala kartu turun satu baris lagi.
+                      */}
                       <div className="flex items-center gap-1.5">
-                        <span className="rounded-[0.25rem] bg-sela-500 px-1.5 py-0.5 text-[0.5625rem] font-extrabold uppercase tracking-[0.1em] text-forest-950">
+                        <span className="shrink-0 rounded-[0.25rem] bg-sela-500 px-1.5 py-0.5 text-[0.5625rem] font-extrabold uppercase tracking-[0.1em] text-forest-950">
                           Baru
                         </span>
-                        <span className="truncate font-mono text-[0.6875rem] font-semibold text-tinta-500">
-                          {p.nomor}
-                        </span>
+                        <p className="min-w-0 truncate text-[1.375rem] font-extrabold leading-none tracking-[-0.02em] text-forest-900">
+                          #{p.nomor}
+                        </p>
                       </div>
-
-                      <p className="mt-1 text-[1.5rem] font-extrabold leading-none tracking-[-0.02em] text-forest-900">
-                        #{p.nomor}
-                      </p>
 
                       <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.75rem] text-tinta-700">
                         <span className="inline-flex items-center gap-1 rounded-full bg-daun-100 px-1.5 py-0.5 font-extrabold text-forest-700">
@@ -797,7 +842,22 @@ export function PortalKasir() {
           <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
             {(data?.meja ?? []).map((m) => {
               const aktif = mejaPilih === m.nomor;
+              /*
+                ── TIGA KEADAAN, TIGA RASA YANG BERBEDA ────────────────
+
+                Sebelumnya hanya dua warna: "ada isi" (hijau) dan "kosong"
+                (putih). Padahal ada tiga keadaan yang menuntut tindakan
+                berbeda: tamu masih makan, tamu siap membayar, dan meja
+                kosong.
+
+                Legenda menjanjikan oranye untuk "perlu ditagih", tetapi
+                kartunya memakai hijau yang sama dengan "terisi" — legenda
+                yang berbohong lebih buruk daripada tidak ada legenda.
+                Sekarang oranye itu benar-benar dipakai, dengan cincin
+                tebal supaya terlihat dari jauh tanpa membaca satu huruf.
+              */
               const adaIsi = m.status !== "kosong";
+              const perluDitagih = Boolean(m.tagihan) && m.status !== "kosong";
               return (
                 <li key={m.id}>
                   <button
@@ -807,9 +867,11 @@ export function PortalKasir() {
                       "relative flex h-[4.25rem] w-full flex-col items-center justify-center rounded-[0.625rem] border-2 transition",
                       aktif
                         ? "border-forest-900 bg-forest-900 text-cream-50 shadow-[0_10px_24px_-14px_rgba(20,35,26,0.8)]"
-                        : adaIsi
-                          ? "border-transparent bg-daun-100 text-tinta-900"
-                          : "border-transparent bg-bersih-0 text-tinta-500 shadow-[0_1px_2px_rgba(22,19,15,0.05)]",
+                        : perluDitagih
+                          ? "border-sela-500 bg-sela-50 text-sela-800"
+                          : adaIsi
+                            ? "border-transparent bg-daun-100 text-tinta-900"
+                            : "border-transparent bg-bersih-0 text-tinta-500 shadow-[0_1px_2px_rgba(22,19,15,0.05)]",
                     ].join(" ")}
                   >
                     <span className="text-[1.375rem] font-extrabold leading-none">{m.nomor}</span>
@@ -833,8 +895,8 @@ export function PortalKasir() {
                       */}
                       {m.status === "kosong"
                         ? "kosong"
-                        : m.status === "menunggu_bayar"
-                          ? "bayar"
+                        : perluDitagih
+                          ? "tagih"
                           : "terisi"}
                     </span>
                     {/*
@@ -1023,7 +1085,11 @@ export function PortalKasir() {
           >
             Penjualan hari ini
           </h2>
-          <KartuRingkasan ringkasan={ringkasan} galat={pesanRingkasan} />
+          <KartuRingkasan
+            ringkasan={ringkasan}
+            galat={pesanRingkasan}
+            memuat={memuatLaporan}
+          />
         </section>
 
       </div>

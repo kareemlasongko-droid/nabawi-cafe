@@ -381,6 +381,7 @@ export function PortalAdmin({
               </button>
             </div>
             <KartuRingkasan
+              memuat={muatPenjualanSibuk}
               ringkasan={ringkasan}
               galat={pesanRingkasan}
               varian="penuh"

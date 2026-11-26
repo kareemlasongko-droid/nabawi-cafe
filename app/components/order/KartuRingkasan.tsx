@@ -32,14 +32,56 @@ import type { RingkasanPenjualan } from "@/app/lib/order/riwayat";
 export function KartuRingkasan({
   ringkasan,
   galat,
+  memuat = false,
   /** `compact` dipakai di kepala kasir; `penuh` di tab admin. */
   varian = "compact",
 }: {
   ringkasan: RingkasanPenjualan | null;
   galat?: string;
+  /** Sedang mengambil data — BUKAN kegagalan. */
+  memuat?: boolean;
   varian?: "compact" | "penuh";
 }) {
+  /*
+    ── "SEDANG MEMUAT" BUKAN "GAGAL DIBACA" ─────────────────────────────
+
+    Versi sebelumnya hanya punya dua keadaan: ada angkanya, atau pesan
+    "Rangkuman penjualan belum bisa dibaca." Karena `ringkasan` mulai
+    sebagai null, SETIAP kali tab Laporan dibuka kasir melihat pesan
+    KEGAGALAN selama permintaan berjalan — kira-kira satu detik.
+
+    Itu bukan sekadar tidak rapi. Pesan itu membuat kasir mengira
+    laporannya rusak, lalu menekan "Muat ulang" berulang kali, atau
+    menutup tab dan menganggap omzetnya hilang. Padahal datanya sedang
+    dalam perjalanan.
+
+    Sekarang tiga keadaan dibedakan dengan jujur: memuat (kerangka abu-abu
+    tanpa kalimat menakutkan), gagal (pesan galat yang sebenarnya), dan
+    ada data.
+  */
   if (!ringkasan) {
+    if (memuat) {
+      return (
+        <div
+          className="rounded-[0.875rem] border border-bersih-200 bg-bersih-0 p-3"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="sr-only">Memuat rangkuman penjualan</span>
+          {/* Kerangka berbentuk kartu yang sama, supaya tata letak tidak
+              melompat saat angkanya tiba. Lebar 60% meniru angka rupiah
+              yang memang panjang. */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-hidden="true">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i}>
+                <div className="h-2.5 w-16 animate-pulse rounded bg-bersih-200" />
+                <div className="mt-1.5 h-5 w-3/5 animate-pulse rounded bg-bersih-100" />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="rounded-[0.625rem] border border-dashed border-bersih-200 bg-bersih-100 px-3 py-2">
         <p className="text-[0.6875rem] leading-snug text-tinta-500">
