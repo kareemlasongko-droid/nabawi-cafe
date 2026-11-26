@@ -10,10 +10,12 @@ import {
   IkonMilkshake,
 } from "../components/menu/IkonKategori";
 import { KomponenCari } from "../components/menu/KomponenCari";
+import { PemilihMeja } from "../components/menu/PemilihMeja";
 import { SaringanKategori } from "../components/menu/SaringanKategori";
 import { Navbar } from "../components/Navbar";
 import { LayarMasalah } from "../components/LayarMasalah";
 import { ambilMenu } from "../lib/order/data";
+import { ambilMeja } from "../lib/order/katalog";
 import { bacaPilihan, urutkanMenu } from "../lib/order/aturan";
 import { aturanSaring, kelompokkanMenu } from "../lib/order/saring";
 import type { KategoriMenu, Menu } from "../lib/order/tipe";
@@ -146,6 +148,22 @@ export default async function HalamanMenu() {
 
   const data = res.data;
   const kelompok = kelompokkanMenu(data.kategori, data.menu);
+
+  /*
+    Daftar meja diambil untuk pemilih meja di bilah bawah.
+
+    Kegagalannya SENGAJA tidak menggagalkan halaman: katalog menu harus
+    tetap terbuka walau database meja bermasalah, dan tamu masih punya
+    petunjuk scan QR. Ini kebalikan dari /order, yang memang tidak bisa
+    berjalan tanpa nomor meja.
+  */
+  const hasilMeja = await ambilMeja();
+  const daftarMeja = hasilMeja.ok
+    ? (hasilMeja.data as { nomor: string; area: string }[]).map((m) => ({
+        nomor: m.nomor,
+        area: m.area,
+      }))
+    : [];
 
   /*
     Bentuk ringkas dikirim ke komponen pencarian.
@@ -332,7 +350,16 @@ export default async function HalamanMenu() {
                               </p>
                               {m.tersedia ? (
                                 <a
-                                  href={`/order?meja=&menu=${m.id}`}
+                                  /*
+                                    `data-pesan` dibaca PemilihMeja untuk
+                                    menulis ulang SEMUA tautan sekaligus
+                                    setelah tamu memilih meja. Tanpa
+                                    `meja=<nomor>` di sini, tautannya
+                                    mendarat di layar "Scan QR" dan menu
+                                    yang sudah dipilih tamu hilang.
+                                  */
+                                  data-pesan={m.id}
+                                  href={`/order?menu=${m.id}`}
                                   aria-label={`Pesan ${m.nama}`}
                                   className="-my-1 -mr-1 grid size-11 shrink-0 place-items-center rounded-full bg-cream-50 text-clay-700 transition active:scale-95"
                                 >
@@ -367,9 +394,19 @@ export default async function HalamanMenu() {
             seperti tautan rusak.
           */}
           <div className="sticky bottom-0 z-20 mt-auto -mx-5 border-t border-cream-50/15 bg-forest-950/80 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md">
+            {/*
+              Pemilih meja di ATAS tombol pesan.
+
+              Tanpa ini, tombol tiap kartu hanya bisa membawa
+              `/order?menu=<id>` — dan portal pelanggan menolak permintaan
+              tanpa nomor meja. Tamu yang sudah memilih hidangan lalu
+              mendarat di layar "Scan QR di meja Anda".
+            */}
+            <PemilihMeja meja={daftarMeja} tersedia={hasilMeja.ok} />
+
             <a
               href="/order"
-              className="flex h-12 items-center justify-center gap-2 rounded-[0.875rem] bg-cream-50 text-[0.9375rem] font-extrabold text-forest-900 shadow-[0_10px_24px_-12px_rgba(0,0,0,0.6)] transition active:scale-[0.99]"
+              className="mt-2 flex h-12 items-center justify-center gap-2 rounded-[0.875rem] bg-cream-50 text-[0.9375rem] font-extrabold text-forest-900 shadow-[0_10px_24px_-12px_rgba(0,0,0,0.6)] transition active:scale-[0.99]"
             >
               Pesan dari meja Anda
               <IkonPanah />

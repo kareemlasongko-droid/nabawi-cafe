@@ -320,6 +320,38 @@ async function main() {
     "inisial 'CH' mewakili 8 menu berbeda — 99 dari 126 kartu bertabrakan",
   );
 
+  // ═══ 14. Tautan pesan benar-benar bisa dipakai ══════════════════════
+  console.log("\n── 14. Tautan pesan membawa meja, bukan kosong ──");
+
+  /*
+    Bug yang tertangkap HANYA setelah deploy ke produksi: tombol pesan
+    menulis `/order?meja=&menu=<id>`, portal pelanggan menolak nomor
+    kosong, dan tamu mendarat di layar "Scan QR". Uji sebelumnya
+    memeriksa bahwa tautannya ADA, bukan bahwa tautannya BERGUNA.
+  */
+  cek(
+    "menu: tidak ada tautan pesan dengan meja kosong",
+    !menuHtml.includes("meja=&menu="),
+    "`?meja=` kosong mendaratkan tamu di layar Scan QR dan menghapus pilihannya",
+  );
+  cek(
+    "menu: tiap tombol pesan membawa id menu",
+    (menuHtml.match(/data-pesan="/g) ?? []).length >= 100,
+    `${(menuHtml.match(/data-pesan="/g) ?? []).length} tombol`,
+  );
+
+  const mejaApi = await (await fetch(BASE + "/api/order/meja")).json().catch(() => ({}));
+  cek(
+    "api meja: daftar meja bisa dibaca katalog",
+    Array.isArray(mejaApi.meja) && mejaApi.meja.length > 0,
+    `${(mejaApi.meja ?? []).length} meja — tanpa ini pemilih meja tidak bisa dirender`,
+  );
+  cek(
+    "api meja: hanya nomor & area yang dikirim",
+    (mejaApi.meja ?? []).every((m) => Object.keys(m).sort().join(",") === "area,nomor"),
+    "status meja dan id internal tidak perlu sampai ke browser tamu",
+  );
+
   console.log(`\n═══ ${lulus} lulus, ${gagal} gagal ═══`);
   if (gagal > 0) {
     console.log("Yang gagal: " + kegagalan.join(", "));
