@@ -45,6 +45,7 @@ import {
   IkonMatikanSuara,
   IkonPesanan,
   IkonBill,
+  IkonPromo,
   IkonMenu,
   IkonCari,
   IkonKategoriMenu,
@@ -747,8 +748,26 @@ export function PortalKasir() {
         Padat, bukan kartu besar: tinggi 56px supaya di tablet 10" layar
         masih menyisakan ruang untuk antrean tanpa menggulir. Angka yang
         butuh tindakan diberi aksen `sela` — mata langsung ke sana.
+
+        ── HANYA DI LAYAR ANTREAN ───────────────────────────────────────
+
+        Pemilik meminta status antrean TIDAK muncul di layar lain. Tiga
+        dari empat angka di sini (Baru, Belum bayar, Berjalan) adalah
+        status antrean; menampilkannya saat kasir sedang mengurus menu
+        berarti mengundangnya keluar dari pekerjaan yang sedang
+        dikerjakan.
+
+        Satu angka tetap relevan di mana pun: "Meja terisi", karena ia
+        menjelaskan seluruh denah meja. Stripnya menyusut jadi satu sel di
+        layar selain Antrean — bukan hilang, karena kasir masih perlu tahu
+        apakah kafe sedang penuh.
       */}
-      <div className="flex shrink-0 divide-x divide-bersih-200 border-b border-bersih-200 bg-bersih-0">
+      <div
+        className={[
+          "flex shrink-0 divide-x divide-bersih-200 border-b border-bersih-200 bg-bersih-0",
+          layar === "antrean" ? "" : "hidden",
+        ].join(" ")}
+      >
         {[
           {
             kunci: "baru",
@@ -808,160 +827,164 @@ export function PortalKasir() {
         batas waktu — jadi kalau kasir tidak melihatnya, tamu tidak dapat
         makanan tanpa ada yang tahu kenapa.
       */}
-      {layar === "antrean" && (
+      {layar === "antrean" && menungguBayar.length > 0 && (
         <section
           id="belum-dibayar"
           aria-labelledby="menunggu-bayar"
-          className="scroll-mt-4 border-b border-sela-200/70 bg-sela-50 px-4 py-3 sm:px-6"
+          className="border-b border-sela-200/70 bg-sela-50/60 px-3 py-3 sm:px-4"
         >
-          <h2
-            id="menunggu-bayar"
-            className="mb-2 flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-sela-800"
-          >
-            Belum dibayar
-            <span className="rounded-full bg-sela-700 px-2 py-0.5 text-[0.6875rem] font-bold text-white">
-              {menungguBayar.length}
-            </span>
-          </h2>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2
+              id="menunggu-bayar"
+              className="flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-sela-800"
+            >
+              {/*
+                Ikon, bukan hanya teks: panel ini adalah SATU-SATUNYA yang
+                menuntut tindakan kasir sekarang juga. Di antara panel
+                berwarna krem, satu penanda oranye membuat mata berhenti
+                di sini lebih dulu.
+              */}
+              <IkonBill className="size-4" />
+              Belum dibayar
+              <span className="rounded-full bg-sela-700 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-white">
+                {menungguBayar.length}
+              </span>
+            </h2>
+            <p className="hidden text-[0.6875rem] font-semibold text-sela-800/70 sm:block">
+              Tamu menunggu ditagih
+            </p>
+          </div>
 
           {/*
-            ── BARIS GESER YANG MENGAKU BISA DIGESER ────────────────────
+            ── GRID TIGA, BUKAN BARIS GESER ──────────────────────────────
 
-            Sebelumnya `overflow-x-auto` tanpa petunjuk apa pun. Di tablet,
-            kartu ke-3 dan seterusnya terpotong di tepi layar tanpa tanda
-            bahwa ada lagi di sana — kasir mengira hanya itu yang belum
-            dibayar, sementara dua tamu lain menunggu ditagih.
+            Sebelumnya `overflow-x-auto` + `min-w-[15rem]`: di tablet hanya
+            dua kartu terlihat dan sisanya di luar layar. Kasir harus
+            menggeser untuk tahu berapa tamu yang menunggu dibayar — di
+            panel yang justru paling mendesak.
 
-            `scroll-snap` membuat kartu berhenti rapi di tepi, dan gradasi
-            di kanan memberi isyarat "masih ada". Gradasinya
-            `pointer-events-none` supaya tidak menghalangi geseran.
+            Sekarang semua kartu terlihat tanpa digeser, dengan jumlah
+            kolom mengikuti lebar yang tersedia. Isi kartu dipadatkan
+            supaya tiga kolom tetap terbaca: total tagihan dan meja adalah
+            dua hal yang dicari mata, sisanya pelengkap.
           */}
-          <div className="relative">
-          <ul className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 pr-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {menungguBayar.map((p) => (
-              <li
-                key={p.id}
-                className="min-w-[15rem] shrink-0 snap-start rounded-[0.75rem] border border-bersih-200 bg-bersih-0 p-2.5 shadow-[0_1px_2px_rgb(22_19_15/0.04)]"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-[0.875rem] font-extrabold text-tinta-900">
-                    Meja {p.meja_nomor}
-                  </p>
-                  <span className="font-mono text-[0.6875rem] text-tinta-500">{p.nomor}</span>
-                </div>
-                {/*
-                  TOTAL TAGIHAN, BESAR DAN LEBIH DULU DARIPADA NAMA.
-
-                  Kartu ini sebelumnya hanya memberi tahu bahwa ADA yang
-                  belum dibayar, tanpa berapa. Kasir lalu menekan "Uang
-                  pas" tanpa tahu nominal yang akan diterima tamu — pada
-                  tagihan Rp146.600 itu perbedaan yang membuat kasir salah
-                  menyebut angka di depan tamu.
-
-                  Kasir memegang layar ini sambil berdiri: angka yang akan
-                  disebut adalah yang harus paling cepat terbaca, bukan
-                  nama pemesan yang sudah diketahui dari mejanya.
-                */}
-                {/*
-                  Hanya bila ADA yang perlu dibayar. Tagihan bersaldo nol
-                  (semua itemnya sudah dibatalkan) akan tampil "Rp0" — dan
-                  itu terbaca sebagai "tidak perlu bayar", bukan sebagai
-                  "tagihan ini sudah kosong". Lebih baik angkanya tidak ada
-                  sama sekali daripada angkanya salah arti.
-                */}
-                {p.total !== null && p.total > 0 && (
-                  <p className="mt-0.5 text-[1.125rem] font-extrabold tabular-nums leading-tight text-forest-900">
-                    {rupiah(p.total)}
-                  </p>
-                )}
-                <p className="truncate text-[0.75rem] text-tinta-500">
-                  {p.nama_pemesan ?? "Tanpa nama"} · {p.total_item} item
-                </p>
-
-                {/*
-                  Metode yang DIPILIH tamu. Bukan hiasan: pesanan "online"
-                  berarti tamu sedang menunggu halaman pembayaran terbuka
-                  (bisa jadi tautannya gagal), sedangkan "kasir" berarti
-                  tamu memang menunggu ditagih. Kasir memperlakukan keduanya
-                  berbeda, jadi ia perlu tahu sebelum mendatangi meja.
-                */}
-                <p
-                  className={[
-                    "mt-1 inline-block rounded-[0.25rem] px-1.5 py-0.5 text-[0.625rem] font-extrabold uppercase tracking-wider",
-                    p.metode_bayar === "online"
-                      ? "bg-sela-50 text-sela-800"
-                      : "bg-daun-100 text-forest-700",
-                  ].join(" ")}
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+            {menungguBayar.map((p) => {
+              const sisa = sisaWaktu(p.kedaluwarsa_at);
+              const online = p.metode_bayar === "online";
+              return (
+                <li
+                  key={p.id}
+                  className="flex flex-col overflow-hidden rounded-[0.75rem] border border-sela-200 bg-bersih-0 shadow-[0_1px_3px_rgb(22_19_15/0.06)]"
                 >
-                  {p.metode_bayar === "online" ? "Pilih bayar online" : "Bayar di kasir"}
-                </p>
+                  {/* Pita atas: meja + sisa waktu. Yang paling mendesak
+                      (waktu) diberi warna sendiri supaya terlihat tanpa
+                      membaca angka. */}
+                  <div className="flex items-center justify-between gap-1.5 border-b border-bersih-200 bg-cream-50 px-2.5 py-1.5">
+                    <span className="flex min-w-0 items-center gap-1 text-[0.8125rem] font-extrabold text-tinta-900">
+                      <IkonMeja className="size-3.5 shrink-0 text-forest-700" />
+                      <span className="truncate">Meja {p.meja_nomor}</span>
+                    </span>
+                    {sisa ? (
+                      <span
+                        className={[
+                          "shrink-0 rounded-full px-1.5 py-0.5 text-[0.625rem] font-extrabold tabular-nums leading-none",
+                          sisa.mendesak
+                            ? "bg-sela-700 text-white"
+                            : "bg-sela-100 text-sela-800",
+                        ].join(" ")}
+                      >
+                        {sisa.teks}
+                      </span>
+                    ) : (
+                      <span className="shrink-0 text-[0.625rem] font-semibold tabular-nums text-tinta-500">
+                        {sejak(p.created_at)}
+                      </span>
+                    )}
+                  </div>
 
-                {/*
-                  Nomor WA ditampilkan, bukan disimpan diam-diam. Kasir
-                  membutuhkannya untuk menagih/menghubungi tamu — dan data
-                  yang tidak pernah terlihat tidak akan pernah dipakai.
-                */}
-                {p.no_wa && (
-                  <a
-                    href={`https://wa.me/${p.no_wa.replace(/[^0-9]/g, "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-0.5 block font-mono text-[0.6875rem] text-forest-700 underline"
-                  >
-                    {p.no_wa}
-                  </a>
-                )}
+                  <div className="flex flex-1 flex-col gap-1 p-2.5">
+                    {/*
+                      TOTAL TAGIHAN sebagai angka terbesar di kartu. Ini
+                      nominal yang akan disebut kasir di depan tamu — dan
+                      satu-satunya alasan kartu ini ada.
 
-                {/*
-                  Dua tombol, dua keadaan yang berbeda:
-                    · "Uang pas"   → tamu menyerahkan nominal pas. Server
-                      menghitung sendiri nominalnya dari total tagihan.
-                    · "Uang lebih" → nominal dimasukkan kasir, kembalian
-                      dihitung. Membuka dialog pelunasan yang sudah ada.
+                      `break-words` + ukuran mengecil di layar sempit:
+                      "Rp1.234.500" pada tiga kolom 360px akan terpotong
+                      kalau dipaksa satu ukuran.
+                    */}
+                    {p.total !== null && p.total > 0 ? (
+                      <p className="whitespace-nowrap text-[1.0625rem] font-extrabold leading-none tabular-nums tracking-[-0.01em] text-forest-900 sm:text-[1.125rem]">
+                        {rupiah(p.total)}
+                      </p>
+                    ) : (
+                      <p className="text-[0.75rem] font-semibold italic text-tinta-500">
+                        Tagihan kosong
+                      </p>
+                    )}
 
-                  Satu tombol saja pernah membuat kasir menekan "Bayar
-                  tunai" untuk tamu yang membayar Rp100.000 pada tagihan
-                  Rp91.000 — dan kembaliannya hilang dari catatan.
-                */}
-                <div className="mt-2 flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => bayarTunai(p)}
-                    disabled={memproses === p.id}
-                    className="tombol-utama h-11 flex-1 text-[0.8125rem]"
-                  >
-                    {memproses === p.id ? "Menyimpan…" : "Uang pas"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => bukaPelunasan(p.meja_id)}
-                    disabled={memproses === p.id}
-                    className="tombol-tenang h-11 flex-1 text-[0.8125rem]"
-                  >
-                    Uang lebih
-                  </button>
-                </div>
+                    <p className="truncate text-[0.6875rem] leading-tight text-tinta-500">
+                      {p.nama_pemesan ?? "Tanpa nama"} · {p.total_item} item
+                    </p>
 
-                {/*
-                  Invoice juga bisa dibuka SEBELUM dibayar. Tamu yang
-                  memilih "bayar di kasir" sering meminta rinciannya lebih
-                  dulu; kasir tidak perlu menghitung ulang di kepala.
-                */}
-                <button
-                  type="button"
-                  onClick={() => setInvoiceId(p.id)}
-                  className="mt-1.5 h-11 w-full rounded-[0.5rem] text-[0.8125rem] font-bold text-tinta-500 underline transition hover:bg-bersih-100"
-                >
-                  Lihat invoice
-                </button>
-              </li>
-            ))}
+                    <p className="flex flex-wrap items-center gap-1">
+                      {/*
+                        Metode bayar: "online" berarti tamu sedang menunggu
+                        halaman pembayaran terbuka (tautannya bisa gagal),
+                        "kasir" berarti tamu memang menunggu ditagih. Kasir
+                        memperlakukan keduanya berbeda, jadi ini harus
+                        terbaca sebelum ia mendatangi meja.
+                      */}
+                      <span
+                        className={[
+                          "rounded px-1.5 py-0.5 text-[0.5625rem] font-extrabold uppercase tracking-wider",
+                          online ? "bg-sela-100 text-sela-800" : "bg-daun-100 text-forest-700",
+                        ].join(" ")}
+                      >
+                        {online ? "Online" : "Di kasir"}
+                      </span>
+                      {p.no_wa && (
+                        <a
+                          href={`https://wa.me/${p.no_wa.replace(/[^0-9]/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded px-1.5 py-0.5 text-[0.5625rem] font-bold text-forest-700 underline decoration-dotted hover:bg-daun-100"
+                        >
+                          WA
+                        </a>
+                      )}
+                    </p>
+
+                    <div className="mt-auto flex flex-col gap-1 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => bayarTunai(p)}
+                        disabled={memproses === p.id}
+                        className="tombol-utama h-10 w-full text-[0.8125rem]"
+                      >
+                        {memproses === p.id ? "Menyimpan…" : "Uang pas"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => bukaPelunasan(p.meja_id)}
+                        disabled={memproses === p.id}
+                        className="tombol-tenang h-10 w-full text-[0.8125rem]"
+                      >
+                        Uang lebih
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceId(p.id)}
+                        className="h-8 w-full rounded text-[0.6875rem] font-bold text-tinta-500 transition hover:bg-bersih-100"
+                      >
+                        Lihat invoice
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-sela-50 to-transparent"
-          />
-          </div>
         </section>
       )}
 
@@ -984,18 +1007,43 @@ export function PortalKasir() {
       <div className="min-w-0 flex-1 p-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4">
         {layar === "antrean" && (
         <section id="antrean" aria-labelledby="antrean" className="min-w-0 scroll-mt-4">
-          <h2
-            id="antrean"
-            className="mb-2 flex items-center gap-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
-          >
-            Menunggu konfirmasi
-            {antrean.length > 0 && (
-              <span className="rounded-full bg-sela-700 px-2 py-0.5 text-[0.6875rem] font-bold text-white">
-                {antrean.length}
-              </span>
-            )}
-          </h2>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2
+              id="antrean"
+              className="flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+            >
+              <IkonPesanan className="size-4" />
+              Menunggu konfirmasi
+              {antrean.length > 0 && (
+                <span className="rounded-full bg-sela-700 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-white">
+                  {antrean.length}
+                </span>
+              )}
+            </h2>
+            <p className="hidden text-[0.6875rem] font-semibold text-tinta-500 sm:block">
+              Sudah dibayar · siap masuk dapur
+            </p>
+          </div>
 
+          {/*
+            ── TIGA KARTU PER BARIS ─────────────────────────────────────
+
+            Pemilik meminta satu baris memuat tiga kartu. Sebelumnya daftar
+            satu kolom selebar layar: satu pesanan menghabiskan hampir
+            seluruh tinggi layar, sehingga antrean berisi empat pesanan
+            sudah butuh menggulir — padahal isinya hanya nomor, meja, dan
+            dua tombol.
+
+            Tiga kolom memaksa isi kartu dipadatkan: rincian item tidak
+            lagi didaftar satu per satu, melainkan diringkas jadi satu
+            baris yang bisa dipindai ("2× Gurame, 1× Es Teh"). Rincian
+            penuh tetap tersedia lewat "Lihat invoice" — kasir yang perlu
+            memeriksa bahan tidak kehilangan apa pun.
+
+            `sm:grid-cols-2 xl:grid-cols-3`: di ponsel 360px tiga kartu
+            berarti ~110px per kartu — nomor pesanan dan tombol "Terima"
+            tidak akan muat. Dua kolom mulai 640px, tiga mulai 1280px.
+          */}
           {antrean.length === 0 ? (
             <div className="rounded-[0.875rem] border border-dashed border-bersih-200 bg-bersih-100 px-4 py-8 text-center">
               <p className="text-[0.9375rem] font-semibold text-tinta-500">
@@ -1006,11 +1054,11 @@ export function PortalKasir() {
               </p>
             </div>
           ) : (
-            <ul className="space-y-2.5">
+            <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
               {antrean.map((p) => (
                 <li
                   key={p.id}
-                  className="overflow-hidden rounded-[0.875rem] border border-bersih-200 bg-bersih-0 shadow-[0_2px_10px_rgb(22_19_15/0.05)] ring-1 ring-sela-700/20"
+                  className="flex flex-col overflow-hidden rounded-[0.75rem] border border-bersih-200 bg-bersih-0 shadow-[0_1px_3px_rgb(22_19_15/0.06)] ring-1 ring-sela-700/15"
                 >
                   {/*
                     KEPALA KARTU ANTREAN — nomor pesanan sebagai bintang.
@@ -1025,7 +1073,7 @@ export function PortalKasir() {
                     yang belum disentuh dan yang sudah ditangani, di daftar
                     yang bentuknya seragam.
                   */}
-                  <div className="flex items-start justify-between gap-2 border-b border-bersih-200 bg-cream-50 px-3.5 py-3">
+                  <div className="flex items-start justify-between gap-2 border-b border-bersih-200 bg-cream-50 px-2.5 py-2">
                     <div className="min-w-0">
                       {/*
                         ── NOMOR PESANAN HANYA SEKALI ────────────────────
@@ -1044,12 +1092,12 @@ export function PortalKasir() {
                         <span className="shrink-0 rounded-[0.25rem] bg-sela-500 px-1.5 py-0.5 text-[0.5625rem] font-extrabold uppercase tracking-[0.1em] text-forest-950">
                           Baru
                         </span>
-                        <p className="min-w-0 truncate text-[1.375rem] font-extrabold leading-none tracking-[-0.02em] text-forest-900">
+                        <p className="min-w-0 truncate text-[1.0625rem] font-extrabold leading-none tracking-[-0.02em] text-forest-900">
                           #{p.nomor}
                         </p>
                       </div>
 
-                      <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.75rem] text-tinta-700">
+                      <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.6875rem] leading-tight text-tinta-700">
                         <span className="inline-flex items-center gap-1 rounded-full bg-daun-100 px-1.5 py-0.5 font-extrabold text-forest-700">
                           <IkonMeja className="size-3" />
                           Meja {p.meja_nomor}
@@ -1064,7 +1112,7 @@ export function PortalKasir() {
                     </div>
 
                     <div className="flex shrink-0 flex-col items-end gap-1">
-                      <span className="flex items-center gap-1 text-[0.75rem] font-bold tabular-nums text-tinta-700">
+                      <span className="flex shrink-0 items-center gap-1 text-[0.6875rem] font-bold tabular-nums text-tinta-700">
                         <IkonJam className="size-3" />
                         {sejak(p.created_at)}
                       </span>
@@ -1086,59 +1134,76 @@ export function PortalKasir() {
                         <span className="text-[0.5rem] font-bold uppercase tracking-[0.08em] text-tinta-500">
                           Subtotal
                         </span>
-                        <span className="mt-0.5 text-[1.0625rem] font-extrabold tabular-nums text-sela-700">
+                        <span className="mt-0.5 text-[0.9375rem] font-extrabold tabular-nums text-sela-700">
                           {rupiah(p.items.reduce((n, i) => n + i.harga_satuan * i.jumlah, 0))}
                         </span>
                       </span>
                     </div>
                   </div>
 
-                  <ul className="divide-y divide-bersih-200 px-3.5 py-1">
-                    {p.items.map((i) => (
-                      <li key={i.id} className="flex items-start gap-2 py-1.5">
-                        <span className="w-6 shrink-0 text-[0.9375rem] font-extrabold tabular-nums text-tinta-900">
-                          {i.jumlah}×
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[0.9375rem] font-semibold leading-tight text-tinta-900">
-                            {i.nama_saat_pesan}
-                          </p>
-                          {Array.isArray(i.pilihan) && i.pilihan.length > 0 && (
-                            <p className="mt-0.5 text-[0.6875rem] font-extrabold uppercase tracking-wide text-forest-700">
-                              {i.pilihan.map((p) => p.nama).join(" · ")}
-                            </p>
-                          )}
-                          {i.catatan && (
-                            <p className="mt-0.5 text-[0.6875rem] font-bold text-sela-700">
-                              {i.catatan}
-                            </p>
-                          )}
-                        </div>
-                        <span className="shrink-0 text-[0.8125rem] tabular-nums text-tinta-500">
-                          {rupiah(i.harga_satuan * i.jumlah)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  {/*
+                    ── RINGKASAN ITEM, BUKAN DAFTAR ─────────────────────
+                    Pada lebar 1/3 layar, daftar item satu-per-baris
+                    memakan 4–6 baris tinggi dan mendorong tombol "Terima"
+                    keluar dari layar. Yang dibutuhkan kasir saat menerima
+                    pesanan adalah JUMLAH dan NAMA sekilas; rincian penuh
+                    ada di invoice yang bisa dibuka tanpa berpindah layar.
+                  */}
+                  <div className="flex-1 px-2.5 pb-2 pt-1.5">
+                    <p className="line-clamp-2 text-[0.75rem] leading-snug text-tinta-700">
+                      {p.items.map((i) => `${i.jumlah}× ${i.nama_saat_pesan}`).join(", ")}
+                    </p>
+                    {/*
+                      Catatan & pilihan dinaikkan ke sini karena keduanya
+                      MENGUBAH hidangan yang harus dibuat ("tanpa sambal",
+                      "saus BBQ"). Kalau tersembunyi di daftar item yang
+                      sudah diringkas, dapur bisa membuat yang salah.
+                    */}
+                    {(p.items.some((i) => i.catatan) ||
+                      p.items.some((i) => Array.isArray(i.pilihan) && i.pilihan.length > 0)) && (
+                      <p className="mt-1 line-clamp-2 text-[0.6875rem] font-bold leading-snug text-sela-700">
+                        {p.items
+                          .flatMap((i) => [
+                            ...(Array.isArray(i.pilihan) ? i.pilihan.map((x) => x.nama) : []),
+                            ...(i.catatan ? [i.catatan] : []),
+                          ])
+                          .join(" · ")}
+                      </p>
+                    )}
+                  </div>
 
-                  <div className="flex gap-2 border-t border-bersih-200 p-2.5">
+                  <div className="mt-auto border-t border-bersih-200 p-2">
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        disabled={sedang}
+                        onClick={() => ubah(p.id, "diterima")}
+                        className="tombol-utama h-11 flex-1 text-[0.875rem]"
+                      >
+                        <IkonCentang className="size-4" />
+                        Terima
+                      </button>
+                      <button
+                        type="button"
+                        disabled={sedang}
+                        onClick={() => setAlasanTolak({ id: p.id, buka: true })}
+                        className="flex h-11 items-center justify-center gap-1.5 rounded-[0.5rem] border border-sela-200 px-3 text-[0.875rem] font-bold text-sela-700 transition active:scale-[0.99]"
+                      >
+                        <IkonSilang className="size-4" />
+                        Tolak
+                      </button>
+                    </div>
+                    {/*
+                      Rincian penuh pindah ke invoice. Karena daftar item
+                      sudah diringkas, jalan menuju rincian harus terlihat
+                      — bukan tersembunyi di balik nama menu.
+                    */}
                     <button
                       type="button"
-                      disabled={sedang}
-                      onClick={() => ubah(p.id, "diterima")}
-                      className="tombol-utama h-12 flex-1 text-[0.9375rem]"
+                      onClick={() => setInvoiceId(p.id)}
+                      className="mt-0.5 h-8 w-full rounded text-[0.6875rem] font-bold text-tinta-500 transition hover:bg-bersih-100"
                     >
-                      <IkonCentang className="size-4" />
-                      Terima
-                    </button>
-                    <button
-                      type="button"
-                      disabled={sedang}
-                      onClick={() => setAlasanTolak({ id: p.id, buka: true })}
-                      className="flex h-12 items-center justify-center gap-2 rounded-[0.625rem] border border-sela-200 px-4 text-[0.9375rem] font-bold text-sela-700 transition active:scale-[0.99]"
-                    >
-                      <IkonSilang className="size-4" />
-                      Tolak
+                      Lihat invoice
                     </button>
                   </div>
 
@@ -1179,28 +1244,76 @@ export function PortalKasir() {
             </ul>
           )}
 
-          {/* ── Pesanan berjalan ── */}
+          {/*
+            ── BERJALAN DI DAPUR: TIGA PER BARIS, BENTUK SAMA ───────────
+
+            Pemilik meminta kartu ini disamakan dengan "Menunggu
+            konfirmasi" — tiga per baris. Sebelumnya ia daftar satu baris
+            tipis selebar layar, sementara kartu di atasnya berbentuk
+            kartu penuh. Dua bentuk berbeda untuk dua daftar yang setara
+            membuat mata harus menyesuaikan diri dua kali.
+
+            Bedanya sekarang hanya pada ISI yang memang berbeda: tidak ada
+            tombol aksi (pekerjaan sudah di dapur, kasir tidak perlu
+            memutuskan apa pun), dan statusnya menonjol karena itulah satu-
+            satunya hal yang berubah di sini.
+          */}
           {diproses.length > 0 && (
             <>
-              <h2 className="mb-2 mt-5 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500">
-                Berjalan di dapur
-              </h2>
-              <ul className="space-y-1.5">
+              <div className="mb-2 mt-5 flex items-center justify-between gap-2">
+                <h2 className="flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500">
+                  <IkonPromo className="size-4" />
+                  Berjalan di dapur
+                  <span className="rounded-full bg-bersih-200 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-tinta-700">
+                    {diproses.length}
+                  </span>
+                </h2>
+                <p className="hidden text-[0.6875rem] font-semibold text-tinta-500 sm:block">
+                  Sedang dimasak
+                </p>
+              </div>
+
+              <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                 {diproses.map((p) => (
                   <li
                     key={p.id}
-                    className="flex items-center gap-3 rounded-[0.625rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0 px-3 py-2"
+                    className="flex flex-col overflow-hidden rounded-[0.75rem] border border-bersih-200 bg-bersih-0 shadow-[0_1px_3px_rgb(22_19_15/0.06)]"
                   >
-                    <span className="grid size-8 shrink-0 place-items-center rounded-[0.5rem] bg-daun-100 text-[0.9375rem] font-extrabold text-forest-700">
-                      {p.meja_nomor}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-tinta-700">
-                      {p.items.map((i) => `${i.jumlah}× ${i.nama_saat_pesan}`).join(", ")}
-                    </span>
-                    <StatusKecil status={p.status} />
-                    <span className="shrink-0 text-[0.6875rem] text-tinta-500">
-                      {sejak(p.created_at)}
-                    </span>
+                    <div className="flex items-start justify-between gap-2 border-b border-bersih-200 bg-cream-50 px-2.5 py-2">
+                      <div className="min-w-0">
+                        <p className="min-w-0 truncate text-[1.0625rem] font-extrabold leading-none tracking-[-0.02em] text-forest-900">
+                          #{p.nomor}
+                        </p>
+                        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.6875rem] leading-tight text-tinta-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-daun-100 px-1.5 py-0.5 font-extrabold text-forest-700">
+                            <IkonMeja className="size-3" />
+                            Meja {p.meja_nomor}
+                          </span>
+                          {p.nama_pemesan && (
+                            <span className="max-w-[12ch] truncate font-semibold">
+                              {p.nama_pemesan}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      {/*
+                        Status sebagai lencana besar di kanan atas: satu-
+                        satunya hal yang berubah pada kartu ini, jadi ia
+                        yang harus paling cepat terbaca.
+                      */}
+                      <StatusKecil status={p.status} />
+                    </div>
+
+                    <div className="flex flex-1 flex-col gap-1 px-2.5 pb-2 pt-1.5">
+                      <p className="line-clamp-2 text-[0.75rem] leading-snug text-tinta-700">
+                        {p.items.map((i) => `${i.jumlah}× ${i.nama_saat_pesan}`).join(", ")}
+                      </p>
+                      <p className="mt-auto flex items-center gap-1 text-[0.625rem] font-semibold tabular-nums text-tinta-500">
+                        <IkonJam className="size-3" />
+                        {sejak(p.created_at)}
+                      </p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -1211,12 +1324,25 @@ export function PortalKasir() {
 
         {layar === "meja" && (
         <section id="meja" aria-labelledby="meja" className="min-w-0 scroll-mt-4">
-          <h2
-            id="meja"
-            className="mb-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
-          >
-            Meja
-          </h2>
+          {/*
+            Angka "terisi" pindah ke sini karena strip status hanya
+            muncul di layar Antrean. Tanpa ini, kasir yang membuka denah
+            meja kehilangan satu-satunya ringkasan hunian — ia harus
+            menghitung sendiri 20 kotak.
+          */}
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2
+              id="meja"
+              className="flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+            >
+              <IkonMeja className="size-4" />
+              Meja
+            </h2>
+            <p className="text-[0.75rem] font-bold tabular-nums text-tinta-700">
+              <span className="text-forest-900">{mejaTerisi}</span>
+              <span className="text-tinta-500"> / {(data?.meja ?? []).length} terisi</span>
+            </p>
+          </div>
 
           {/*
             ── DUA KOLOM DI PONSEL, SEPERTI ACUAN ─────────────────────
@@ -1817,6 +1943,32 @@ export function PortalKasir() {
       </div>{/* tutup: area kerja */}
     </div>
   );
+}
+
+/**
+ * Sisa waktu sebelum pesanan kedaluwarsa, dalam bentuk yang bisa dibaca
+ * sekilas.
+ *
+ * ── MENGAPA INI PENTING, BUKAN HIASAN ─────────────────────────────────
+ *
+ * Pesanan yang belum dibayar HILANG SENDIRI setelah batas waktu. Kartu
+ * "Belum dibayar" tidak pernah menyebutkan itu: kasir bisa mendatangi
+ * meja, menagih, lalu mendapat "pesanan tidak ditemukan" — atau lebih
+ * buruk, tamu sudah menunggu sepuluh menit untuk pesanan yang sudah
+ * dibatalkan sistem.
+ *
+ * Kembalian `null` ketika tidak ada tenggat atau tenggatnya masih jauh
+ * (> 30 menit): menampilkan "sisa 43 menit" hanya menambah angka yang
+ * tidak mengubah keputusan siapa pun.
+ */
+function sisaWaktu(kedaluwarsa: string | null): { teks: string; mendesak: boolean } | null {
+  if (!kedaluwarsa) return null;
+  const sisa = new Date(kedaluwarsa).getTime() - Date.now();
+  if (!Number.isFinite(sisa) || sisa <= 0) return { teks: "Kedaluwarsa", mendesak: true };
+
+  const menit = Math.ceil(sisa / 60000);
+  if (menit > 30) return null;
+  return { teks: `Sisa ${menit} mnt`, mendesak: menit <= 10 };
 }
 
 function StatusKecil({ status }: { status: string }) {

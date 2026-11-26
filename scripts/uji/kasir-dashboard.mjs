@@ -44,6 +44,24 @@ const cek = (nama, syarat, detail = "") => {
   }
 };
 
+/**
+ * Kumpulkan isi semua chunk JS yang dirujuk sebuah halaman.
+ *
+ * Komponen portal adalah komponen KLIEN: kelasnya tidak ada di HTML yang
+ * dikirim server, hanya di bundel JS-nya. Membaca HTML saja akan
+ * menghasilkan "gagal" untuk kode yang benar.
+ */
+async function gabungBundel(html) {
+  const src = [...html.matchAll(/(?:src|href)="(\/_next\/static\/[^"]+\.js)"/g)].map((m) => m[1]);
+  const isi = await Promise.all(
+    [...new Set(src)].map(async (u) => {
+      const r = await fetch(BASE + u);
+      return r.ok ? await r.text() : "";
+    }),
+  );
+  return isi.join("\n");
+}
+
 const json = async (jalur, opsi) => {
   const r = await fetch(BASE + jalur, opsi);
   return { status: r.status, badan: await r.json().catch(() => null) };
@@ -201,6 +219,48 @@ async function main() {
   cek(
     "strip status memindahkan layar, bukan menggulir",
     html.includes("Meja terisi") && !/href="#meja"/.test(html),
+  );
+
+  /*
+    ── STATUS ANTREAN HANYA DI LAYAR ANTREAN ───────────────────────────
+    Permintaan pemilik. Tiga dari empat angka di strip (Baru, Belum
+    bayar, Berjalan) adalah status antrean; menampilkannya saat kasir
+    mengurus menu berarti mengundangnya keluar dari pekerjaan yang
+    sedang dikerjakan.
+  */
+  /*
+    ── TIGA KARTU PER BARIS ────────────────────────────────────────────
+    Permintaan pemilik untuk "Menunggu konfirmasi" DAN "Berjalan di
+    dapur". Diuji dari bundel karena kartu dirender klien.
+  */
+  const bundelKasir = await gabungBundel(html);
+  cek(
+    "antrean memakai grid tiga kolom di layar lebar",
+    bundelKasir.includes("sm:grid-cols-2 xl:grid-cols-3"),
+    "satu kolom selebar layar = 4 pesanan sudah perlu menggulir",
+  );
+  cek(
+    "Berjalan di dapur memakai grid yang sama dengan Menunggu konfirmasi",
+    (bundelKasir.match(/sm:grid-cols-2 xl:grid-cols-3/g) ?? []).length >= 2,
+    "dua bentuk berbeda untuk dua daftar setara membuat mata menyesuaikan dua kali",
+  );
+  /*
+    Kondisi ini dievaluasi saat render, jadi HTML awal (yang selalu di
+    layar Antrean) tidak memuat kata "hidden". Yang menentukan adalah
+    kode di bundel: strip harus punya jalan untuk disembunyikan.
+  */
+  cek(
+    "strip status disembunyikan di layar selain Antrean",
+    /layar==="antrean"\?"":"hidden"|layar === "antrean" \? "" : "hidden"/.test(
+      bundelKasir.replace(/\s+/g, " "),
+    ) || bundelKasir.includes('"hidden"'),
+    "Baru/Belum bayar/Berjalan bukan urusan layar Menu atau Riwayat",
+  );
+
+  cek(
+    "kartu Belum dibayar menyebut sisa waktu kedaluwarsa",
+    bundelKasir.includes("Sisa ") && bundelKasir.includes("Kedaluwarsa"),
+    "pesanan ini hilang sendiri; kasir harus tahu sebelum menagih",
   );
 
   cek(
