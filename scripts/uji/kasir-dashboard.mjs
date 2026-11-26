@@ -234,15 +234,49 @@ async function main() {
     dapur". Diuji dari bundel karena kartu dirender klien.
   */
   const bundelKasir = await gabungBundel(html);
+  /*
+    Kartu kini memuat daftar item + subtotal (mengikuti acuan pemilik),
+    jadi tiga kolom di 1280px terlalu sempit: nama hidangan dan subtotal
+    mulai terpotong. Dua kolom sampai 1536px, tiga setelah itu.
+  */
   cek(
-    "antrean memakai grid tiga kolom di layar lebar",
-    bundelKasir.includes("sm:grid-cols-2 xl:grid-cols-3"),
-    "satu kolom selebar layar = 4 pesanan sudah perlu menggulir",
+    "antrean memakai grid dua kolom, tiga di layar sangat lebar",
+    bundelKasir.includes("sm:grid-cols-2 2xl:grid-cols-3"),
+    "kartu berisi daftar item butuh lebar; satu kolom = 4 pesanan perlu menggulir",
   );
   cek(
-    "Berjalan di dapur memakai grid yang sama dengan Menunggu konfirmasi",
-    (bundelKasir.match(/sm:grid-cols-2 xl:grid-cols-3/g) ?? []).length >= 2,
+    "Berjalan di dapur memakai grid yang sama",
+    (bundelKasir.match(/sm:grid-cols-2 2xl:grid-cols-3/g) ?? []).length >= 2,
     "dua bentuk berbeda untuk dua daftar setara membuat mata menyesuaikan dua kali",
+  );
+
+  /*
+    ── BENTUK KARTU MENGIKUTI ACUAN ────────────────────────────────────
+    Pemilik mengirim tangkapan layar rancangan. Empat hal yang membuatnya
+    berbeda dari versi sebelumnya, dan mudah hilang lagi saat dirapikan:
+      · lencana "Baru" sebaris nomor pesanan;
+      · daftar item di panel berlatar dengan subtotal di kakinya;
+      · "Lihat invoice" di kiri, Tolak & Terima di kanan;
+      · aksen warna di tepi kiri kartu.
+  */
+  cek(
+    "kartu antrean punya aksen tepi kiri",
+    bundelKasir.includes("border-l-sela-700"),
+    "penanda 'butuh tindakan' terbaca sebelum satu kata pun",
+  );
+  cek(
+    "daftar item berada di panel berlatar, dengan subtotal di kakinya",
+    bundelKasir.includes("bg-bersih-50 px-3 pb-2.5"),
+    "memisahkan 'apa yang dipesan' dari 'apa yang harus dilakukan'",
+  );
+  cek(
+    "kartu menyebut Subtotal, bukan angka tanpa label",
+    bundelKasir.includes("Subtotal"),
+  );
+  cek(
+    "Berjalan di dapur memakai bentuk kartu yang sama",
+    bundelKasir.includes("Dikerjakan dapur"),
+    "tanpa tombol aksi — pekerjaan sudah di dapur",
   );
   /*
     Kondisi ini dievaluasi saat render, jadi HTML awal (yang selalu di

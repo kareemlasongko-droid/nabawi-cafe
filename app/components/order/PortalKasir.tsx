@@ -49,6 +49,7 @@ import {
   IkonMenu,
   IkonCari,
   IkonKategoriMenu,
+  IkonPanah,
 } from "./Ikon";
 import { BukaInvoice } from "./LembarInvoice";
 import { KartuRingkasan } from "./KartuRingkasan";
@@ -1054,191 +1055,117 @@ export function PortalKasir() {
               </p>
             </div>
           ) : (
-            <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
               {antrean.map((p) => (
                 <li
                   key={p.id}
-                  className="flex flex-col overflow-hidden rounded-[0.75rem] border border-bersih-200 bg-bersih-0 shadow-[0_1px_3px_rgb(22_19_15/0.06)] ring-1 ring-sela-700/15"
+                  className="flex flex-col overflow-hidden rounded-[0.875rem] border border-l-[3px] border-bersih-200 border-l-sela-700 bg-bersih-0 shadow-[0_1px_2px_rgb(22_19_15/0.04),0_8px_24px_-16px_rgb(22_19_15/0.25)]"
                 >
-                  {/*
-                    KEPALA KARTU ANTREAN — nomor pesanan sebagai bintang.
-
-                    Di acuan, hal pertama yang dibaca kasir adalah NOMOR
-                    PESANAN (#1058) dalam huruf besar, bukan nomor meja.
-                    Alasannya nyata: tamu menyebut nomornya ("pesanan 1058"),
-                    dan nomor itulah yang dicari kasir saat antrean panjang.
-                    Nomor meja tetap ada, di baris kedua.
-
-                    Lencana "Baru" oranye: pembeda tercepat antara pesanan
-                    yang belum disentuh dan yang sudah ditangani, di daftar
-                    yang bentuknya seragam.
-                  */}
-                  <div className="flex items-start justify-between gap-2 border-b border-bersih-200 bg-cream-50 px-2.5 py-2">
-                    <div className="min-w-0">
-                      {/*
-                        ── NOMOR PESANAN HANYA SEKALI ────────────────────
-
-                        Versi sebelumnya menulis nomor yang SAMA dua kali:
-                        sekali kecil di baris lencana dan sekali besar tepat
-                        di bawahnya. Itu satu baris tinggi yang tidak
-                        menambah informasi apa pun, di kartu yang tingginya
-                        paling mahal — setiap piksel di sini menggeser
-                        kartu berikutnya keluar dari layar.
-
-                        Lencana "Baru" pindah sebaris dengan nomor besar,
-                        jadi kepala kartu turun satu baris lagi.
-                      */}
-                      <div className="flex items-center gap-1.5">
-                        <span className="shrink-0 rounded-[0.25rem] bg-sela-500 px-1.5 py-0.5 text-[0.5625rem] font-extrabold uppercase tracking-[0.1em] text-forest-950">
+                  <div className="px-3.5 pt-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="shrink-0 rounded-[0.375rem] bg-sela-700 px-2 py-1 text-[0.625rem] font-extrabold uppercase leading-none tracking-[0.1em] text-white">
                           Baru
                         </span>
-                        <p className="min-w-0 truncate text-[1.0625rem] font-extrabold leading-none tracking-[-0.02em] text-forest-900">
+                        <p className="min-w-0 truncate text-[1.25rem] font-extrabold leading-none tracking-[-0.02em] text-forest-900">
                           #{p.nomor}
                         </p>
                       </div>
-
-                      <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.6875rem] leading-tight text-tinta-700">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-daun-100 px-1.5 py-0.5 font-extrabold text-forest-700">
-                          <IkonMeja className="size-3" />
-                          Meja {p.meja_nomor}
-                        </span>
-                        {p.nama_pemesan && (
-                          <span className="max-w-[12ch] truncate font-semibold">
-                            {p.nama_pemesan}
-                          </span>
-                        )}
-                        <span className="text-tinta-500">{p.total_item} item</span>
-                      </p>
-                    </div>
-
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <span className="flex shrink-0 items-center gap-1 text-[0.6875rem] font-bold tabular-nums text-tinta-700">
-                        <IkonJam className="size-3" />
+                      <span className="flex shrink-0 items-center gap-1 text-[0.75rem] font-semibold tabular-nums text-tinta-500">
+                        <IkonJam className="size-3.5" />
                         {sejak(p.created_at)}
                       </span>
-                      {/*
-                        ── SATU ANGKA, DAN DIKATAKAN ANGKA APA ──────────
+                    </div>
 
-                        Angka ini SUBTOTAL ITEM — belum termasuk pajak dan
-                        biaya layanan. Sebelumnya ia tampil tanpa keterangan,
-                        sementara kartu meja dan kartu "Belum dibayar"
-                        menampilkan TOTAL tagihan. Untuk pesanan yang sama,
-                        kasir melihat dua angka berbeda di satu layar dan
-                        menyebut yang salah di depan tamu.
+                    <p className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] leading-none text-tinta-700">
+                      <span className="inline-flex items-center gap-1 rounded-[0.375rem] bg-daun-100 px-2 py-1.5 font-extrabold leading-none text-forest-700">
+                        <IkonMeja className="size-3.5" />
+                        Meja {p.meja_nomor}
+                      </span>
+                      {p.nama_pemesan && (
+                        <>
+                          <span aria-hidden="true" className="text-tinta-500/50">
+                            ·
+                          </span>
+                          <span className="min-w-0 max-w-[14ch] truncate font-semibold">
+                            {p.nama_pemesan}
+                          </span>
+                        </>
+                      )}
+                      <span aria-hidden="true" className="text-tinta-500/50">
+                        ·
+                      </span>
+                      <span className="shrink-0 font-semibold text-tinta-500">
+                        {p.total_item} item
+                      </span>
+                    </p>
+                  </div>
 
-                        Sekarang diberi label "Subtotal", dan total yang
-                        benar-benar ditagih tetap muncul di kartu meja
-                        serta kartu "Belum dibayar" — tempat kasir menagih.
-                      */}
-                      <span className="flex flex-col items-end leading-none">
-                        <span className="text-[0.5rem] font-bold uppercase tracking-[0.08em] text-tinta-500">
-                          Subtotal
-                        </span>
-                        <span className="mt-0.5 text-[0.9375rem] font-extrabold tabular-nums text-sela-700">
-                          {rupiah(p.items.reduce((n, i) => n + i.harga_satuan * i.jumlah, 0))}
-                        </span>
+                  <div className="mx-3.5 mt-2.5 rounded-[0.625rem] bg-bersih-50 px-3 pb-2.5 pt-1">
+                    <ul className="divide-y divide-bersih-200">
+                      {p.items.map((i) => (
+                        <li key={i.id} className="flex items-start gap-2 py-2">
+                          <span className="mt-px grid size-6 shrink-0 place-items-center rounded-[0.25rem] bg-bersih-200 text-[0.6875rem] font-extrabold leading-none tabular-nums text-tinta-700">
+                            {i.jumlah}x
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[0.8125rem] font-semibold leading-snug text-tinta-900">
+                              {i.nama_saat_pesan}
+                              {Array.isArray(i.pilihan) && i.pilihan.length > 0 && (
+                                <span className="ml-1.5 inline-block rounded-[0.25rem] bg-sela-100 px-1.5 py-0.5 align-middle text-[0.5625rem] font-extrabold uppercase leading-none tracking-wide text-sela-800">
+                                  {i.pilihan.map((x) => x.nama).join(" · ")}
+                                </span>
+                              )}
+                            </p>
+                            {i.catatan && (
+                              <p className="mt-0.5 text-[0.6875rem] font-bold leading-snug text-sela-700">
+                                {i.catatan}
+                              </p>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="mt-1 flex items-baseline justify-between gap-2 border-t border-bersih-200 pt-2">
+                      <span className="text-[0.75rem] font-semibold text-tinta-500">Subtotal</span>
+                      <span className="whitespace-nowrap text-[1.125rem] font-extrabold leading-none tabular-nums tracking-[-0.01em] text-sela-700">
+                        {rupiah(p.items.reduce((n, i) => n + i.harga_satuan * i.jumlah, 0))}
                       </span>
                     </div>
                   </div>
 
-                  {/*
-                    ── RINGKASAN ITEM, BUKAN DAFTAR ─────────────────────
-                    Pada lebar 1/3 layar, daftar item satu-per-baris
-                    memakan 4–6 baris tinggi dan mendorong tombol "Terima"
-                    keluar dari layar. Yang dibutuhkan kasir saat menerima
-                    pesanan adalah JUMLAH dan NAMA sekilas; rincian penuh
-                    ada di invoice yang bisa dibuka tanpa berpindah layar.
-                  */}
-                  <div className="flex-1 px-2.5 pb-2 pt-1.5">
-                    <p className="line-clamp-2 text-[0.75rem] leading-snug text-tinta-700">
-                      {p.items.map((i) => `${i.jumlah}× ${i.nama_saat_pesan}`).join(", ")}
-                    </p>
-                    {/*
-                      Catatan & pilihan dinaikkan ke sini karena keduanya
-                      MENGUBAH hidangan yang harus dibuat ("tanpa sambal",
-                      "saus BBQ"). Kalau tersembunyi di daftar item yang
-                      sudah diringkas, dapur bisa membuat yang salah.
-                    */}
-                    {(p.items.some((i) => i.catatan) ||
-                      p.items.some((i) => Array.isArray(i.pilihan) && i.pilihan.length > 0)) && (
-                      <p className="mt-1 line-clamp-2 text-[0.6875rem] font-bold leading-snug text-sela-700">
-                        {p.items
-                          .flatMap((i) => [
-                            ...(Array.isArray(i.pilihan) ? i.pilihan.map((x) => x.nama) : []),
-                            ...(i.catatan ? [i.catatan] : []),
-                          ])
-                          .join(" · ")}
-                      </p>
-                    )}
-                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2 px-3.5 pb-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setInvoiceId(p.id)}
+                      className="flex h-11 shrink-0 items-center gap-1.5 rounded-[0.375rem] px-1 text-[0.75rem] font-bold text-tinta-500 transition hover:text-forest-700"
+                    >
+                      <IkonPanah className="size-3.5" />
+                      Lihat invoice
+                    </button>
 
-                  <div className="mt-auto border-t border-bersih-200 p-2">
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        disabled={sedang}
-                        onClick={() => ubah(p.id, "diterima")}
-                        className="tombol-utama h-11 flex-1 text-[0.875rem]"
-                      >
-                        <IkonCentang className="size-4" />
-                        Terima
-                      </button>
+                    <div className="flex shrink-0 items-center gap-1.5">
                       <button
                         type="button"
                         disabled={sedang}
                         onClick={() => setAlasanTolak({ id: p.id, buka: true })}
-                        className="flex h-11 items-center justify-center gap-1.5 rounded-[0.5rem] border border-sela-200 px-3 text-[0.875rem] font-bold text-sela-700 transition active:scale-[0.99]"
+                        className="flex h-11 items-center gap-1.5 rounded-[0.5rem] border border-sela-200 bg-bersih-0 px-3.5 text-[0.875rem] font-bold text-sela-700 transition hover:bg-sela-50 active:scale-[0.99] disabled:opacity-50"
                       >
                         <IkonSilang className="size-4" />
                         Tolak
                       </button>
+                      <button
+                        type="button"
+                        disabled={sedang}
+                        onClick={() => ubah(p.id, "diterima")}
+                        className="flex h-11 items-center gap-1.5 rounded-[0.5rem] bg-forest-900 px-4 text-[0.875rem] font-bold text-cream-50 transition hover:bg-forest-950 active:scale-[0.99] disabled:opacity-50"
+                      >
+                        <IkonCentang className="size-4" />
+                        Terima
+                      </button>
                     </div>
-                    {/*
-                      Rincian penuh pindah ke invoice. Karena daftar item
-                      sudah diringkas, jalan menuju rincian harus terlihat
-                      — bukan tersembunyi di balik nama menu.
-                    */}
-                    <button
-                      type="button"
-                      onClick={() => setInvoiceId(p.id)}
-                      className="mt-0.5 h-8 w-full rounded text-[0.6875rem] font-bold text-tinta-500 transition hover:bg-bersih-100"
-                    >
-                      Lihat invoice
-                    </button>
                   </div>
-
-                  {/* Penolakan wajib beralasan (K-02). Alasannya ditampilkan
-                      langsung, bukan modal — supaya tidak menutupi antrean
-                      berikutnya yang mungkin perlu dilihat bersamaan. */}
-                  {alasanTolak.buka && alasanTolak.id === p.id && (
-                    <div className="border-t border-sela-200 bg-sela-50 p-2.5">
-                      <p className="mb-1.5 text-[0.6875rem] font-bold uppercase tracking-wider text-sela-800">
-                        Alasan penolakan
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {["Menu habis", "Di luar jam", "Lainnya"].map((a) => (
-                          <button
-                            key={a}
-                            type="button"
-                            onClick={() => {
-                              ubah(p.id, "ditolak", a);
-                              setAlasanTolak({ id: 0, buka: false });
-                            }}
-                            className="h-10 rounded-[0.625rem] bg-bersih-0 px-3 text-[0.8125rem] font-bold text-sela-800 ring-1 ring-sela-200"
-                          >
-                            {a}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => setAlasanTolak({ id: 0, buka: false })}
-                          className="h-10 rounded-[0.625rem] px-3 text-[0.8125rem] font-semibold text-tinta-500"
-                        >
-                          Batal
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </li>
               ))}
             </ul>
@@ -1273,45 +1200,94 @@ export function PortalKasir() {
                 </p>
               </div>
 
-              <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+              <ul className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
                 {diproses.map((p) => (
                   <li
                     key={p.id}
-                    className="flex flex-col overflow-hidden rounded-[0.75rem] border border-bersih-200 bg-bersih-0 shadow-[0_1px_3px_rgb(22_19_15/0.06)]"
+                    className="flex flex-col overflow-hidden rounded-[0.875rem] border border-bersih-200 bg-bersih-0 shadow-[0_1px_2px_rgb(22_19_15/0.04),0_8px_24px_-16px_rgb(22_19_15/0.25)]"
                   >
-                    <div className="flex items-start justify-between gap-2 border-b border-bersih-200 bg-cream-50 px-2.5 py-2">
-                      <div className="min-w-0">
-                        <p className="min-w-0 truncate text-[1.0625rem] font-extrabold leading-none tracking-[-0.02em] text-forest-900">
-                          #{p.nomor}
-                        </p>
-                        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.6875rem] leading-tight text-tinta-700">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-daun-100 px-1.5 py-0.5 font-extrabold text-forest-700">
-                            <IkonMeja className="size-3" />
-                            Meja {p.meja_nomor}
-                          </span>
-                          {p.nama_pemesan && (
-                            <span className="max-w-[12ch] truncate font-semibold">
-                              {p.nama_pemesan}
-                            </span>
-                          )}
-                        </p>
+                    <div className="px-3.5 pt-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <p className="min-w-0 truncate text-[1.25rem] font-extrabold leading-none tracking-[-0.02em] text-forest-900">
+                            #{p.nomor}
+                          </p>
+                        </div>
+                        <StatusKecil status={p.status} />
                       </div>
 
-                      {/*
-                        Status sebagai lencana besar di kanan atas: satu-
-                        satunya hal yang berubah pada kartu ini, jadi ia
-                        yang harus paling cepat terbaca.
-                      */}
-                      <StatusKecil status={p.status} />
+                      <p className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] leading-none text-tinta-700">
+                        <span className="inline-flex items-center gap-1 rounded-[0.375rem] bg-daun-100 px-2 py-1.5 font-extrabold leading-none text-forest-700">
+                          <IkonMeja className="size-3.5" />
+                          Meja {p.meja_nomor}
+                        </span>
+                        {p.nama_pemesan && (
+                          <>
+                            <span aria-hidden="true" className="text-tinta-500/50">
+                              ·
+                            </span>
+                            <span className="min-w-0 max-w-[14ch] truncate font-semibold">
+                              {p.nama_pemesan}
+                            </span>
+                          </>
+                        )}
+                        <span aria-hidden="true" className="text-tinta-500/50">
+                          ·
+                        </span>
+                        <span className="shrink-0 font-semibold text-tinta-500">
+                          {p.total_item} item
+                        </span>
+                      </p>
                     </div>
 
-                    <div className="flex flex-1 flex-col gap-1 px-2.5 pb-2 pt-1.5">
-                      <p className="line-clamp-2 text-[0.75rem] leading-snug text-tinta-700">
-                        {p.items.map((i) => `${i.jumlah}× ${i.nama_saat_pesan}`).join(", ")}
-                      </p>
-                      <p className="mt-auto flex items-center gap-1 text-[0.625rem] font-semibold tabular-nums text-tinta-500">
-                        <IkonJam className="size-3" />
-                        {sejak(p.created_at)}
+                    <div className="mx-3.5 mt-2.5 rounded-[0.625rem] bg-bersih-50 px-3 pb-2.5 pt-1">
+                      <ul className="divide-y divide-bersih-200">
+                        {p.items.map((i) => (
+                          <li key={i.id} className="flex items-start gap-2 py-2">
+                            <span className="mt-px grid size-6 shrink-0 place-items-center rounded-[0.25rem] bg-bersih-200 text-[0.6875rem] font-extrabold leading-none tabular-nums text-tinta-700">
+                              {i.jumlah}x
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[0.8125rem] font-semibold leading-snug text-tinta-900">
+                                {i.nama_saat_pesan}
+                                {Array.isArray(i.pilihan) && i.pilihan.length > 0 && (
+                                  <span className="ml-1.5 inline-block rounded-[0.25rem] bg-sela-100 px-1.5 py-0.5 align-middle text-[0.5625rem] font-extrabold uppercase leading-none tracking-wide text-sela-800">
+                                    {i.pilihan.map((x) => x.nama).join(" · ")}
+                                  </span>
+                                )}
+                              </p>
+                              {i.catatan && (
+                                <p className="mt-0.5 text-[0.6875rem] font-bold leading-snug text-sela-700">
+                                  {i.catatan}
+                                </p>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <div className="mt-1 flex items-baseline justify-between gap-2 border-t border-bersih-200 pt-2">
+                        <span className="flex items-center gap-1 text-[0.75rem] font-semibold tabular-nums text-tinta-500">
+                          <IkonJam className="size-3" />
+                          {sejak(p.created_at)}
+                        </span>
+                        <span className="whitespace-nowrap text-[1.125rem] font-extrabold leading-none tabular-nums tracking-[-0.01em] text-forest-900">
+                          {rupiah(p.items.reduce((n, i) => n + i.harga_satuan * i.jumlah, 0))}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 px-3.5 pb-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceId(p.id)}
+                        className="flex h-11 shrink-0 items-center gap-1.5 rounded-[0.375rem] px-1 text-[0.75rem] font-bold text-tinta-500 transition hover:text-forest-700"
+                      >
+                        <IkonPanah className="size-3.5" />
+                        Lihat invoice
+                      </button>
+                      <p className="text-[0.6875rem] font-semibold text-tinta-500">
+                        Dikerjakan dapur
                       </p>
                     </div>
                   </li>
