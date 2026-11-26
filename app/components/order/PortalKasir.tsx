@@ -139,7 +139,15 @@ type DataKasir = {
  * ditemukan adalah judul kepala yang menyebut panel berbeda dari yang
  * sedang terbuka.
  */
-const LABEL_LAYAR: Record<"antrean" | "meja" | "menu" | "laporan" | "riwayat", string> = {
+/** Panel yang bisa dibuka. Satu daftar untuk state, URL, dan label. */
+type LayarKasir = "antrean" | "meja" | "menu" | "laporan" | "riwayat";
+const LAYAR_SAH: readonly LayarKasir[] = ["antrean", "meja", "menu", "laporan", "riwayat"];
+const layarDariUrl = (cari: string): LayarKasir => {
+  const q = new URLSearchParams(cari).get("layar");
+  return LAYAR_SAH.includes(q as LayarKasir) ? (q as LayarKasir) : "antrean";
+};
+
+const LABEL_LAYAR: Record<LayarKasir, string> = {
   antrean: "Antrean",
   meja: "Meja",
   menu: "Menu",
@@ -194,12 +202,61 @@ export function PortalKasir() {
     yang sedang dibuka; `mejaPilih` tetap terpisah karena ia BUKAN tab,
     melainkan pilihan di dalam tab Antrean.
   */
-  const [layar, setLayar] = useState<"antrean" | "meja" | "menu" | "laporan" | "riwayat">("antrean");
+  /*
+    ── HALAMAN YANG DIBUKA DISIMPAN DI URL ──────────────────────────────
+
+    Sebelumnya selalu mulai dari "antrean". Akibatnya kasir yang sedang
+    membaca Riwayat lalu menekan Ctrl+R (atau peramban memuat ulang
+    sendiri setelah tablet tidur) dilempar kembali ke Menunggu konfirmasi
+    dan harus mencari panelnya lagi — beberapa kali per shift.
+
+    Disimpan di URL (`?layar=riwayat`), bukan di localStorage, karena tiga
+    hal yang localStorage tidak bisa:
+
+      · muat ulang mempertahankannya,
+      · tombol Back kembali ke panel sebelumnya,
+      · tautan ke satu panel bisa dikirim ke kasir lain ("buka Riwayat,
+        lihat transaksi jam 3").
+
+    Dibaca saat inisialisasi state lewat `window`, di dalam fungsi
+    inisialisasi — jadi hanya berjalan di klien. Markup server tetap
+    "antrean", dan React menyamakannya saat hidrasi tanpa peringatan
+    karena nilai awalnya dibaca ulang dari `location` yang sama.
+  */
+  const [layar, setLayar] = useState<LayarKasir>(() => {
+    if (typeof window === "undefined") return "antrean";
+    return layarDariUrl(window.location.search);
+  });
   /*
     Kapan pembaruan terakhir BERHASIL. `null` = belum pernah sejak halaman
     dibuka, yang jauh lebih gawat daripada gagal sekali.
     Dipakai bilah peringatan untuk menyebut umur data ("40 detik lalu").
   */
+  /*
+    Tulis pilihan panel ke URL. `replaceState`, bukan `pushState`: setiap
+    klik sidebar tidak perlu menjadi satu entri riwayat — kalau iya,
+    menekan Back sepuluh kali setelah berpindah-pindah panel terasa seperti
+    mundur selangkah demi selangkah melalui layar yang sudah ditutup.
+
+    Tapi Back SETELAH muat ulang tetap harus bekerja, jadi `popstate`
+    didengar dan `layar` disamakan dengan URL.
+  */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (layar === "antrean") url.searchParams.delete("layar");
+    else url.searchParams.set("layar", layar);
+    window.history.replaceState(null, "", url);
+  }, [layar]);
+
+  useEffect(() => {
+    function saatMundur() {
+      setLayar(layarDariUrl(window.location.search));
+    }
+    window.addEventListener("popstate", saatMundur);
+    return () => window.removeEventListener("popstate", saatMundur);
+  }, []);
+
   const [berhasilPada, setBerhasilPada] = useState<number | null>(null);
   const [memuatUlang, setMemuatUlang] = useState(false);
   const [detak, setDetak] = useState(() => Date.now());
@@ -1383,7 +1440,22 @@ export function PortalKasir() {
             untuk memuat nomor meja, status, dan total sekaligus — tiga hal
             yang dibaca kasir dalam satu pandangan tanpa membuka apa pun.
           */}
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
+          {/*
+            ── LIMA KOLOM, TAPI TIDAK DI SEMUA LEBAR ────────────────────
+
+            Permintaan pemilik: daftar meja 5 kolom. Di layar lebar itu
+            benar — 20 meja jadi 4 baris, dan kasir melihat seluruh denah
+            tanpa menggulir.
+
+            Yang TIDAK dilakukan: `grid-cols-5` untuk semua ukuran. Kartu
+            ini memuat nomor (1.375rem), nominal tagihan penuh
+            ("Rp147.600"), dan label "terisi" — pada kolom 5 di ponsel
+            360px lebarnya ~56px, dan nominal itu akan terpotong atau
+            meluber. Karena itu kolomnya bertambah seiring lebar:
+            2 → 3 → 4 → 5. Teks tidak pernah dipaksa muat; yang menyesuaikan
+            adalah jumlah kolom.
+          */}
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
             {(data?.meja ?? []).map((m) => {
               const aktif = mejaPilih === m.nomor;
               /*

@@ -53,6 +53,26 @@ const WARNA_BAYAR: Record<string, string> = {
 };
 
 /**
+ * Tanggal WIB sebuah waktu ISO, dalam bentuk `YYYY-MM-DD`.
+ *
+ * Zona DIKUNCI ke Asia/Jakarta, bukan zona perangkat. `toISOString()`
+ * akan memakai UTC: transaksi pukul 07.00 WIB tanggal 5 tersimpan sebagai
+ * 00.00 UTC tanggal 5 (aman), tetapi transaksi pukul 23.00 WIB tanggal 5
+ * menjadi 16.00 UTC tanggal 5 (juga aman) — yang BERBAHAYA justru
+ * sebaliknya, transaksi 00.30 WIB tanggal 5 adalah 17.30 UTC tanggal 4,
+ * sehingga filter "tanggal 5" akan melewatkannya.
+ */
+function tanggalWib(iso: string): string {
+  // en-CA menghasilkan YYYY-MM-DD, persis format input[type=date].
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}
+
+/**
  * Lima nomor halaman di sekitar halaman aktif.
  *
  * Selalu memuat halaman pertama dan terakhir, karena keduanya yang dicari
@@ -79,6 +99,20 @@ export function DaftarRiwayat({
   const [invoiceId, setInvoiceId] = useState<number | null>(null);
   const [halaman, setHalaman] = useState(1);
   const [cari, setCari] = useState("");
+  /*
+    ── FILTER TANGGAL ────────────────────────────────────────────────────
+
+    Dua isian, bukan pemilih rentang. Alasannya: 90% pemakaian adalah
+    "hari ini" atau "hari itu" — satu tanggal, bukan rentang. Rentang
+    tetap bisa dengan mengisi dua-duanya.
+
+    Tanggal disimpan sebagai `YYYY-MM-DD` (nilai `input[type=date]`), dan
+    dibandingkan sebagai STRING tanggal WIB, bukan objek Date. Membanding-
+    kan `Date` berarti tengah malam di zona perangkat, dan tablet yang
+    jamnya UTC akan menganggap transaksi pukul 07.00 WIB sebagai "kemarin".
+  */
+  const [dari, setDari] = useState("");
+  const [sampai, setSampai] = useState("");
 
   /*
     Pencarian mencocokkan NOMOR pesanan dan NAMA tamu. Dua hal itu yang
@@ -88,11 +122,37 @@ export function DaftarRiwayat({
   */
   const tersaring = useMemo(() => {
     const q = cari.trim().toLowerCase();
-    if (!q) return riwayat;
-    return riwayat.filter(
-      (r) => r.nomor.toLowerCase().includes(q) || (r.nama_pemesan ?? "").toLowerCase().includes(q),
-    );
-  }, [riwayat, cari]);
+    const hasil = riwayat.filter((r) => {
+      if (q && !(r.nomor.toLowerCase().includes(q) || (r.nama_pemesan ?? "").toLowerCase().includes(q))) {
+        return false;
+      }
+      if (dari || sampai) {
+        const tgl = tanggalWib(r.dibuat_at);
+        if (dari && tgl < dari) return false;
+        if (sampai && tgl > sampai) return false;
+      }
+      return true;
+    });
+
+    /*
+      ── PESANAN BARU SELALU DI ATAS ───────────────────────────────────
+
+      API sudah mengirim `created_at.desc`, tetapi urutan itu tidak lagi
+      bisa dipercaya setelah data difilter, dan satu perubahan urutan di
+      server akan diam-diam membalik tabel ini. Pengurutan dilakukan di
+      sini juga supaya janji "yang terbaru di atas" tidak bergantung pada
+      siapa pun di seberang jaringan.
+
+      `[...hasil]` menyalin dulu: `sort` mengubah array, dan `tersaring`
+      turunan dari prop — mengurutkan di tempat berarti mengubah data
+      milik induk.
+    */
+    return [...hasil].sort((a, b) => {
+      const selisih = new Date(b.dibuat_at).getTime() - new Date(a.dibuat_at).getTime();
+      // Seri (jarang, tapi mungkin): nomor menurun sebagai pemutus.
+      return selisih !== 0 ? selisih : b.nomor.localeCompare(a.nomor);
+    });
+  }, [riwayat, cari, dari, sampai]);
 
   /*
     ── HALAMAN, BUKAN "LIHAT SEMUA" ────────────────────────────────────
@@ -165,10 +225,92 @@ export function DaftarRiwayat({
         )}
       </label>
 
+      {/*
+        ── FILTER TANGGAL ──────────────────────────────────────────────
+
+        Diletakkan tepat di bawah pencarian: dua-duanya menyaring daftar
+        yang sama, dan memisahkannya ke ujung layar berarti kasir harus
+        menemukan dua tempat berbeda untuk satu pekerjaan.
+
+        `input[type=date]` dipakai apa adanya, bukan pemilih kalender
+        buatan sendiri: di tablet, itu membuka pemilih bawaan sistem yang
+        jauh lebih besar dari jari, dan sudah diterjemahkan ke bahasa
+        perangkat. Kalender buatan sendiri hanya menambah kode yang harus
+        diuji di setiap peramban.
+      */}
+      <div className="mb-2 flex flex-wrap items-end gap-2">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-none">
+          <span className="text-[0.625rem] font-bold uppercase tracking-wider text-tinta-500">
+            Dari tanggal
+          </span>
+          <input
+            type="date"
+            value={dari}
+            max={sampai || undefined}
+            onChange={(e) => {
+              setDari(e.target.value);
+              setHalaman(1);
+            }}
+            className="h-10 w-full min-w-0 rounded-[0.625rem] border border-bersih-200 bg-bersih-0 px-2 text-[0.8125rem] tabular-nums text-tinta-900 outline-none focus:border-sela-500 sm:w-[9.5rem]"
+          />
+        </label>
+        <label className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-none">
+          <span className="text-[0.625rem] font-bold uppercase tracking-wider text-tinta-500">
+            Sampai
+          </span>
+          <input
+            type="date"
+            value={sampai}
+            min={dari || undefined}
+            onChange={(e) => {
+              setSampai(e.target.value);
+              setHalaman(1);
+            }}
+            className="h-10 w-full min-w-0 rounded-[0.625rem] border border-bersih-200 bg-bersih-0 px-2 text-[0.8125rem] tabular-nums text-tinta-900 outline-none focus:border-sela-500 sm:w-[9.5rem]"
+          />
+        </label>
+
+        {/* Jalan pintas yang menutup 90% pemakaian: hari ini. */}
+        <button
+          type="button"
+          onClick={() => {
+            const hariIni = tanggalWib(new Date().toISOString());
+            setDari(hariIni);
+            setSampai(hariIni);
+            setHalaman(1);
+          }}
+          className="h-10 rounded-[0.625rem] border border-bersih-200 bg-bersih-0 px-3 text-[0.75rem] font-bold text-tinta-700 transition hover:border-sela-500 hover:text-sela-800"
+        >
+          Hari ini
+        </button>
+
+        {(dari || sampai) && (
+          <button
+            type="button"
+            onClick={() => {
+              setDari("");
+              setSampai("");
+              setHalaman(1);
+            }}
+            className="h-10 px-1 text-[0.75rem] font-bold text-sela-800 underline underline-offset-2"
+          >
+            Semua tanggal
+          </button>
+        )}
+      </div>
+
       {tersaring.length === 0 ? (
         <div className="rounded-[0.625rem] border border-dashed border-bersih-300 bg-cream-100/50 px-3 py-6 text-center">
+          {/*
+            Pesan menyebut APA yang menyaring, bukan hanya "tidak ada".
+            Dengan tiga penyaring aktif sekaligus (tulis, dari, sampai),
+            "tidak ada hasil" tanpa keterangan membuat kasir menebak mana
+            yang harus dilonggarkan.
+          */}
           <p className="text-[0.8125rem] text-tinta-500">
-            Tidak ada pesanan yang cocok dengan &ldquo;{cari}&rdquo;.
+            {cari
+              ? `Tidak ada pesanan yang cocok dengan “${cari}”.`
+              : "Tidak ada pesanan pada rentang tanggal ini."}
           </p>
         </div>
       ) : (
