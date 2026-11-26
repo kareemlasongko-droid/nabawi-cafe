@@ -89,18 +89,40 @@ async function main() {
       !kasirJs.includes(">\\n                          {p.nomor}"),
   );
 
-  // ═══ 3. Tiga keadaan meja benar-benar dibedakan ════════════════════
-  console.log("\n── 3. Tiga keadaan meja ──");
+  // ═══ 3. Dua keadaan meja, dan nominalnya ══════════════════════════
+  console.log("\n── 3. Dua keadaan meja ──");
 
+  /*
+    Uji ini DULU menuntut gaya khusus "perlu ditagih". Tuntutan itu
+    dicabut oleh pemilik setelah terbukti keadaannya tidak pernah ada:
+    `meja.status` hanya pernah "kosong" atau "ada_pesanan", jadi oranye
+    "perlu ditagih" menyala untuk setiap meja bertagihan — termasuk tamu
+    yang baru mulai makan.
+
+    Yang diuji sekarang bukan "warnanya masih ada", melainkan bahwa warna
+    itu BENAR-BENAR hilang. Uji lama yang dibiarkan akan membuat setiap
+    upaya menghapus keadaan palsu ini terlihat seperti kemunduran.
+  */
   cek(
-    "kasir: kartu meja punya gaya khusus 'perlu ditagih'",
-    kasirJs.includes("border-sela-500 bg-sela-50"),
-    "sebelumnya hijau yang sama dengan 'terisi'",
+    "kasir: gaya 'perlu ditagih' sudah dihapus",
+    !kasirJs.includes("border-sela-500 bg-sela-50"),
+    "keadaan itu tidak pernah terjadi; oranye menyala untuk semua meja bertagihan",
   );
   cek(
-    "kasir: label kartu membedakan tagih vs terisi",
-    kasirJs.includes("tagih"),
-    "satu keadaan tidak boleh memakai label yang sama dengan keadaan lain",
+    "kasir: kartu meja membedakan terisi dan kosong saja",
+    kasirJs.includes("data-meja-status") && kasirJs.includes("data-meja-total"),
+    "dua keadaan yang benar-benar ada, dan nominalnya",
+  );
+  /*
+    Penandanya atribut `data-`, BUKAN nama variabel lokal seperti
+    `adaIsi`: bundel sudah diminifikasi dan nama lokal berubah jadi `e`,
+    `t`, `n`. Hanya atribut data dan teks yang bertahan.
+  */
+  cek(
+    "kasir: nominal tagihan tampil sebelum label status",
+    kasirJs.indexOf("data-meja-total") >= 0 &&
+      kasirJs.indexOf("data-meja-total") < kasirJs.indexOf("data-meja-status"),
+    "nominal harus lebih dekat ke nomor meja daripada labelnya",
   );
 
   // ═══ 4. "Memuat" bukan "gagal" ═════════════════════════════════════

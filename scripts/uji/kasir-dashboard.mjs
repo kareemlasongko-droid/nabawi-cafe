@@ -403,6 +403,69 @@ async function main() {
     "menandai menu habis cukup dari menu Menu; halaman Meja untuk meja & tagihan",
   );
 
+  /*
+    ── STATUS "PERLU DITAGIH" DIHAPUS ─────────────────────────────────
+    Keadaan itu tidak pernah ada: `meja.status` hanya pernah bernilai
+    "kosong" atau "ada_pesanan". Oranye "perlu ditagih" menyala untuk
+    SETIAP meja bertagihan, termasuk tamu yang baru mulai makan.
+  */
+  cek(
+    "label 'Perlu ditagih' sudah tidak ada di mana pun",
+    !bundelKasir.includes("Perlu ditagih"),
+    "keadaan yang tidak pernah terjadi tidak boleh tampil sebagai status",
+  );
+
+  /*
+    ── TOTAL DI ATAS LABEL STATUS ─────────────────────────────────────
+    Pemilik meminta nilai total muncul SEBELUM status terisi/kosong.
+    Diperiksa dari urutannya di bundel: `rupiah(m.tagihan.total)` harus
+    mendahului label "kosong"/"terisi" pada kartu meja.
+
+    Ini pemeriksaan urutan, bukan keberadaan — total yang masih di bawah
+    label akan lolos kalau hanya diceda ada/tidaknya.
+
+    Penandanya atribut `data-`, bukan nama fungsi: bundel sudah
+    diminifikasi, jadi `rupiah(m.tagihan.total)` tidak pernah muncul utuh
+    di sana dan pencarian teksnya selalu gagal walau kodenya benar.
+  */
+  const iTotalMeja = bundelKasir.indexOf("data-meja-total");
+  const iLabelMeja = bundelKasir.indexOf("data-meja-status");
+  cek(
+    "nominal tagihan tampil sebelum label status meja",
+    iTotalMeja >= 0 && iLabelMeja >= 0 && iTotalMeja < iLabelMeja,
+    "kasir mencari meja untuk ditagih — nominalnya harus lebih dekat ke nomor",
+  );
+
+  /*
+    ── LAPORAN: KARTU TERPISAH + DIAGRAM ──────────────────────────────
+  */
+  cek(
+    "laporan memisahkan Omzet dan Pesanan jadi kartu masing-masing",
+    bundelKasir.includes("Omzet hari ini") && bundelKasir.includes("Pesanan lunas"),
+    "angka yang berdiri sendiri bisa dibandingkan sekali lihat",
+  );
+  cek(
+    "laporan memuat diagram omzet per jam",
+    bundelKasir.includes("Omzet per jam"),
+    "pertanyaan pemilik saat jam sibuk: ramai jam berapa",
+  );
+  cek(
+    "laporan memuat diagram metode bayar",
+    bundelKasir.includes("Metode bayar") && bundelKasir.includes("Uang tunai di laci"),
+    "dipakai saat tutup laci menghitung uang fisik",
+  );
+
+  /*
+    ── KEPALA RATA KIRI-KANAN, TANPA KURUNGAN max-w ───────────────────
+    Dulu `mx-auto max-w-[80rem]`: di layar 1920px isi kepala berhenti di
+    1280px sementara sidebar dan area kerja memakai lebar penuh.
+  */
+  cek(
+    "kepala layar memakai lebar penuh, sejajar sidebar dan area kerja",
+    !headerHtml.includes("max-w-[80rem]") && !headerHtml.includes("mx-auto"),
+    "kepala yang lebih sempit dari isinya terbaca sebagai halaman lain",
+  );
+
   cek(
     "navigasi kasir tidak lagi memakai bilah bawah",
     !/fixed[^"]{0,80}bottom-0/.test(html),

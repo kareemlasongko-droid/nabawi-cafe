@@ -114,31 +114,83 @@ export function KartuRingkasan({
     );
   }
 
-  return (
-    <div className="rounded-[0.875rem] border border-bersih-200 bg-bersih-0 p-3 shadow-[0_1px_2px_rgb(22_19_15/0.04)]">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kotak label="Omzet hari ini" nilai={rupiah(r.omzet)} utama />
-        <Kotak label="Pesanan lunas" nilai={String(r.jumlah_pesanan)} />
-        <Kotak label="Rata-rata / pesanan" nilai={rupiah(r.rata_rata)} />
-        <Kotak label="Item terjual" nilai={String(r.item)} />
-      </div>
+  /*
+    ── SATU KARTU PER ANGKA, BUKAN SATU KARTU BERISI EMPAT ─────────────
 
-      <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-bersih-200 pt-2">
-        <Kecil label="Tunai" nilai={rupiah(r.tunai)} />
-        <Kecil label="Non-tunai" nilai={rupiah(r.nontunai)} />
-        {r.belum_bayar > 0 && (
-          <Kecil
-            label="Belum dibayar"
-            nilai={`${r.belum_bayar} pesanan · ${rupiah(r.nilai_belum_bayar)}`}
-            perhatian
-          />
-        )}
+    Dulu empat angka berbagi satu kotak, dipisah garis tipis. Pemilik
+    meminta "Omzet hari ini" dan "Pesanan" jadi kartu masing-masing:
+    angka yang berdiri sendiri bisa dibandingkan sekali lihat, sedangkan
+    angka yang berbagi kotak terbaca sebagai satu paragraf.
+
+    Kartu kedua dan ketiga lebih kecil dari yang pertama dengan sengaja.
+    "Rata-rata per pesanan" dan "Item terjual" menjelaskan omzet — bukan
+    angka yang dicari lebih dulu — jadi ukurannya mengikuti kepentingannya.
+  */
+  return (
+    <div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Kartu utama. `col-span-2` di layar lebar membuat omzet mengambil
+            separuh baris: ia satu-satunya angka yang dibaca dengan jari
+            menunjuk layar. */}
+        <div className="rounded-[0.875rem] border border-bersih-200 bg-bersih-0 p-3 shadow-[0_1px_2px_rgb(22_19_15/0.04)] sm:col-span-2 xl:col-span-1">
+          <p className="text-[0.625rem] font-bold uppercase tracking-wider text-tinta-500">
+            Omzet hari ini
+          </p>
+          <p className="mt-1 text-[1.75rem] font-extrabold leading-none tabular-nums text-forest-900 sm:text-[2rem]">
+            {rupiah(r.omzet)}
+          </p>
+          <p className="mt-2 text-[0.6875rem] leading-snug text-tinta-500">
+            Dari total tagihan lunas · bukan uang yang diserahkan tamu
+          </p>
+        </div>
+
+        <div className="rounded-[0.875rem] border border-bersih-200 bg-bersih-0 p-3 shadow-[0_1px_2px_rgb(22_19_15/0.04)]">
+          <p className="text-[0.625rem] font-bold uppercase tracking-wider text-tinta-500">
+            Pesanan lunas
+          </p>
+          <p className="mt-1 text-[1.75rem] font-extrabold leading-none tabular-nums text-tinta-900">
+            {r.jumlah_pesanan}
+          </p>
+          <p className="mt-2 text-[0.6875rem] leading-snug text-tinta-500">
+            Rata-rata {rupiah(r.rata_rata)} · {r.item} item terjual
+          </p>
+        </div>
+
+        <div className="rounded-[0.875rem] border border-bersih-200 bg-bersih-0 p-3 shadow-[0_1px_2px_rgb(22_19_15/0.04)]">
+          <p className="text-[0.625rem] font-bold uppercase tracking-wider text-tinta-500">
+            Tunai
+          </p>
+          <p className="mt-1 text-[1.25rem] font-extrabold leading-none tabular-nums text-tinta-900">
+            {rupiah(r.tunai)}
+          </p>
+          <p className="mt-2 text-[0.6875rem] leading-snug text-tinta-500">
+            Non-tunai {rupiah(r.nontunai)}
+          </p>
+        </div>
+
+        {/*
+          Kartu "Belum dibayar" hanya muncul bila ADA. Angka nol yang selalu
+          tampil membuat kasir berhenti membacanya — dan saat benar-benar
+          ada yang belum dibayar, ia tidak menyadarinya. Warnanya sela
+          (oranye) karena ini pekerjaan, bukan pencapaian.
+        */}
+        {r.belum_bayar > 0 ? (
+          <div className="rounded-[0.875rem] border border-sela-500/40 bg-sela-50 p-3">
+            <p className="text-[0.625rem] font-bold uppercase tracking-wider text-sela-800">
+              Belum dibayar
+            </p>
+            <p className="mt-1 text-[1.25rem] font-extrabold leading-none tabular-nums text-sela-800">
+              {rupiah(r.nilai_belum_bayar)}
+            </p>
+            <p className="mt-2 text-[0.6875rem] leading-snug text-sela-800/80">
+              {r.belum_bayar} pesanan menunggu kasir · tidak masuk omzet
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <p className="mt-2 text-[0.625rem] leading-snug text-tinta-500">
-        Sejak 00.00 WIB. Omzet dihitung dari total tagihan yang sudah lunas — bukan
-        dari uang yang diserahkan tamu, supaya kembalian tidak ikut terhitung.
-        Pesanan yang belum dibayar tidak masuk omzet.
+        Sejak 00.00 WIB. Pesanan yang belum dibayar tidak masuk omzet.
       </p>
     </div>
   );
@@ -176,42 +228,4 @@ function Angka({
   );
 }
 
-function Kotak({ label, nilai, utama = false }: { label: string; nilai: string; utama?: boolean }) {
-  return (
-    <div>
-      <p className="text-[0.625rem] font-bold uppercase tracking-wider text-tinta-500">{label}</p>
-      <p
-        className={[
-          "mt-0.5 tabular-nums",
-          utama ? "text-[1.25rem] font-extrabold text-forest-900" : "text-[1rem] font-bold text-tinta-900",
-        ].join(" ")}
-      >
-        {nilai}
-      </p>
-    </div>
-  );
-}
 
-function Kecil({
-  label,
-  nilai,
-  perhatian = false,
-}: {
-  label: string;
-  nilai: string;
-  perhatian?: boolean;
-}) {
-  return (
-    <span className="inline-flex items-baseline gap-1.5">
-      <span className="text-[0.6875rem] font-semibold text-tinta-500">{label}</span>
-      <span
-        className={[
-          "text-[0.8125rem] font-bold tabular-nums",
-          perhatian ? "text-sela-800" : "text-tinta-900",
-        ].join(" ")}
-      >
-        {nilai}
-      </span>
-    </span>
-  );
-}
