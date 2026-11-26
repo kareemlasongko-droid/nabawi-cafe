@@ -60,6 +60,7 @@ export function BilahStaf({
   kanan,
   demo,
   ringkasan,
+  tanpaLogo = false,
 }: {
   judul: string;
   keterangan?: string;
@@ -74,6 +75,19 @@ export function BilahStaf({
    * untuk jarak, dan langsung meluber begitu ada satu tombol lagi.
    */
   ringkasan?: { layar?: string; keteranganPonsel?: string };
+  /**
+   * Sembunyikan logo, tampilkan hanya nama layar yang sedang dibuka.
+   *
+   * Dipakai portal yang SUDAH punya sidebar berlambang: dua logo dalam
+   * satu layar terlihat seperti dua aplikasi yang ditempel, dan logo di
+   * kepala mendorong judul layar keluar dari pandangan saat kasir
+   * berpindah panel.
+   *
+   * Nama layar naik pangkat menggantikan merek: di portal bersidebar,
+   * "di mana saya sekarang" lebih sering ditanyakan daripada "ini
+   * aplikasi apa" — merek sudah terjawab oleh sidebar.
+   */
+  tanpaLogo?: boolean;
 }) {
   return (
     /*
@@ -98,13 +112,37 @@ export function BilahStaf({
       <div className="mx-auto flex max-w-[80rem] items-center justify-between gap-3 px-3 py-2.5 sm:px-6">
         {/* ── KIRI: identitas kafe ── */}
         <div className="flex min-w-0 items-center">
-          <LogoNabawi
-            tema="gelap"
-            keterangan={keterangan}
-            layar={ringkasan?.layar ?? judul}
-            keteranganPonsel={ringkasan?.keteranganPonsel}
-            ringkas={Boolean(ringkasan)}
-          />
+          {tanpaLogo ? (
+            /*
+              Nama layar sebagai judul kepala, tanpa merek. Ukuran dan
+              bobot disamakan dengan nama layar di `LogoNabawi` supaya
+              kepala tidak berubah tinggi saat dipakai portal lain.
+            */
+            <div className="flex min-w-0 items-baseline gap-2">
+              <span className="cap min-w-0 truncate text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-cream-50/55">
+                Nabawi Cafe
+              </span>
+              <span aria-hidden="true" className="text-cream-50/30">
+                /
+              </span>
+              <h1 className="min-w-0 truncate text-[1.0625rem] font-extrabold leading-none text-gelap-isi">
+                {judul}
+              </h1>
+              {keterangan && (
+                <span className="hidden min-w-0 truncate text-[0.8125rem] font-semibold text-gelap-samar sm:inline">
+                  {keterangan}
+                </span>
+              )}
+            </div>
+          ) : (
+            <LogoNabawi
+              tema="gelap"
+              keterangan={keterangan}
+              layar={ringkasan?.layar ?? judul}
+              keteranganPonsel={ringkasan?.keteranganPonsel}
+              ringkas={Boolean(ringkasan)}
+            />
+          )}
         </div>
 
         {/* ── KANAN: alat layar ── */}
