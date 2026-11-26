@@ -30,9 +30,11 @@ import {
   type Menu,
   type Tagihan,
 } from "@/app/lib/order/tipe";
+import { BilahKoneksi } from "./BilahKoneksi";
+import { KartuProduk } from "./KartuProduk";
 import { BilahStaf } from "./Kerangka";
+import { Sidebar } from "./Sidebar";
 import { TombolKepala } from "./TombolKepala";
-import { NavBawahStaf } from "./NavBawahStaf";
 import {
   IkonCentang,
   IkonSilang,
@@ -43,6 +45,9 @@ import {
   IkonMatikanSuara,
   IkonPesanan,
   IkonBill,
+  IkonMenu,
+  IkonCari,
+  IkonKategoriMenu,
 } from "./Ikon";
 import { BukaInvoice } from "./LembarInvoice";
 import { KartuRingkasan } from "./KartuRingkasan";
@@ -117,6 +122,7 @@ type DataKasir = {
   menunggu_bayar?: MenungguBayar[];
   meja: MejaKasir[];
   menu?: Menu[];
+  kategori?: { id: number; nama: string }[];
   aturan: { pajakPersen: number; layananPersen: number; layananRp: number; pembulatan: number };
   demo: boolean;
 };
@@ -169,7 +175,107 @@ export function PortalKasir() {
     yang sedang dibuka; `mejaPilih` tetap terpisah karena ia BUKAN tab,
     melainkan pilihan di dalam tab Antrean.
   */
-  const [layar, setLayar] = useState<"antrean" | "meja" | "laporan" | "riwayat">("antrean");
+  const [layar, setLayar] = useState<"antrean" | "meja" | "menu" | "laporan" | "riwayat">("antrean");
+  /*
+    Kapan pembaruan terakhir BERHASIL. `null` = belum pernah sejak halaman
+    dibuka, yang jauh lebih gawat daripada gagal sekali.
+    Dipakai bilah peringatan untuk menyebut umur data ("40 detik lalu").
+  */
+  const [berhasilPada, setBerhasilPada] = useState<number | null>(null);
+  const [memuatUlang, setMemuatUlang] = useState(false);
+  const [detak, setDetak] = useState(() => Date.now());
+  /** Kata kunci panel Menu. */
+  const [cariMenu, setCariMenu] = useState("");
+  /*
+    ── SIAPA YANG MENERIMA UANG ────────────────────────────────────────
+
+    Nama kasir masuk ke kolom `oleh` setiap pembayaran dan setiap
+    perubahan status. Sebelumnya nilainya selalu literal "kasir", jadi
+    jejak audit berbunyi "kasir" untuk tiga orang berbeda dalam satu
+    shift — tidak berguna saat laci kurang Rp50.000 dan pemilik perlu
+    tahu siapa yang menutup transaksi.
+
+    Diingat di localStorage per perangkat: kasir mengetiknya sekali di
+    awal shift, bukan sebelum tiap tamu. Kalau kosong, rantai ini tetap
+    berjalan dengan "kasir" — nama yang tidak diketahui tidak boleh
+    menghentikan penagihan.
+  */
+  /** id menu yang sedang diubah — `null` = tidak ada dialog. */
+  const [menuUbah, setMenuUbah] = useState<number | null>(null);
+  const [namaKasir, setNamaKasir] = useState("");
+  const [ubahNama, setUbahNama] = useState(false);
+
+  /*
+    Dibaca di effect, bukan di `useState(() => ...)`: `localStorage` tidak
+    ada saat server merender komponen ini, dan membacanya di inisialisasi
+    membuat markup server dan klien berbeda (hydration mismatch).
+  */
+  useEffect(() => {
+    try {
+      setNamaKasir(window.localStorage.getItem("nabawi.kasir") ?? "");
+    } catch {
+      /* Mode privat / storage diblokir: tetap jalan tanpa nama. */
+    }
+  }, []);
+
+  const oleh = namaKasir.trim() || "kasir";
+
+  /*
+    ── PENANDA AKTIF MENGIKUTI APA YANG TERLIHAT ────────────────────────
+
+    Sidebar menandai satu tujuan sebagai `aria-current`. Kalau nilainya
+    dibiarkan "antrean" selamanya, kasir yang sudah menggulir ke Riwayat
+    tetap melihat Antrean menyala — penanda yang berbohong lebih buruk
+    daripada tidak ada penanda, karena ia mengarahkan mata ke tempat yang
+    salah.
+
+    IntersectionObserver, bukan listener `scroll`: browser menghitung
+    irisan di luar main thread, jadi menggulir tidak memicu puluhan
+    pembacaan layout. Ambang 0,35 dipilih supaya panel yang baru muncul
+    sedikit di tepi bawah belum merebut penanda.
+  */
+  useEffect(() => {
+    const panel = ["antrean", "meja", "menu", "laporan", "riwayat"]
+      .map((k) => document.getElementById(k))
+      .filter((el): el is HTMLElement => el !== null);
+    if (panel.length === 0) return;
+
+    const terlihat = new Map<string, number>();
+    const pengamat = new IntersectionObserver(
+      (entri) => {
+        for (const e of entri) {
+          if (e.isIntersecting) terlihat.set(e.target.id, e.intersectionRatio);
+          else terlihat.delete(e.target.id);
+        }
+        let teratas: string | null = null;
+        let rasio = 0;
+        for (const [id, r] of terlihat) {
+          if (r > rasio) {
+            rasio = r;
+            teratas = id;
+          }
+        }
+        if (teratas) setLayar(teratas as typeof layar);
+      },
+      { threshold: [0.35], rootMargin: "-10% 0px -35% 0px" },
+    );
+    for (const el of panel) pengamat.observe(el);
+    return () => pengamat.disconnect();
+    // `layar` sengaja tidak masuk dependensi: pengamat tidak perlu dibuat
+    // ulang tiap kali penanda berpindah.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data !== null]);
+
+  function simpanNamaKasir(nama: string) {
+    const bersih = nama.trim().slice(0, 40);
+    setNamaKasir(bersih);
+    try {
+      if (bersih) window.localStorage.setItem("nabawi.kasir", bersih);
+      else window.localStorage.removeItem("nabawi.kasir");
+    } catch {
+      /* abaikan */
+    }
+  }
   /** id pesanan yang sedang dicatat pembayarannya — mencegah ketuk ganda. */
   const [memproses, setMemproses] = useState<number | null>(null);
 
@@ -194,6 +300,7 @@ export function PortalKasir() {
         return;
       }
       setGalat("");
+      setBerhasilPada(Date.now());
       setData(j);
     } catch {
       setGalat("Koneksi ke server terputus. Pesanan baru tidak akan masuk sampai pulih.");
@@ -237,12 +344,28 @@ export function PortalKasir() {
     }
   }, []);
 
+  /*
+    ── BERHENTI MENEMBAK SAAT GAGAL ────────────────────────────────────
+
+    Dulu 4 detik terus-menerus, apa pun yang terjadi. Server yang sudah
+    menjawab 500 akan ditembak 15 kali per menit dari setiap tablet kasir
+    yang terbuka — di jaringan kafe yang memakai hotspot, itu ongkos
+    kuota nyata yang tidak mempercepat apa pun.
+
+    Sekarang 12 detik saat galat (tetap berusaha pulih sendiri), dan
+    tombol "Muat ulang" di bilah peringatan memberi pemulihan seketika.
+    `detak` membuat umur data ikut berdetak walau polling melambat.
+  */
   useEffect(() => {
     muat();
     muatRiwayat();
-    const t = setInterval(muat, 4000);
-    return () => clearInterval(t);
-  }, [muat, muatRiwayat]);
+    const t = setInterval(muat, galat ? 12000 : 4000);
+    const d = setInterval(() => setDetak(Date.now()), 5000);
+    return () => {
+      clearInterval(t);
+      clearInterval(d);
+    };
+  }, [muat, muatRiwayat, galat]);
 
   /**
    * Catat pembayaran tunai untuk satu pesanan.
@@ -281,6 +404,30 @@ export function PortalKasir() {
     async (p: MenungguBayar) => {
       if (memproses !== null) return;
 
+      /*
+        ── KONFIRMASI DI DALAM APLIKASI, BUKAN window.confirm ──────────
+
+        `window.confirm` tidak bisa menampilkan rincian tagihan, tidak
+        bisa di-style, dan di iOS memblokir seluruh UI sehingga polling
+        berhenti. Kasir mengonfirmasi uang tanpa melihat apa yang dibayar
+        — pada tagihan Rp146.600 itu perbedaan yang membuat kasir salah
+        menyebut angka di depan tamu.
+
+        Sekarang konfirmasinya membuka lembar yang sama dengan "Uang
+        lebih", tetapi sudah terisi nominal pas. Kasir melihat rincian,
+        menekan satu tombol, dan kembaliannya tercatat nol.
+      */
+      const tagihanMeja = data?.meja.find((m) => m.id === p.meja_id)?.tagihan;
+      if (tagihanMeja) {
+        setBayar({ tagihan: tagihanMeja, meja: p.meja_nomor });
+        return;
+      }
+
+      /*
+        Tidak ada tagihan di meja ini (mis. datanya belum tersinkron).
+        Jatuh ke jalur lama — tetap boleh, tetapi tetap lewat satu
+        konfirmasi yang menyebut nomor pesanan dan jumlahnya.
+      */
       const teks = `${p.total_item} item · ${p.nama_pemesan ?? "tanpa nama"}`;
       if (!window.confirm(`Terima uang pas untuk ${p.nomor} (${teks})?`)) return;
 
@@ -295,7 +442,7 @@ export function PortalKasir() {
             aksi: "bayar_tunai",
             pesanan_id: p.id,
             uang_pas: true,
-            oleh: "kasir",
+            oleh,
           }),
         });
         const j = (await res.json()) as { pesan?: string };
@@ -327,12 +474,35 @@ export function PortalKasir() {
   );
 
 
+  /** Umur data terakhir, dihitung ulang tiap `detak` (5 dtk). */
+  const umurData =
+    berhasilPada === null ? null : Math.max(0, Math.floor((detak - berhasilPada) / 1000));
+
+  async function muatUlangManual() {
+    setMemuatUlang(true);
+    try {
+      await muat();
+    } finally {
+      setMemuatUlang(false);
+    }
+  }
+
   // Bunyi untuk pesanan baru (K-01). Nada dibuat dengan WebAudio, bukan
   // file audio: tidak ada aset yang perlu diunduh di sinyal lemah.
   const baru = data?.pesanan.filter((p) => p.status === "menunggu_konfirmasi").length ?? 0;
   useEffect(() => {
     if (!data) return;
-    if (baru > jumlahLalu.current && jumlahLalu.current > 0 && suara) {
+    /*
+      `jumlahLalu.current > 0` DIHAPUS.
+
+      Syarat itu membuat pesanan pertama setelah halaman dibuka tidak
+      pernah berbunyi — persis pesanan yang paling perlu didengar, karena
+      kasir baru saja membuka layar dan belum melihat apa pun. Yang
+      dihindari syarat itu adalah bunyi saat halaman dimuat dengan
+      pesanan yang sudah ada sebelumnya; sekarang itu ditangani dengan
+      `siap` (lihat di bawah), bukan dengan membisukan kasus terpenting.
+    */
+    if (baru > jumlahLalu.current && suara) {
       bunyi(880, 0.12);
       setTimeout(() => bunyi(1180, 0.14), 130);
     }
@@ -345,7 +515,7 @@ export function PortalKasir() {
       const res = await fetch("/api/order/status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ke, alasan, oleh: "kasir" }),
+        body: JSON.stringify({ id, ke, alasan, oleh }),
       });
       const j = await res.json();
       if (!res.ok) {
@@ -379,7 +549,7 @@ export function PortalKasir() {
       const res = await fetch("/api/order/kasir", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ aksi: "set_tersedia", menu_id: menuId, tersedia, oleh: "kasir" }),
+        body: JSON.stringify({ aksi: "set_tersedia", menu_id: menuId, tersedia, oleh }),
       });
       const j = await res.json();
       if (!res.ok) {
@@ -418,8 +588,122 @@ export function PortalKasir() {
   const menu = data?.menu ?? [];
   const habis = useMemo(() => menu.filter((m) => !m.tersedia), [menu]);
 
+  /*
+    Bentuk kartu produk.
+
+    `kategori` dicari dari data.kategori lewat id — bukan disalin ke
+    tiap baris menu di API, karena satu kategori dipakai puluhan menu
+    dan menyalin namanya 126 kali hanya membengkakkan respons.
+  */
+  const petaKategori = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const k of data?.kategori ?? []) m.set(k.id, k.nama);
+    return m;
+  }, [data?.kategori]);
+
+  const menuProduk = useMemo(
+    () =>
+      menu.map((m) => ({
+        id: m.id,
+        nama: m.nama,
+        harga: m.harga,
+        kategori: m.kategori_id ? (petaKategori.get(m.kategori_id) ?? "") : "",
+        tersedia: m.tersedia,
+        rekomendasi: m.rekomendasi === true,
+        foto_url: m.foto_url ?? null,
+        kategori_id: m.kategori_id ?? null,
+        jumlahPilihan: Array.isArray(m.pilihan) ? m.pilihan.length : 0,
+      })),
+    [menu, petaKategori],
+  );
+
+  const menuTersaring = useMemo(() => {
+    const k = cariMenu.trim().toLowerCase();
+    if (!k) return menuProduk;
+    return menuProduk.filter(
+      (m) => m.nama.toLowerCase().includes(k) || m.kategori.toLowerCase().includes(k),
+    );
+  }, [menuProduk, cariMenu]);
+
   return (
-    <div className="min-h-dvh bg-cream-50">
+    /*
+      ── KERANGKA DASHBOARD: SIDEBAR + AREA KERJA ─────────────────────
+
+      Sebelumnya: satu kolom dengan nav bawah. Nav bawah benar untuk
+      layar sempit sekali, tetapi di tablet 10" dan desktop ia memaksa
+      korteks membaca dari atas ke bawah untuk berpindah pekerjaan —
+      dan di portal yang dipakai sepanjang jam kerja, itu gesekan yang
+      berulang ratusan kali per shift.
+
+      Kerangka baru:
+
+        HP (<768px)      rail ikon 72px | isi
+        Tablet (≥768px)  sidebar 232px | isi
+        Desktop (≥1280)  sidebar 256px | isi
+
+      Sidebar `sticky top-0 h-dvh`, jadi tetap terlihat saat isi
+      digulir, dan tidak pernah ikut ter-print (struk/invoice dicetak
+      dari halaman yang sama).
+
+      `min-w-0` pada kolom isi WAJIB: tanpa itu, flex item menolak
+      mengecil di bawah lebar isinya, dan grid kartu melebar melewati
+      layar — persis bug horizontal-scroll yang paling sering muncul
+      saat sidebar dipasang.
+    */
+    <div className="flex min-h-dvh bg-cream-50">
+      <Sidebar
+        judul="Kasir"
+        aktif={layar}
+        item={[
+          {
+            kunci: "antrean",
+            label: "Antrean",
+            href: "#antrean",
+            Ikon: IkonPesanan,
+            lencana: antrean.length + menungguBayar.length,
+            warna: "sela",
+          },
+          { kunci: "meja", label: "Meja", href: "#meja", Ikon: IkonMeja },
+          { kunci: "menu", label: "Menu", href: "#menu", Ikon: IkonMenu },
+          { kunci: "laporan", label: "Laporan", href: "#laporan", Ikon: IkonBill },
+          { kunci: "riwayat", label: "Riwayat", href: "#riwayat", Ikon: IkonJam },
+        ]}
+        kaki={
+          <>
+          {/*
+            Penanda kasir bertugas. Di layar ≥768px tampil nama; di rail
+            72px hanya inisial, karena nama lengkap tidak muat dan akan
+            terpotong jadi dua huruf acak.
+          */}
+          <button
+            type="button"
+            onClick={() => setUbahNama(true)}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-[0.5rem] text-[0.8125rem] font-bold text-cream-50/70 transition hover:bg-cream-50/10 hover:text-cream-50 md:justify-start md:px-3"
+          >
+            <span
+              aria-hidden="true"
+              className="grid size-6 shrink-0 place-items-center rounded-full bg-cream-50/15 text-[0.6875rem] font-extrabold uppercase text-cream-50"
+            >
+              {oleh.slice(0, 2)}
+            </span>
+            <span className="hidden min-w-0 flex-1 truncate text-left md:inline">{oleh}</span>
+            <span className="sr-only">— ubah nama kasir</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSuara((v) => !v)}
+            aria-pressed={suara}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-[0.5rem] text-[0.8125rem] font-bold text-cream-50/70 transition hover:bg-cream-50/10 hover:text-cream-50 md:justify-start md:px-3"
+          >
+            {suara ? <IkonSuara className="size-4 shrink-0" /> : <IkonMatikanSuara className="size-4 shrink-0" />}
+            <span className="hidden md:inline">{suara ? "Bunyi aktif" : "Bunyi mati"}</span>
+          </button>
+          </>
+        }
+      />
+
+      {/* ── AREA KERJA ── */}
+      <div className="flex min-w-0 flex-1 flex-col">
       <BilahStaf
         judul="Kasir"
         keterangan={
@@ -446,11 +730,21 @@ export function PortalKasir() {
         }
       />
 
-      {galat && (
-        <div className="border-b border-sela-200 bg-sela-50 px-4 py-2 sm:px-6">
-          <p className="text-[0.8125rem] font-semibold text-sela-800">{galat}</p>
-        </div>
-      )}
+      {/*
+        Bilah koneksi penuh — bukan satu baris teks.
+
+        Kasir yang layarnya berhenti diperbarui harus tahu SEBELUM ia
+        menerima uang: pesanan yang baru masuk tidak akan tampil, dan
+        kasir bisa menagih tamu yang pesanannya tidak pernah tercatat.
+        Bilah ini menyebut umur data dan menyediakan tombol Muat ulang.
+      */}
+      <BilahKoneksi
+        galat={galat}
+        tema="terang"
+        sejakBerhasil={umurData}
+        onMuatUlang={muatUlangManual}
+        sibuk={memuatUlang}
+      />
 
       {/*
         ── MENUNGGU BAYAR ──
@@ -475,11 +769,24 @@ export function PortalKasir() {
             </span>
           </h2>
 
-          <ul className="flex gap-2 overflow-x-auto pb-1">
+          {/*
+            ── BARIS GESER YANG MENGAKU BISA DIGESER ────────────────────
+
+            Sebelumnya `overflow-x-auto` tanpa petunjuk apa pun. Di tablet,
+            kartu ke-3 dan seterusnya terpotong di tepi layar tanpa tanda
+            bahwa ada lagi di sana — kasir mengira hanya itu yang belum
+            dibayar, sementara dua tamu lain menunggu ditagih.
+
+            `scroll-snap` membuat kartu berhenti rapi di tepi, dan gradasi
+            di kanan memberi isyarat "masih ada". Gradasinya
+            `pointer-events-none` supaya tidak menghalangi geseran.
+          */}
+          <div className="relative">
+          <ul className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 pr-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {menungguBayar.map((p) => (
               <li
                 key={p.id}
-                className="min-w-[15rem] shrink-0 rounded-[0.75rem] border border-bersih-200 bg-bersih-0 p-2.5 shadow-[0_1px_2px_rgb(22_19_15/0.04)]"
+                className="min-w-[15rem] shrink-0 snap-start rounded-[0.75rem] border border-bersih-200 bg-bersih-0 p-2.5 shadow-[0_1px_2px_rgb(22_19_15/0.04)]"
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="text-[0.875rem] font-extrabold text-tinta-900">
@@ -588,13 +895,18 @@ export function PortalKasir() {
                 <button
                   type="button"
                   onClick={() => setInvoiceId(p.id)}
-                  className="mt-1.5 h-8 w-full rounded-[0.5rem] text-[0.75rem] font-bold text-tinta-500 underline"
+                  className="mt-1.5 h-11 w-full rounded-[0.5rem] text-[0.8125rem] font-bold text-tinta-500 underline transition hover:bg-bersih-100"
                 >
                   Lihat invoice
                 </button>
               </li>
             ))}
           </ul>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-sela-50 to-transparent"
+          />
+          </div>
         </section>
       )}
 
@@ -608,11 +920,28 @@ export function PortalKasir() {
         tombol bayar — tertutup bilah navigasi, dan itu bug yang paling
         sering muncul saat pola nav bawah dipakai tanpa perhitungan.
       */}
-      <div className="p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      {layar === "antrean" && (
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      {/*
+        ── DASHBOARD: SEMUA PANEL TERLIHAT, BUKAN SATU PER TAB ─────────
+
+        Dulu tiap tujuan disembunyikan (`layar === "..."`). Itu benar
+        untuk nav bawah di ponsel, tetapi di layar lebar ia membuang
+        seluruh ruang yang justru tersedia: kasir harus berpindah tab
+        untuk melihat denah meja padahal antrean dan denah dibaca
+        bersamaan.
+
+        Sekarang: grid dua kolom di ≥1024px — pekerjaan mendesak di kiri
+        (antrean, belum dibayar), alat bantu di kanan (meja, menu).
+        Di bawah 1024px semuanya menumpuk satu kolom, urutannya tetap
+        yang paling mendesak lebih dulu.
+
+        Sidebar tetap dipakai untuk MELOMPAT (anchor `#antrean`,
+        `#meja`, …), jadi tidak ada `layar ===` di sini. Yang berubah
+        hanya cara memindai, bukan isinya.
+      */}
+      <div className="min-w-0 p-3 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-5">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         {/* ── Kolom kiri: antrean ── */}
-        <section aria-labelledby="antrean">
+        <section id="antrean" aria-labelledby="antrean" className="min-w-0 scroll-mt-4">
           <h2
             id="antrean"
             className="mb-2 flex items-center gap-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
@@ -697,8 +1026,27 @@ export function PortalKasir() {
                         <IkonJam className="size-3" />
                         {sejak(p.created_at)}
                       </span>
-                      <span className="text-[1.0625rem] font-extrabold tabular-nums text-sela-700">
-                        {rupiah(p.items.reduce((n, i) => n + i.harga_satuan * i.jumlah, 0))}
+                      {/*
+                        ── SATU ANGKA, DAN DIKATAKAN ANGKA APA ──────────
+
+                        Angka ini SUBTOTAL ITEM — belum termasuk pajak dan
+                        biaya layanan. Sebelumnya ia tampil tanpa keterangan,
+                        sementara kartu meja dan kartu "Belum dibayar"
+                        menampilkan TOTAL tagihan. Untuk pesanan yang sama,
+                        kasir melihat dua angka berbeda di satu layar dan
+                        menyebut yang salah di depan tamu.
+
+                        Sekarang diberi label "Subtotal", dan total yang
+                        benar-benar ditagih tetap muncul di kartu meja
+                        serta kartu "Belum dibayar" — tempat kasir menagih.
+                      */}
+                      <span className="flex flex-col items-end leading-none">
+                        <span className="text-[0.5rem] font-bold uppercase tracking-[0.08em] text-tinta-500">
+                          Subtotal
+                        </span>
+                        <span className="mt-0.5 text-[1.0625rem] font-extrabold tabular-nums text-sela-700">
+                          {rupiah(p.items.reduce((n, i) => n + i.harga_satuan * i.jumlah, 0))}
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -819,7 +1167,7 @@ export function PortalKasir() {
         </section>
 
         {/* ── Kolom kanan: meja & tagihan ── */}
-        <section aria-labelledby="meja">
+        <section id="meja" aria-labelledby="meja" className="min-w-0 scroll-mt-4">
           <h2
             id="meja"
             className="mb-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
@@ -1064,24 +1412,112 @@ export function PortalKasir() {
               )}
             </div>
           )}
+
+        {/*
+          ── PANEL MENU: KARTU PRODUK, BUKAN DAFTAR TEKS ──────────────
+
+          Menggantikan panel "Ketersediaan menu" yang bisa dilipat dan
+          hanya berisi baris nama + tombol kecil. Kasir menandai menu
+          habis beberapa kali per jam sibuk — itu pekerjaan yang layak
+          mendapat kartu bergambar, bukan daftar tersembunyi di balik
+          panah "▾".
+
+          Bentuk kartunya sama dengan yang dilihat tamu di portal
+          pelanggan: gambar/ikon di atas, teks di bawah, harga tebal.
+          Satu bahasa visual untuk staf dan tamu.
+        */}
+        <section id="menu" aria-labelledby="menu-kasir" className="min-w-0 scroll-mt-4">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <h2
+              id="menu-kasir"
+              className="text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+            >
+              Menu
+            </h2>
+            <span className="rounded-full bg-bersih-200 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-tinta-700">
+              {menu.length}
+            </span>
+            {habis.length > 0 && (
+              <span className="rounded-full bg-sela-700 px-2 py-0.5 text-[0.6875rem] font-bold text-white">
+                {habis.length} habis
+              </span>
+            )}
+          </div>
+
+          {/*
+            Kotak cari menu. Kasir mencari hidangan yang disebut tamu
+            ("ada matcha?") di antara 126 menu — tanpa kotak ini ia
+            menggulir sambil tamu menunggu jawaban.
+          */}
+          <label className="mb-2 flex h-11 items-center gap-2 rounded-[0.625rem] border border-bersih-200 bg-bersih-0 px-3">
+            <IkonCari className="size-4 shrink-0 text-tinta-500" />
+            <input
+              value={cariMenu}
+              onChange={(e) => setCariMenu(e.target.value)}
+              placeholder="Cari menu"
+              aria-label="Cari menu"
+              className="w-full bg-transparent text-[0.875rem] text-tinta-900 outline-none placeholder:text-tinta-500/70"
+            />
+            {cariMenu && (
+              <button
+                type="button"
+                onClick={() => setCariMenu("")}
+                aria-label="Hapus pencarian"
+                className="-mr-2 grid size-11 shrink-0 place-items-center rounded-full text-tinta-500 active:bg-bersih-100"
+              >
+                <IkonSilang className="size-4" />
+              </button>
+            )}
+          </label>
+
+          {/*
+            Grid kartu produk. Satu kolom di ponsel sempit (harga tidak
+            terpotong), dua mulai 480px, dua saat sidebar memakan lebar,
+            lalu tiga di layar lebar.
+          */}
+          <ul className="grid grid-cols-1 gap-2.5 min-[480px]:grid-cols-2 2xl:grid-cols-3">
+            {menuTersaring.map((m) => (
+              <KartuProduk
+                key={m.id}
+                produk={m}
+                rupiah={rupiah}
+                IkonKategori={IkonKategoriMenu}
+                sibuk={menuSibuk === m.id}
+                onTersedia={() => setTersedia(m.id, !m.tersedia)}
+                onUbah={() => setMenuUbah(m.id)}
+              />
+            ))}
+          </ul>
+
+          {menuTersaring.length === 0 && (
+            <p className="rounded-[0.75rem] border border-dashed border-bersih-200 bg-bersih-100 px-4 py-8 text-center text-[0.8125rem] text-tinta-500">
+              Tidak ada menu yang cocok dengan &ldquo;{cariMenu}&rdquo;.
+            </p>
+          )}
         </section>
-      </div>
-      )}
+        </section>
+      </div>{/* tutup grid dua kolom */}
 
       {/*
-        ── LAPORAN & RIWAYAT: DUA TAB, BUKAN SATU KOLOM PANJANG ─────────
+        ── BARIS BAWAH: LAPORAN & RIWAYAT ───────────────────────────────
 
-        Sebelumnya keduanya berdiri berdampingan di bawah denah dan baru
-        terbaca setelah digulir. Dengan nav bawah, keduanya jadi tujuan yang
-        bisa dicapai langsung — dan masing-masing dapat lebar penuh, jadi
-        angka omzet tidak lagi berdesakan dengan tabel riwayat.
+        Keduanya bukan pekerjaan yang menuntut tindakan saat tamu
+        menunggu, jadi ditaruh di bawah grid utama — bukan disembunyikan.
+        Di ≥1024px berdampingan; di bawahnya menumpuk.
+
+        `min-w-0` pada tiap kolom: tanpa itu, tabel riwayat yang lebar
+        memaksa grid melebar dan seluruh dashboard bisa digeser
+        horizontal — kesalahan klasik saat sidebar + grid digabung.
       */}
-      {layar === "laporan" && (
-      <div>
-        <section aria-labelledby="rangkuman-kasir">
+      <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-2">
+        <section
+          id="laporan"
+          aria-labelledby="rangkuman-kasir"
+          className="min-w-0 scroll-mt-4"
+        >
           <h2
             id="rangkuman-kasir"
-            className="mb-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+            className="mb-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
           >
             Penjualan hari ini
           </h2>
@@ -1092,24 +1528,14 @@ export function PortalKasir() {
           />
         </section>
 
-      </div>
-      )}
-
-      {/*
-        ── TAB RIWAYAT ─────────────────────────────────────────────────
-
-        Isinya sama dengan sebelumnya, tetapi tidak lagi disembunyikan di
-        balik panah "▾" di bawah rangkuman. Kalau riwayat punya tab sendiri,
-        menyembunyikannya sekali lagi berarti dua ketukan untuk sampai ke
-        daftar yang tabnya sudah sengaja dipilih — dan panah yang tertutup
-        terbaca seperti bagian yang rusak, bukan bagian yang bisa dibuka.
-      */}
-      {layar === "riwayat" && (
-      <div>
-        <section aria-labelledby="riwayat-kasir">
+        <section
+          id="riwayat"
+          aria-labelledby="riwayat-kasir"
+          className="min-w-0 scroll-mt-4"
+        >
           <h2
             id="riwayat-kasir"
-            className="mb-2 flex items-center gap-2 text-[0.9375rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
+            className="mb-2 flex items-center gap-2 text-[0.8125rem] font-extrabold uppercase tracking-[0.12em] text-tinta-500"
           >
             Riwayat pesanan
             <span className="rounded-full bg-bersih-200 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-tinta-700">
@@ -1119,45 +1545,141 @@ export function PortalKasir() {
           <DaftarRiwayat riwayat={riwayat} galat={pesanRiwayat} awal={8} />
         </section>
       </div>
-      )}
-      </div>
+      </div>{/* tutup padding area kerja */}
 
       {/*
-        ── NAV BAWAH ────────────────────────────────────────────────────
+        ── UBAH MENU ────────────────────────────────────────────────────
 
-        Empat pekerjaan kasir, semuanya terlihat tanpa menggeser apa pun:
-        antrean (yang sedang dilayani), meja (denah + tagihan), laporan
-        (omzet hari ini), dan riwayat (mencari pesanan lama).
+        Halaman ini TIDAK menyunting harga. Sumber kebenaran menu adalah
+        /order/admin (nama, harga, kategori, pilihan, foto). Menyalin
+        formulir itu ke sini berarti dua tempat yang bisa menyimpang —
+        dan harga yang berbeda antara layar kasir dan admin adalah
+        kesalahan yang mahal.
 
-        Lencana di "Antrean" menghitung MENUNGGU KONFIRMASI + BELUM DIBAYAR
-        sekaligus — keduanya adalah pesanan yang menunggu tindakan kasir, dan
-        itulah satu-satunya angka yang berguna di bilah navigasi. Angka yang
-        butuh dibuka dulu untuk diketahui tidak menolong siapa pun.
+        Yang dibuka di sini hanya satu keputusan cepat: tersedia atau
+        habis. Untuk perubahan lain, kasir diarahkan ke admin dengan
+        menu tersebut sudah tersorot.
       */}
-      <NavBawahStaf
-        judul="Navigasi kasir"
-        aktif={layar}
-        onPilih={(k) => {
-          const tujuan = k as typeof layar;
-          setLayar(tujuan);
-          // Ringkasan & riwayat dimuat saat tabnya dibuka, bukan saat halaman
-          // dimuat: kasir yang datang untuk melayani tamu tidak perlu
-          // menunggu dua kueri agregat sebelum antrean tampil.
-          if (tujuan === "laporan" || tujuan === "riwayat") muatRiwayat();
-        }}
-        item={[
-          {
-            kunci: "antrean",
-            label: "Antrean",
-            Ikon: IkonPesanan,
-            lencana: antrean.length + menungguBayar.length,
-          },
-          { kunci: "meja", label: "Meja", Ikon: IkonMeja },
-          { kunci: "laporan", label: "Laporan", Ikon: IkonBill },
-          { kunci: "riwayat", label: "Riwayat", Ikon: IkonJam },
-        ]}
-      />
+      {/*
+        ── UBAH NAMA KASIR ───────────────────────────────────────────────
+        Satu isian, satu tombol. Nama ini yang tercatat di tiap
+        pembayaran, jadi salah ketik harus bisa diperbaiki tanpa
+        mengosongkan penyimpanan peramban.
+      */}
+      {ubahNama && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-forest-950/60 p-0 sm:items-center sm:p-4">
+          <button
+            type="button"
+            aria-label="Tutup"
+            onClick={() => setUbahNama(false)}
+            className="absolute inset-0"
+          />
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="judul-nama-kasir"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setUbahNama(false);
+            }}
+            className="relative w-full max-w-sm rounded-t-[1.25rem] bg-bersih-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(22,19,15,0.24)] sm:rounded-[1.25rem]"
+          >
+            <h2 id="judul-nama-kasir" className="text-[1rem] font-extrabold text-tinta-900">
+              Nama kasir
+            </h2>
+            <p className="mt-1 text-[0.8125rem] leading-snug text-tinta-500">
+              Tercatat di setiap pembayaran dan perubahan status. Cukup diisi sekali per
+              perangkat.
+            </p>
+            <label className="mt-3 block">
+              <span className="sr-only">Nama kasir</span>
+              <input
+                autoFocus
+                value={namaKasir}
+                onChange={(e) => setNamaKasir(e.target.value)}
+                maxLength={40}
+                placeholder="Contoh: Rina"
+                className="h-12 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-0 px-3 text-[0.9375rem] text-tinta-900 outline-none focus:border-sela-500"
+              />
+            </label>
+            <div className="mt-3 grid gap-2">
+              <button
+                type="submit"
+                onClick={() => simpanNamaKasir(namaKasir)}
+                className="tombol-utama h-11 w-full text-[0.875rem]"
+              >
+                Simpan
+              </button>
+              <button
+                type="button"
+                onClick={() => setUbahNama(false)}
+                className="h-11 text-[0.8125rem] font-semibold text-tinta-500"
+              >
+                Batal
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
+      {menuUbah !== null && (() => {
+        const m = menu.find((x) => x.id === menuUbah);
+        if (!m) return null;
+        return (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-forest-950/60 p-0 sm:items-center sm:p-4">
+            <button
+              type="button"
+              aria-label="Tutup"
+              onClick={() => setMenuUbah(null)}
+              className="absolute inset-0"
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="judul-ubah-menu"
+              className="relative w-full max-w-sm rounded-t-[1.25rem] bg-bersih-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(22,19,15,0.24)] sm:rounded-[1.25rem]"
+            >
+              <h2
+                id="judul-ubah-menu"
+                className="text-[1rem] font-extrabold leading-snug text-tinta-900"
+              >
+                {m.nama}
+              </h2>
+              <p className="mt-0.5 text-[0.8125rem] tabular-nums text-tinta-500">
+                {rupiah(m.harga)}
+              </p>
+
+              <div className="mt-3 grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTersedia(m.id, !m.tersedia);
+                    setMenuUbah(null);
+                  }}
+                  className="tombol-utama h-11 w-full text-[0.875rem]"
+                >
+                  {m.tersedia ? "Tandai habis" : "Tandai tersedia lagi"}
+                </button>
+                <a
+                  href="/order/admin"
+                  className="flex h-11 items-center justify-center rounded-[0.625rem] border border-bersih-200 text-[0.875rem] font-bold text-tinta-700"
+                >
+                  Ubah harga &amp; detail di Admin
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setMenuUbah(null)}
+                  className="h-11 text-[0.8125rem] font-semibold text-tinta-500"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Penutup dialog & invoice ── */}
       {/* ── Dialog pembayaran ── */}
       {bayar && (
         <DialogBayar
@@ -1199,6 +1721,7 @@ export function PortalKasir() {
           </p>
         </div>
       )}
+      </div>{/* tutup: area kerja */}
     </div>
   );
 }
@@ -1474,13 +1997,44 @@ function DialogBayar({
 }
 
 /** Nada pendek dengan WebAudio — tanpa aset audio, hemat sinyal. */
+/*
+  SATU AudioContext untuk seumur halaman.
+
+  Versi sebelumnya membuat `new AudioContext()` untuk setiap nada. Dua
+  akibatnya:
+
+    · Browser membatasi jumlah AudioContext per halaman (Chrome: 6).
+      Setelah beberapa pesanan, bunyi berhenti tanpa pesan galat —
+      dan kasir tidak tahu ada pesanan baru.
+
+    · AudioContext baru lahir dalam keadaan "suspended" bila dibuat
+      tanpa interaksi pengguna, jadi nada pertama setelah halaman
+      dimuat tidak berbunyi. Kasir yang baru membuka layar lalu berjalan
+      ke meja tidak mendengarkan apa pun.
+*/
+let ctxAudio: AudioContext | null = null;
+
+function ambilCtx(): AudioContext | null {
+  try {
+    if (!ctxAudio || ctxAudio.state === "closed") {
+      const AC =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AC) return null;
+      ctxAudio = new AC();
+    }
+    // Lanjutkan bila browser menangguhkan (butuh satu interaksi).
+    if (ctxAudio.state === "suspended") void ctxAudio.resume();
+    return ctxAudio;
+  } catch {
+    return null;
+  }
+}
+
 function bunyi(frek: number, durasi: number) {
   try {
-    const AC =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return;
-    const ctx = new AC();
+    const ctx = ambilCtx();
+    if (!ctx) return;
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.frequency.value = frek;

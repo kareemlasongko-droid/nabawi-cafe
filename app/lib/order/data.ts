@@ -479,6 +479,38 @@ export async function ubahStatus(
   if (ada.data.length === 0) return { ok: false, pesan: "Pesanan tidak ditemukan." };
 
   const p = ada.data[0];
+
+  /*
+    ── PESANAN BELUM LUNAS TIDAK BOLEH MASUK ALUR DAPUR ────────────────
+
+    Ini AKAR dari bug yang membuat pesanan hilang dari semua papan.
+
+    Dulu `ubahStatus` hanya memeriksa transisi status, tidak status bayar.
+    Akibatnya pesanan yang belum dibayar bisa dipindahkan ke "diterima"
+    lewat API mana pun. Begitu statusnya bukan `menunggu_konfirmasi` lagi,
+    pesanan itu:
+
+      · tidak muncul di antrean kasir  (query: status_bayar=lunas AND
+                                        status=menunggu_konfirmasi)
+      · tidak muncul di dapur          (query: status_bayar=lunas)
+      · hanya tersisa di "Belum dibayar", dengan tombol bayar
+
+    Jadi tamu duduk menunggu makanan yang tidak pernah masuk dapur, dan
+    tidak ada satu layar pun yang menunjukkan itu.
+
+    Aturannya: status dapur hanya berlaku untuk pesanan yang sudah dibayar.
+    Membatalkan dan menolak TETAP diizinkan — keduanya justru jalan keluar
+    untuk pesanan yang tidak jadi dibayar.
+  */
+  const keluarDariAlur = ke === "ditolak" || ke === "dibatalkan";
+  if (!keluarDariAlur && p.status_bayar !== "lunas") {
+    return {
+      ok: false,
+      pesan:
+        "Pesanan ini belum dibayar. Terima pembayarannya dulu sebelum meneruskan ke dapur.",
+    };
+  }
+
   if (!transisiSah(p.status, ke)) {
     return {
       ok: false,

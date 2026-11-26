@@ -70,5 +70,24 @@ export async function PATCH(req: Request) {
   });
   if (!hasil.ok) return NextResponse.json({ pesan: hasil.pesan }, { status: 400 });
 
-  return NextResponse.json({ ok: true, pesanan: hasil.data });
+  /*
+    ── KEMBALIKAN KEADAAN YANG CUKUP UNTUK MEMUTUSKAN ──────────────────
+
+    Dulu hanya `status` yang terlihat di respons, sehingga pemanggil tidak
+    bisa tahu apakah pesanan yang baru dipindahkan itu sudah dibayar.
+    Itu sebabnya bug "pesanan hilang dari semua papan" tidak terlihat:
+    responsnya tampak wajar padahal statusnya sudah masuk alur dapur tanpa
+    uang.
+
+    `status_bayar` dan `nomor` dikembalikan eksplisit — dua kolom yang
+    dipakai setiap pemanggil untuk memutuskan langkah berikutnya.
+  */
+  return NextResponse.json({
+    ok: true,
+    pesanan: {
+      ...hasil.data,
+      status_bayar: hasil.data.status_bayar,
+      nomor: hasil.data.nomor,
+    },
+  });
 }
