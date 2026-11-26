@@ -61,7 +61,26 @@ async function main() {
 
     cek(`${nama}: dua kelompok rata kanan-kiri`, kepala.includes("justify-between"));
     cek(`${nama}: tidak membungkus ke baris kedua`, !/flex-wrap/.test(kepala));
-    cek(`${nama}: logo kafe di kepala`, kepala.includes("logo-nabawi"));
+    /*
+      Kepala kasir TIDAK lagi memakai logo. Pemilik meminta logo
+      dihilangkan dari navbar dan diganti nama menu yang sedang dibuka:
+      portal kasir sudah punya sidebar berlambang, dan dua logo dalam satu
+      layar terbaca sebagai dua aplikasi yang ditempel.
+
+      Portal lain (dapur, pelayan, admin, pelanggan) belum bersidebar, jadi
+      logonya tetap di kepala. Perbedaannya diuji per portal, bukan
+      dilonggarkan untuk semuanya — supaya logo yang hilang tanpa sengaja
+      di portal lain tetap tertangkap.
+    */
+    if (nama === "kasir") {
+      cek(`${nama}: kepala tanpa logo (sudah ada di sidebar)`, !kepala.includes("logo-nabawi"));
+      cek(
+        `${nama}: kepala menampilkan nama menu yang dibuka`,
+        /<h1[^>]*>\s*\w+\s*<\/h1>/.test(kepala),
+      );
+    } else {
+      cek(`${nama}: logo kafe di kepala`, kepala.includes("logo-nabawi"));
+    }
 
     // Tombol tanpa teks terlihat di ponsel wajib punya nama untuk pembaca
     // layar. Tanpanya, tombol ikon menjadi "tombol" tanpa keterangan.

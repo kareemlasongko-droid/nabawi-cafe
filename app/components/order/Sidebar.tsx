@@ -32,6 +32,7 @@
 
 import Link from "next/link";
 import type { ComponentType } from "react";
+import { LogoNabawi } from "./LogoNabawi";
 
 export type ItemSidebar = {
   kunci: string;
@@ -61,6 +62,8 @@ export function Sidebar({
   aktif,
   kaki,
   onPilih,
+  terbuka = true,
+  onToggle,
 }: {
   /** Nama portal, tampil di atas. "Kasir", "Dapur & Bar", dst. */
   judul: string;
@@ -69,11 +72,22 @@ export function Sidebar({
   aktif: string;
   /** Bila diisi, item jadi tombol pemilih layar, bukan tautan. */
   onPilih?: (kunci: string) => void;
+  /**
+   * Bila `false`, sidebar menyusut jadi rel ikon saja di SEMUA lebar
+   * layar. Tidak dihapus dari DOM dan tidak digeser keluar layar — rel
+   * ikon tetap ada karena kasir masih harus bisa memilih layar lain
+   * setelah menyembunyikannya. Tanpa rel, "sembunyikan" sama dengan
+   * "keluar dari aplikasi".
+   */
+  terbuka?: boolean;
+  /** Bila diisi, tombol lipat muncul. Bila tidak, lebar mengikuti layar. */
+  onToggle?: () => void;
   /** Isi bagian bawah sidebar (mis. penanda mode demo). */
   kaki?: React.ReactNode;
 }) {
   return (
     <nav
+      id="navigasi-kasir"
       aria-label={`Navigasi ${judul}`}
       className={[
         "sticky top-0 z-30 flex h-dvh shrink-0 flex-col",
@@ -82,29 +96,34 @@ export function Sidebar({
           Lebar bertingkat. `w-[4.5rem]` = 72px: cukup untuk ikon 24px,
           lencana, dan area sentuh 56px tanpa label terpotong.
         */
-        "w-[4.5rem] md:w-[14.5rem] xl:w-64",
+        terbuka ? "w-[4.5rem] md:w-[14.5rem] xl:w-64" : "w-[4.5rem]",
         "print:hidden",
       ].join(" ")}
     >
-      {/* ── Identitas ── */}
+      {/*
+        ── IDENTITAS: LOGO YANG SAMA DENGAN NAVBAR ──────────────────────
+
+        Sebelumnya huruf "N" dalam kotak — monogram buatan sendiri.
+        Alasannya waktu itu: logo asli memuat nama kafe di dalamnya,
+        sehingga pada rel 72px ia "hanya tampak sebagai noda".
+
+        Alasan itu tidak berlaku lagi karena dua hal. Pertama, logonya
+        bulat dan dibaca sebagai merek bahkan dalam 28px — sama seperti
+        favicon. Kedua, dan lebih penting: portal ini dipakai bergantian
+        dengan aplikasi lain di perangkat yang sama, dan dua logo berbeda
+        untuk satu kafe membuat staf ragu apakah mereka masih di sistem
+        yang sama. Identitas harus persis sama di mana pun ia muncul.
+      */}
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-cream-50/10 px-3 md:px-4">
-        {/*
-          Monogram, bukan logo penuh. Logo Nabawi punya nama kafe di
-          dalamnya; pada 72px ia jadi tidak terbaca dan hanya tampak
-          sebagai noda. Huruf "N" dalam kotak terbaca di lebar apa pun.
-        */}
-        <span
-          aria-hidden="true"
-          className="grid size-9 shrink-0 place-items-center rounded-[0.625rem] bg-cream-50 text-[0.9375rem] font-extrabold text-forest-900"
-        >
-          N
-        </span>
-        <div className="hidden min-w-0 md:block">
-          <p className="truncate text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-cream-50/60">
-            Nabawi Cafe
-          </p>
-          <p className="truncate text-[0.9375rem] font-extrabold leading-tight">{judul}</p>
-        </div>
+        <LogoNabawi tema="gelap" ukuran={32} hanyaLogo label="Nabawi Cafe" />
+        {terbuka && (
+          <div className="hidden min-w-0 md:block">
+            <p className="truncate text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-cream-50/60">
+              Nabawi Cafe
+            </p>
+            <p className="truncate text-[0.9375rem] font-extrabold leading-tight">{judul}</p>
+          </div>
+        )}
       </div>
 
       {/* ── Tujuan ── */}
@@ -124,7 +143,12 @@ export function Sidebar({
                 const isi = (
                   <>
                     <Ikon className="size-[1.25rem] shrink-0" />
-                    <span className="hidden min-w-0 flex-1 truncate text-left text-[0.875rem] font-bold md:block">
+                    <span
+                      className={[
+                        "min-w-0 flex-1 truncate text-left text-[0.875rem] font-bold",
+                        terbuka ? "hidden md:block" : "hidden",
+                      ].join(" ")}
+                    >
                       {label}
                     </span>
                     {lencana > 0 && (
@@ -167,6 +191,72 @@ export function Sidebar({
       </ul>
 
       {kaki && <div className="shrink-0 border-t border-cream-50/10 p-2 md:p-3">{kaki}</div>}
+
+      {/*
+        ── TOMBOL LIPAT ─────────────────────────────────────────────────
+
+        Kasir kadang butuh lebar penuh — misalnya saat membaca tabel
+        riwayat di tablet 10". Tanpa cara menyembunyikan sidebar, satu-
+        satunya jalan adalah mengecilkan zoom peramban.
+
+        Diletakkan di kaki, bukan di kepala: kepala sudah memuat logo dan
+        nama, dan tombol di sana akan bersaing dengan identitas yang
+        justru harus tenang. Di kaki ia juga dekat ibu jari saat perangkat
+        dipegang.
+
+        Ikonnya BERUBAH arah (bukan berputar): panah kiri berarti "lipat",
+        panah kanan berarti "buka". Tombol yang hanya berputar 180°
+        terbaca sebagai hiasan.
+
+        Di ponsel (<768px) tombol ini disembunyikan: sidebar sudah berupa
+        rel 72px yang tidak bisa lebih sempit lagi, jadi melipatnya tidak
+        menghemat apa pun dan hanya menghilangkan label yang memang sudah
+        tidak ada.
+      */}
+      {onToggle && (
+        <div className="shrink-0 border-t border-cream-50/10 p-2 md:p-3">
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={terbuka}
+            aria-controls="navigasi-kasir"
+            className={[
+              "flex h-11 w-full items-center gap-2 rounded-[0.5rem] px-3 text-[0.8125rem] font-bold text-cream-50/70 transition",
+              "justify-center hover:bg-cream-50/10 hover:text-cream-50",
+              terbuka ? "md:justify-start" : "md:justify-center",
+            ].join(" ")}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="size-4 shrink-0"
+            >
+              {terbuka ? (
+                <>
+                  <path d="M4 5.5h16M4 12h9M4 18.5h16" />
+                  <path d="M20 8.5 17 12l3 3.5" />
+                </>
+              ) : (
+                <>
+                  <path d="M4 5.5h16M4 12h9M4 18.5h16" />
+                  <path d="M17 8.5 20 12l-3 3.5" />
+                </>
+              )}
+            </svg>
+            {terbuka && (
+              <span className="hidden truncate md:inline">Sembunyikan</span>
+            )}
+            <span className="sr-only">
+              {terbuka ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
+            </span>
+          </button>
+        </div>
+      )}
     </nav>
   );
 }

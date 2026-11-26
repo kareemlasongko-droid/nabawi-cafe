@@ -130,6 +130,22 @@ type DataKasir = {
 };
 
 
+/**
+ * Nama tiap panel, dipakai kepala layar dan sidebar.
+ *
+ * Satu daftar, bukan dua: label yang ditulis ulang di dua tempat akan
+ * menyimpang begitu salah satunya diubah — dan yang paling sulit
+ * ditemukan adalah judul kepala yang menyebut panel berbeda dari yang
+ * sedang terbuka.
+ */
+const LABEL_LAYAR: Record<"antrean" | "meja" | "menu" | "laporan" | "riwayat", string> = {
+  antrean: "Antrean",
+  meja: "Meja",
+  menu: "Menu",
+  laporan: "Laporan",
+  riwayat: "Riwayat",
+};
+
 export function PortalKasir() {
   const [data, setData] = useState<DataKasir | null>(null);
   const [galat, setGalat] = useState("");
@@ -205,6 +221,37 @@ export function PortalKasir() {
   /** id menu yang sedang diubah — `null` = tidak ada dialog. */
   const [menuUbah, setMenuUbah] = useState<number | null>(null);
   const [namaKasir, setNamaKasir] = useState("");
+  /*
+    Sidebar terbuka/tertutup. Disimpan di localStorage: kasir yang lebih
+    suka layar lebar tidak perlu melipat ulang setiap kali membuka
+    halaman — dan yang butuh sidebar (staf baru) tidak kehilangannya
+    karena orang lain pernah melipatnya di perangkat yang sama.
+
+    Dibaca di effect, bukan saat inisialisasi state: `localStorage` tidak
+    ada di server, dan membaca di sana membuat markup server berbeda dari
+    klien (hydration mismatch).
+  */
+  const [sidebarTerbuka, setSidebarTerbuka] = useState(true);
+  useEffect(() => {
+    try {
+      const simpan = window.localStorage.getItem("nabawi.sidebar");
+      if (simpan === "tutup") setSidebarTerbuka(false);
+    } catch {
+      /* mode privat: biarkan terbuka */
+    }
+  }, []);
+
+  function toggleSidebar() {
+    setSidebarTerbuka((v) => {
+      const baru = !v;
+      try {
+        window.localStorage.setItem("nabawi.sidebar", baru ? "buka" : "tutup");
+      } catch {
+        /* abaikan */
+      }
+      return baru;
+    });
+  }
   const [ubahNama, setUbahNama] = useState(false);
 
   /*
@@ -629,6 +676,8 @@ export function PortalKasir() {
       <Sidebar
         judul="Kasir"
         aktif={layar}
+        terbuka={sidebarTerbuka}
+        onToggle={toggleSidebar}
         onPilih={(k) => {
           setLayar(k as typeof layar);
           /*
@@ -641,16 +690,16 @@ export function PortalKasir() {
         item={[
           {
             kunci: "antrean",
-            label: "Antrean",
+            label: LABEL_LAYAR.antrean,
             href: "#antrean",
             Ikon: IkonPesanan,
             lencana: antrean.length + menungguBayar.length,
             warna: "sela",
           },
-          { kunci: "meja", label: "Meja", href: "#meja", Ikon: IkonMeja },
-          { kunci: "menu", label: "Menu", href: "#menu", Ikon: IkonMenu },
-          { kunci: "laporan", label: "Laporan", href: "#laporan", Ikon: IkonBill },
-          { kunci: "riwayat", label: "Riwayat", href: "#riwayat", Ikon: IkonJam },
+          { kunci: "meja", label: LABEL_LAYAR.meja, href: "#meja", Ikon: IkonMeja },
+          { kunci: "menu", label: LABEL_LAYAR.menu, href: "#menu", Ikon: IkonMenu },
+          { kunci: "laporan", label: LABEL_LAYAR.laporan, href: "#laporan", Ikon: IkonBill },
+          { kunci: "riwayat", label: LABEL_LAYAR.riwayat, href: "#riwayat", Ikon: IkonJam },
         ]}
         kaki={
           <>
@@ -700,7 +749,8 @@ export function PortalKasir() {
         seharusnya — satu sumber kebenaran, terbaca sekali.
       */}
       <BilahStaf
-        judul="Kasir"
+        tanpaLogo
+        judul={LABEL_LAYAR[layar]}
         keterangan={galat ? galat : ""}
         demo={data?.demo}
         ringkasan={{ keteranganPonsel: "" }}

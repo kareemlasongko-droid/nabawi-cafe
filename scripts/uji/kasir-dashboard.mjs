@@ -297,6 +297,53 @@ async function main() {
     "pesanan ini hilang sendiri; kasir harus tahu sebelum menagih",
   );
 
+  /*
+    ── IDENTITAS & KEPALA ──────────────────────────────────────────────
+    Tiga permintaan pemilik, semuanya mudah hilang lagi saat dirapikan.
+  */
+
+  /*
+    Logo sidebar HARUS logo yang sama dengan navbar, bukan monogram
+    buatan. Dua logo berbeda untuk satu kafe membuat staf ragu apakah
+    mereka masih di sistem yang sama.
+
+    `next/image` menulis URL sebagai /_next/image?url=%2Fimages%2F..., jadi
+    yang dicari adalah nama berkasnya, bukan jalur mentah.
+  */
+  cek(
+    "sidebar memakai logo asli, bukan monogram huruf",
+    html.includes("logo-nabawi.png") && !html.includes(">N</span>"),
+    "monogram 'N' buatan sendiri sudah dibuang",
+  );
+
+  /*
+    Kepala: logo dihilangkan, diganti nama menu yang sedang dibuka.
+    Diperiksa dari elemen <header>, bukan seluruh dokumen — logo sidebar
+    juga ada di dokumen dan akan membuat pemeriksaan ini selalu lulus.
+  */
+  const headerHtml = (html.match(/<header[\s\S]*?<\/header>/) ?? [""])[0];
+  cek(
+    "logo dihilangkan dari kepala",
+    headerHtml.length > 0 && !headerHtml.includes("logo-nabawi.png"),
+    "dua logo dalam satu layar terbaca sebagai dua aplikasi",
+  );
+  cek(
+    "kepala menampilkan nama menu yang sedang dibuka",
+    /<h1[^>]*>\s*Antrean\s*<\/h1>/.test(headerHtml),
+    "panel awal adalah Antrean",
+  );
+
+  /*
+    Sidebar bisa disembunyikan. Yang diperiksa: tombolnya ada DAN punya
+    `aria-expanded`, supaya pembaca layar tahu keadaan sekarang — tombol
+    lipat tanpa aria-expanded tidak memberi tahu apa pun.
+  */
+  cek(
+    "sidebar punya tombol sembunyikan/tampilkan",
+    html.includes("Sembunyikan sidebar") && html.includes("aria-expanded"),
+    "tanpa ini satu-satunya jalan melebarkan layar adalah zoom peramban",
+  );
+
   cek(
     "navigasi kasir tidak lagi memakai bilah bawah",
     !/fixed[^"]{0,80}bottom-0/.test(html),
