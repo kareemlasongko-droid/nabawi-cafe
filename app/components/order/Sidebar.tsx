@@ -117,12 +117,67 @@ export function Sidebar({
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-cream-50/10 px-3 md:px-4">
         <LogoNabawi tema="gelap" ukuran={32} hanyaLogo label="Nabawi Cafe" />
         {terbuka && (
-          <div className="hidden min-w-0 md:block">
+          <div className="hidden min-w-0 flex-1 md:block">
             <p className="truncate text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-cream-50/60">
               Nabawi Cafe
             </p>
             <p className="truncate text-[0.9375rem] font-extrabold leading-tight">{judul}</p>
           </div>
+        )}
+
+        {/*
+          ── TOMBOL LIPAT: IKON SAJA, DI KEPALA ────────────────────────
+
+          Dulu tombol teks "Sembunyikan" di kaki. Dipindah ke kepala,
+          sebaris dengan logo dan nama kafe, karena:
+
+          1. Ia mengatur lebar sidebar — tempatnya di sidebar itu sendiri,
+             bukan di kaki yang jarang dilewati mata saat kasir bekerja.
+          2. Ikon saja: kata "Sembunyikan" panjang dan mendorong logo serta
+             nama kafe keluar dari rel 72px. Panah panel samping sudah
+             dibaca benar oleh siapa pun yang pernah memakainya.
+
+          Ikonnya BERUBAH ARAH, bukan berputar: panah kiri = lipat, panah
+          kanan = buka. Tombol yang hanya berputar 180° terbaca sebagai
+          hiasan.
+
+          Disembunyikan di bawah 768px: sidebar di ponsel sudah berupa rel
+          72px yang tidak bisa lebih sempit, jadi melipatnya tidak
+          menghemat apa pun.
+
+          `aria-expanded` + `aria-controls` tetap ada — ikon tanpa teks
+          tidak memberi tahu pembaca layar apakah sidebar sedang terbuka.
+        */}
+        {onToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={terbuka}
+            aria-controls="navigasi-kasir"
+            title={terbuka ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
+            className="ml-auto hidden size-9 shrink-0 place-items-center rounded-[0.5rem] text-cream-50/60 transition hover:bg-cream-50/10 hover:text-cream-50 md:grid"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="size-[1.125rem]"
+            >
+              <path d="M4 5.5h16M4 12h7M4 18.5h16" />
+              {terbuka ? (
+                <path d="M20.5 8.5 17 12l3.5 3.5" />
+              ) : (
+                <path d="M17 8.5 20.5 12 17 15.5" />
+              )}
+            </svg>
+            <span className="sr-only">
+              {terbuka ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
+            </span>
+          </button>
         )}
       </div>
 
@@ -190,73 +245,6 @@ export function Sidebar({
         })}
       </ul>
 
-      {kaki && <div className="shrink-0 border-t border-cream-50/10 p-2 md:p-3">{kaki}</div>}
-
-      {/*
-        ── TOMBOL LIPAT ─────────────────────────────────────────────────
-
-        Kasir kadang butuh lebar penuh — misalnya saat membaca tabel
-        riwayat di tablet 10". Tanpa cara menyembunyikan sidebar, satu-
-        satunya jalan adalah mengecilkan zoom peramban.
-
-        Diletakkan di kaki, bukan di kepala: kepala sudah memuat logo dan
-        nama, dan tombol di sana akan bersaing dengan identitas yang
-        justru harus tenang. Di kaki ia juga dekat ibu jari saat perangkat
-        dipegang.
-
-        Ikonnya BERUBAH arah (bukan berputar): panah kiri berarti "lipat",
-        panah kanan berarti "buka". Tombol yang hanya berputar 180°
-        terbaca sebagai hiasan.
-
-        Di ponsel (<768px) tombol ini disembunyikan: sidebar sudah berupa
-        rel 72px yang tidak bisa lebih sempit lagi, jadi melipatnya tidak
-        menghemat apa pun dan hanya menghilangkan label yang memang sudah
-        tidak ada.
-      */}
-      {onToggle && (
-        <div className="shrink-0 border-t border-cream-50/10 p-2 md:p-3">
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-expanded={terbuka}
-            aria-controls="navigasi-kasir"
-            className={[
-              "flex h-11 w-full items-center gap-2 rounded-[0.5rem] px-3 text-[0.8125rem] font-bold text-cream-50/70 transition",
-              "justify-center hover:bg-cream-50/10 hover:text-cream-50",
-              terbuka ? "md:justify-start" : "md:justify-center",
-            ].join(" ")}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="size-4 shrink-0"
-            >
-              {terbuka ? (
-                <>
-                  <path d="M4 5.5h16M4 12h9M4 18.5h16" />
-                  <path d="M20 8.5 17 12l3 3.5" />
-                </>
-              ) : (
-                <>
-                  <path d="M4 5.5h16M4 12h9M4 18.5h16" />
-                  <path d="M17 8.5 20 12l-3 3.5" />
-                </>
-              )}
-            </svg>
-            {terbuka && (
-              <span className="hidden truncate md:inline">Sembunyikan</span>
-            )}
-            <span className="sr-only">
-              {terbuka ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
-            </span>
-          </button>
-        </div>
-      )}
     </nav>
   );
 }

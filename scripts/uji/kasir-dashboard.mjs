@@ -344,6 +344,65 @@ async function main() {
     "tanpa ini satu-satunya jalan melebarkan layar adalah zoom peramban",
   );
 
+  /*
+    ── TOMBOL LIPAT: IKON SAJA, DI KEPALA SIDEBAR ──────────────────────
+    Pemilik meminta aksinya berupa ikon saja dan diletakkan sebaris
+    dengan logo + "Nabawi Cafe", bukan tombol teks di kaki.
+
+    Diperiksa dari potongan kepala sidebar, bukan seluruh dokumen: teks
+    "Nabawi Cafe" juga muncul di kepala layar, jadi pemeriksaan selebar
+    dokumen akan selalu lulus walau tombolnya salah tempat.
+  */
+  /*
+    Potongan kepala sidebar diambil dengan `indexOf`, bukan regex
+    non-greedy: regex akan berhenti di `</div>` pertama, yang jatuh di
+    tengah logo — sehingga tombol lipat selalu terlihat "tidak ada"
+    padahal ada.
+  */
+  const awalNav = html.indexOf("<nav");
+  const kepalaSidebar = awalNav >= 0 ? html.slice(awalNav, awalNav + 2500) : "";
+  cek(
+    "tombol lipat ada di kepala sidebar, sebaris logo & nama kafe",
+    kepalaSidebar.includes("Sembunyikan sidebar") && kepalaSidebar.includes("logo-nabawi"),
+    "aksi yang mengatur lebar sidebar harus ada di sidebar itu sendiri",
+  );
+  cek(
+    "tombol lipat hanya ikon — tanpa label teks yang terlihat",
+    kepalaSidebar.includes("md:grid") && /size-9 shrink-0 place-items-center/.test(kepalaSidebar),
+    "kata 'Sembunyikan' mendorong logo dan nama keluar dari rel 72px",
+  );
+
+  /*
+    ── SATU SAKELAR BUNYI, DI KEPALA ───────────────────────────────────
+    Tombol bunyi dulu ada di kaki sidebar DAN di kepala. Dua tombol untuk
+    satu keadaan: kasir yang mematikan bunyi dari sidebar lalu melihat
+    tombol kepala masih menyala akan mengira bunyinya hidup, lalu
+    melewatkan pesanan masuk.
+  */
+  /*
+    Dihitung per TOMBOL, bukan per kemunculan teks: satu tombol menulis
+    "Bunyi aktif" tiga kali (aria-label, title, label terlihat), jadi
+    menghitung teks selalu menghasilkan angka 3 walau tombolnya cuma satu.
+  */
+  const jumlahSuara = (html.match(/<button[^>]*aria-label="Bunyi (aktif|mati)"/g) ?? []).length;
+  cek(
+    "sakelar bunyi hanya satu, di kepala layar",
+    jumlahSuara === 1 && headerHtml.includes("Bunyi"),
+    `ditemukan ${jumlahSuara} sakelar bunyi — harus tepat 1, di kepala`,
+  );
+
+  /*
+    ── KETERSEDIAAN MENU TIDAK LAGI DI HALAMAN MEJA ────────────────────
+    Panel itu sudah punya rumah sendiri di menu "Menu" (kartu bergambar,
+    semua menu terlihat). Salinan kecil di halaman Meja membuat dua tempat
+    untuk satu pekerjaan — dan yang di Meja selalu kalah lengkap.
+  */
+  cek(
+    "halaman Meja tidak lagi memuat panel Ketersediaan menu",
+    !html.includes("Ketersediaan menu"),
+    "menandai menu habis cukup dari menu Menu; halaman Meja untuk meja & tagihan",
+  );
+
   cek(
     "navigasi kasir tidak lagi memakai bilah bawah",
     !/fixed[^"]{0,80}bottom-0/.test(html),

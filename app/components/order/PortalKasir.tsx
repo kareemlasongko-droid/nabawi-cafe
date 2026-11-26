@@ -722,15 +722,15 @@ export function PortalKasir() {
             <span className="hidden min-w-0 flex-1 truncate text-left md:inline">{oleh}</span>
             <span className="sr-only">— ubah nama kasir</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setSuara((v) => !v)}
-            aria-pressed={suara}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-[0.5rem] text-[0.8125rem] font-bold text-cream-50/70 transition hover:bg-cream-50/10 hover:text-cream-50 md:justify-start md:px-3"
-          >
-            {suara ? <IkonSuara className="size-4 shrink-0" /> : <IkonMatikanSuara className="size-4 shrink-0" />}
-            <span className="hidden md:inline">{suara ? "Bunyi aktif" : "Bunyi mati"}</span>
-          </button>
+          {/*
+            Sakelar bunyi DIHAPUS dari sini.
+
+            Ia dulu ada di dua tempat sekaligus — kaki sidebar dan kepala
+            layar. Dua tombol untuk satu keadaan bukan hanya mubazir: kasir
+            yang mematikan bunyi dari sidebar lalu melihat tombol kepala
+            masih menyala akan mengira bunyinya masih hidup, lalu
+            melewatkan pesanan masuk. Satu keadaan, satu tombol, di kepala.
+          */}
           </>
         }
       />
@@ -1496,85 +1496,20 @@ export function PortalKasir() {
           </ul>
 
           {/*
-            ── Ketersediaan menu (K-08) ──
-            Diletakkan di kolom kanan, di bawah denah, dan bisa dilipat.
-            Kasir menandai menu habis beberapa kali per jam sibuk, tetapi
-            hanya butuh sekejap — panel yang selalu terbuka akan mendorong
-            denah meja ke bawah, padahal denah yang dipakai terus-menerus.
-          */}
-          <div className="mt-3 rounded-[0.875rem] shadow-[0_1px_2px_rgba(22,19,15,0.04),0_6px_16px_-10px_rgba(22,19,15,0.16)] bg-bersih-0">
-            <button
-              type="button"
-              onClick={() => setMenuHabisBuka((b) => !b)}
-              aria-expanded={menuHabisBuka}
-              className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
-            >
-              <span className="flex-1 text-[0.8125rem] font-extrabold text-tinta-900">
-                Ketersediaan menu
-              </span>
-              <span className="text-[0.6875rem] font-semibold text-tinta-500">
-                {habis.length} habis
-              </span>
-              <span
-                className={[
-                  "text-tinta-500 transition-transform",
-                  menuHabisBuka ? "rotate-180" : "",
-                ].join(" ")}
-                aria-hidden="true"
-              >
-                ▾
-              </span>
-            </button>
+            ── KETERSEDIAAN MENU DIHAPUS DARI SINI ──────────────────────
 
-            {/* Dua kolom: dengan satu kolom bergulir, daftar terpotong di
-                tengah baris dan kasir harus menggulir untuk mencari menu
-                yang sedang ia cari. 14 menu muat tanpa gulir. */}
-            {menuHabisBuka && (
-              <ul className="grid border-t border-bersih-200 sm:grid-cols-2">
-                {menu.length === 0 ? (
-                  <li className="px-3 py-3 text-[0.8125rem] text-tinta-500">
-                    Menu tidak terbaca dari database.
-                  </li>
-                ) : (
-                  menu.map((m) => (
-                    <li
-                      key={m.id}
-                      className="flex min-w-0 items-center gap-2 border-b border-bersih-200 px-3 py-1.5 sm:odd:border-r"
-                    >
-                      <span
-                        className={[
-                          "min-w-0 flex-1 truncate text-[0.8125rem]",
-                          m.tersedia ? "text-tinta-900" : "text-tinta-500 line-through",
-                        ].join(" ")}
-                      >
-                        {m.nama}
-                      </span>
-                      {/*
-                        Sakelar, bukan tombol "Habis"/"Tersedia" yang harus
-                        ditebak keadaannya. Label teksnya tetap ada karena
-                        warna saja tidak cukup (aksesibilitas).
-                      */}
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={!m.tersedia}
-                        onClick={() => setTersedia(m.id, !m.tersedia)}
-                        disabled={menuSibuk === m.id}
-                        className={[
-                          "flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[0.6875rem] font-bold transition disabled:opacity-50",
-                          m.tersedia
-                            ? "bg-bersih-50 text-tinta-500"
-                            : "bg-sela-700 text-white",
-                        ].join(" ")}
-                      >
-                        {m.tersedia ? "Ada" : "Habis"}
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-            )}
-          </div>
+            Panel lipat "Ketersediaan menu" dulu ada di bawah denah meja.
+            Pemilik meminta dihilangkan: halaman Meja dipakai untuk melihat
+            meja mana yang terisi dan menagih, bukan untuk mengurus stok
+            menu — dan menandai menu habis SUDAH punya panel sendiri yang
+            penuh (kartu bergambar, semua menu terlihat sekaligus) di menu
+            "Menu" di sidebar.
+
+            Menyisakan salinan kecil di sini berarti dua tempat berbeda
+            untuk satu pekerjaan, dengan yang di Meja selalu kalah lengkap
+            — kasir akan memakainya, lalu kecewa karena tidak semua menu
+            bisa ditandai dari sana.
+          */}
 
           {/* ── Detail tagihan meja terpilih ── */}
           {mejaTerpilih && (
