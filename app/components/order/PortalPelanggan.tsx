@@ -57,6 +57,7 @@ import {
   IkonPesanan,
   IkonPromo,
   IkonAkun,
+  IkonKategoriMenu,
 } from "./Ikon";
 
 type Baris = {
@@ -164,6 +165,19 @@ export function PortalPelanggan({
   /** Kalimat yang menjelaskan MENGAPA mode contoh menyala. */
   pesanDemo?: string;
 }) {
+  /*
+    ── `?menu=<id>`: TAMU YANG SUDAH MEMILIH DI /menu ─────────────────
+
+    Tombol pesan di /menu mengirim id menu yang sedang dilihat tamu. Tanpa
+    pembacaan di sini, tamu itu mendarat di portal, kehilangan pilihannya,
+    dan harus mencari ulang di antara 126 menu — friksi yang dibuat oleh
+    tombol yang justru dimaksudkan mengurangi friksi.
+
+    Menu yang ditandai dibuka lembarnya SEKALI (bila punya pilihan) atau
+    langsung masuk keranjang (bila tidak). `useRef` mencegahnya berulang
+    saat React merender ulang: kalau tidak, menutup lembar pilihan akan
+    membukanya lagi, dan tamu tidak bisa keluar dari lembar itu.
+  */
   const [sesi] = useState(() => (typeof window === "undefined" ? "" : ambilSesi()));
   const [cari, setCari] = useState("");
   const [kategoriAktif, setKategoriAktif] = useState<number | "semua">("semua");
@@ -176,6 +190,8 @@ export function PortalPelanggan({
   */
   const [daftarMenu, setDaftarMenu] = useState<Menu[]>(menu);
   const [bukaKeranjang, setBukaKeranjang] = useState(false);
+  /** Sudahkah `?menu=` diproses? Sekali saja per pemuatan halaman. */
+  const menuAwalDiproses = useRef(false);
   /*
     Menu yang sedang dipilihkan opsi (sambal/saus/rasa). null = lembar
     tertutup. Disimpan sebagai Menu, bukan id, supaya lembar tetap benar
@@ -416,6 +432,31 @@ export function PortalPelanggan({
     });
     setBaruSaja((n) => n + 1);
   }
+  /*
+    Baca `?menu=<id>` sekali setelah halaman siap.
+
+    Dijalankan di efek (bukan saat render) karena `tambah` menyentuh
+    state keranjang, dan karena `window` belum ada saat render server.
+    Menu yang sudah habis atau portal yang sedang tutup sengaja
+    DIABAIKAN diam-diam: menampilkan galat untuk tautan yang tamu sendiri
+    tidak pernah ketik akan membingungkan, dan kartu menunya sudah
+    menampilkan "Habis" dengan jelas.
+  */
+  useEffect(() => {
+    if (menuAwalDiproses.current) return;
+    menuAwalDiproses.current = true;
+
+    const id = Number(new URLSearchParams(window.location.search).get("menu"));
+    if (!Number.isInteger(id) || id <= 0) return;
+
+    const m = daftarMenu.find((x) => x.id === id);
+    if (!m || !m.tersedia || !bukaSekarang) return;
+
+    if (opsiDari(m).length > 0) setPilihUntuk(m);
+    else tambah(m);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   function ubahJumlah(kunci: string, d: number) {
     setKeranjang((k) =>
@@ -560,7 +601,43 @@ export function PortalPelanggan({
     Yang menentukan tetap server — menonaktifkan tombol di browser tidak
     menghentikan siapa pun yang mengirim POST langsung.
   */
-  const dataLengkap = nama.trim().length >= 2 && /\d{8,}/.test(noWa.replace(/[^0-9]/g, ""));
+  const namaCukup = nama.trim().length >= 2;
+  const waCukup = /\d{8,}/.test(noWa.replace(/[^0-9]/g, ""));
+
+  /*
+    ── SATU TEMPAT YANG MENJAWAB "KENAPA TOMBOLNYA MATI?" ─────────────
+
+    `kurang` menyebut SETIAP sebab yang masih menggantung, berurutan
+    sesuai urutan isian di layar. `labelKirim` lalu menyebut yang PERTAMA
+    — jadi kalau nama belum diisi, tombolnya berbunyi "Isi nama" dan bukan
+    "Pilih metode pembayaran".
+
+    Kenapa penting: urutan ini menentukan apakah tamu tahu harus berbuat
+    apa. Sebelumnya label hanya menangani sebab terakhir (metode), dan
+    sebab-sebab sebelumnya tidak pernah disebut di mana pun.
+  */
+  const kurang: string[] = [];
+  if (keranjang.length === 0) kurang.push("pilih menu");
+  if (!namaCukup) kurang.push("isi nama");
+  if (!waCukup) kurang.push("isi nomor WhatsApp");
+  if (!metode) kurang.push("pilih metode pembayaran");
+  if (!bukaSekarang) kurang.push("tunggu jam buka");
+
+  const bisaKirim = kurang.length === 0 && !mengirim;
+
+  /*
+    Label tombol = satu kalimat yang menyebut tindakan berikutnya.
+    Saat semuanya lengkap, labelnya menyebut konsekuensinya (bayar
+    sekarang / di kasir) — itu yang dibaca ulang tamu sebelum menekan
+    tombol uang.
+  */
+  const labelKirim = mengirim
+    ? "Mengirim…"
+    : kurang.length > 0
+      ? kurang[0].charAt(0).toUpperCase() + kurang[0].slice(1)
+      : metode === "kasir"
+        ? "Kirim Pesanan · Bayar di Kasir"
+        : "Kirim Pesanan · Bayar Sekarang";
 
   /*
     ── SATU PESANAN, SATU TEMPAT ──────────────────────────────────────
@@ -1025,13 +1102,28 @@ export function PortalPelanggan({
                             className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
                           />
                         ) : (
-                          /* Tanpa foto: inisial besar, bukan kotak kosong —
-                             kotak abu-abu kosong terbaca sebagai gambar gagal. */
-                          <span
-                            aria-hidden="true"
-                            className="grid size-full place-items-center bg-daun-100 text-[1.75rem] font-extrabold tracking-tight text-forest-700/70"
-                          >
-                            {m.nama.slice(0, 2)}
+                          /* ── TANPA FOTO: IKON KATEGORI, BUKAN INISIAL ──
+
+                             Sebelumnya di sini ada dua huruf pertama nama
+                             menu. Terukur pada 126 menu: hanya ada 59
+                             inisial unik, dan 32 di antaranya dipakai
+                             lebih dari satu menu — "CH" mewakili 8 menu
+                             (Chicken Bite, Choco Soft Cookie, Cheese
+                             Latte, …), "NA" 6, "MA" 6. Total 99 dari 126
+                             kartu menampilkan huruf yang sama dengan kartu
+                             lain, dan huruf itu tidak membantu satu pun
+                             keputusan.
+
+                             Ikon kategori menjawab pertanyaan yang benar:
+                             ini minuman atau makanan? Ikon juga menjelaskan
+                             mengapa kategorinya bernama begitu, sesuatu yang
+                             inisial tidak pernah lakukan.
+                          */
+                          <span aria-hidden="true" className="grid size-full place-items-center bg-daun-100">
+                            <IkonKategoriMenu
+                              kategoriId={m.kategori_id}
+                              className="size-8 text-forest-700/60"
+                            />
                           </span>
                         )}
 
@@ -1591,29 +1683,35 @@ export function PortalPelanggan({
               <button
                 type="button"
                 onClick={kirim}
-                disabled={
-                  keranjang.length === 0 ||
-                  mengirim ||
-                  !bukaSekarang ||
-                  !dataLengkap ||
-                  !metode
-                }
+                disabled={!bisaKirim}
                 className="tombol-utama mt-4 h-14 w-full text-[0.9375rem]"
               >
-                {mengirim
-                  ? "Mengirim…"
-                  : keranjang.length === 0
-                    ? "Keranjang kosong"
-                    : !metode
-                      ? "Pilih metode pembayaran"
-                      : metode === "kasir"
-                        ? "Kirim Pesanan · Bayar di Kasir"
-                        : "Kirim Pesanan · Bayar Sekarang"}
-                {!mengirim && keranjang.length > 0 && metode && <IkonKanan />}
+                {labelKirim}
+                {bisaKirim && <IkonKanan />}
               </button>
-              <p className="mt-2 pb-1 text-center text-[0.6875rem] leading-snug text-tinta-500">
-                Pesanan diteruskan ke kasir dan dapur setelah pembayaran diterima.
-              </p>
+              {/*
+                ── MENGAPA TOMBOLNYA MATI ────────────────────────────────
+
+                Label tombol sebelumnya hanya menyebut SATU sebab: metode
+                pembayaran belum dipilih. Nama dan nomor WA yang kosong —
+                dua isian yang wajib — tidak disebut sama sekali, jadi
+                tamu yang mengisi keduanya melihat tombol mati berlabel
+                "Pilih metode pembayaran", memilih metode, dan tombolnya
+                TETAP mati tanpa penjelasan.
+
+                Baris di bawah menyebut persis apa yang kurang, per
+                langkah, dan menghilang begitu semuanya lengkap. Ditulis
+                sebagai teks, bukan tooltip: di ponsel tidak ada hover.
+              */}
+              {kurang.length > 0 ? (
+                <p className="mt-2 pb-1 text-center text-[0.75rem] font-semibold leading-snug text-sela-800">
+                  Lengkapi dulu: {kurang.join(" · ")}
+                </p>
+              ) : (
+                <p className="mt-2 pb-1 text-center text-[0.6875rem] leading-snug text-tinta-500">
+                  Pesanan diteruskan ke kasir dan dapur setelah pembayaran diterima.
+                </p>
+              )}
             </div>
           </div>
         </div>

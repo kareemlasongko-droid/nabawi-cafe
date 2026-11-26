@@ -106,8 +106,21 @@ const CARDS: MenuCard[] = [
     icon: "/images/menu/icon-galeri-aktivitas.png",
     iconAlt: "Ikon kamera galeri",
     title: "Galeri & Aktivitas",
-    description: "Lihat momen seru dan aktivitas seru di Nabawi Cafe",
-    badge: "Galeri",
+    description: "Momen seru dan aktivitas di Nabawi Cafe",
+    /*
+      ── PENANDA "SEGERA", BUKAN KARTU MATI ────────────────────────────
+
+      Kartu ini tidak punya tujuan (halamannya belum ada), tetapi TIDAK
+      memberi tahu apa pun: ia tampil sama seperti dua kartu lain yang
+      bisa ditekan, minus gerakan tekan. Tamu menekannya, tidak terjadi
+      apa-apa, lalu menyimpulkan halaman ini rusak — dua kartu lain yang
+      berfungsi pun ikut diragukan.
+
+      Label "Segera" menjawab pertanyaan itu sebelum tamu menekan. Ia juga
+      sengaja TIDAK memakai kata "Galeri" seperti versi sebelumnya: badge
+      yang mengulang judul kartu memakan ruang tanpa memberi informasi.
+    */
+    badge: "Segera",
     href: null,
     surface: "bg-cream-300",
     text: "text-ink-900",
@@ -126,7 +139,16 @@ export function MenuCards() {
            navigasi tetap hidup walau bundle JS gagal dimuat di perangkat
            lama — sama seperti tautan di navbar. */
         const Kulit = card.href ? "a" : "article";
-        const tujuan = card.href ? { href: card.href } : {};
+        const tujuan = card.href
+          ? { href: card.href }
+          : {
+              /*
+                Kartu tanpa tujuan ditandai `aria-disabled` supaya pembaca
+                layar menyebut "tidak tersedia" alih-alih membacanya
+                sebagai kartu biasa yang entah kenapa tidak merespons.
+              */
+              "aria-disabled": true as const,
+            };
 
         return (
         <li

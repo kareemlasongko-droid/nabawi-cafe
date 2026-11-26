@@ -29,6 +29,7 @@ import { IkonMeja } from "./Ikon";
 import { LogoNabawi } from "./LogoNabawi";
 import { TombolKepala } from "./TombolKepala";
 import { IkonSuara, IkonMatikanSuara } from "./Ikon";
+import { BilahKoneksi } from "./BilahKoneksi";
 
 type Siap = {
   id: number;
@@ -43,6 +44,8 @@ type Siap = {
 export function PortalPelayan() {
   const [siap, setSiap] = useState<Siap[]>([]);
   const [galat, setGalat] = useState("");
+  const [berhasilPada, setBerhasilPada] = useState<number | null>(null);
+  const [memuatUlang, setMemuatUlang] = useState(false);
   const [sekarang, setSekarang] = useState(() => Date.now());
   const [suara, setSuara] = useState(true);
   const jumlahLalu = useRef(0);
@@ -56,6 +59,7 @@ export function PortalPelayan() {
         return;
       }
       setGalat("");
+      setBerhasilPada(Date.now());
       setSiap(j.siap ?? []);
     } catch {
       setGalat("Koneksi terputus. Daftar tidak diperbarui.");
@@ -64,13 +68,20 @@ export function PortalPelayan() {
 
   useEffect(() => {
     muat();
-    const t = setInterval(muat, 4000);
+    /*
+      Melambat 4 dtk → 12 dtk saat galat. Pelayan berjalan keliling
+      restoran dengan sinyal naik-turun; menembak server 15 kali per menit
+      dari setiap ponsel pelayan saat jaringan bermasalah tidak membuat
+      daftar lebih cepat pulih. Bilah peringatan memberi tombol "Muat
+      ulang" untuk pemulihan seketika.
+    */
+    const t = setInterval(muat, galat ? 12000 : 4000);
     const jam = setInterval(() => setSekarang(Date.now()), 15000);
     return () => {
       clearInterval(t);
       clearInterval(jam);
     };
-  }, [muat]);
+  }, [muat, galat]);
 
   // Notifikasi: getar dulu (HP di saku), lalu bunyi.
   useEffect(() => {
@@ -83,6 +94,19 @@ export function PortalPelayan() {
     }
     jumlahLalu.current = siap.length;
   }, [siap, suara]);
+
+  /** Umur data terakhir, dihitung ulang tiap `sekarang` berdetak. */
+  const umurData =
+    berhasilPada === null ? null : Math.max(0, Math.floor((sekarang - berhasilPada) / 1000));
+
+  async function muatUlangManual() {
+    setMemuatUlang(true);
+    try {
+      await muat();
+    } finally {
+      setMemuatUlang(false);
+    }
+  }
 
   async function sudahDiantar(id: number) {
     // Optimistis: baris langsung hilang, lalu disinkronkan. Pelayan sedang
@@ -148,6 +172,21 @@ export function PortalPelayan() {
           </div>
         </div>
       </header>
+
+      {/*
+        Peringatan koneksi di atas daftar. Pelayan yang tidak tahu
+        daftarnya beku akan berhenti mengantar — atau lebih buruk,
+        mengantar hidangan yang sudah diambil pelayan lain, karena dua
+        ponsel pelayan menampilkan dua keadaan berbeda dan tidak ada yang
+        memberi tahu salah satunya.
+      */}
+      <BilahKoneksi
+        galat={galat}
+        tema="terang"
+        sejakBerhasil={umurData}
+        onMuatUlang={muatUlangManual}
+        sibuk={memuatUlang}
+      />
 
       <main className="mx-auto max-w-[34rem] px-3 pt-3">
         {urutSiap.length === 0 ? (

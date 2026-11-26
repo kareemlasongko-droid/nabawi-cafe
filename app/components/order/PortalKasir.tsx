@@ -1278,7 +1278,44 @@ function DialogBayar({
 }) {
   const [metode, setMetode] = useState<"tunai" | "qris_kasir" | "kartu">("tunai");
   const [diterima, setDiterima] = useState<string>(String(tagihan.total));
+  /*
+    ── NAMA KASIR DIINGAT DI PERANGKAT ────────────────────────────────
+
+    Sebelumnya selalu mulai dari "Kasir 1" — nama bawaan yang salah untuk
+    semua orang. Kasir yang teliti harus menghapus dan mengetik namanya
+    di SETIAP transaksi, karena panel ini dibuka-tutup per pembayaran.
+    Di jam sibuk itu beberapa kali per menit, di tablet, sambil berdiri.
+
+    Konsekuensi kalau dilewati bukan kosmetik: nama ini masuk ke kolom
+    `oleh` pada catatan pembayaran. Salah nama berarti laporan siapa
+    menerima uang menjadi tidak bisa dipercaya, dan selisih kas
+    kehilangan jejak.
+
+    Disimpan per perangkat (bukan per akun — portal ini belum punya
+    login), jadi satu tablet kasir mengingat nama kasir yang biasa
+    memakainya. Nilai awal dibaca di efek, bukan di useState, supaya
+    render pertama di server dan klien tetap sama.
+  */
   const [kasir, setKasir] = useState("Kasir 1");
+
+  useEffect(() => {
+    try {
+      const tersimpan = localStorage.getItem("nabawi.kasir");
+      if (tersimpan) setKasir(tersimpan);
+    } catch {
+      /* Mode privat / storage diblokir: nama bawaan tetap dipakai. */
+    }
+  }, []);
+
+  function simpanKasir(nilai: string) {
+    const rapi = nilai.slice(0, 40);
+    setKasir(rapi);
+    try {
+      localStorage.setItem("nabawi.kasir", rapi);
+    } catch {
+      /* Diabaikan: mengingat nama adalah kenyamanan, bukan syarat bayar. */
+    }
+  }
   const [galat, setGalat] = useState("");
   const [proses, setProses] = useState(false);
 
@@ -1412,7 +1449,7 @@ function DialogBayar({
           </label>
           <input
             value={kasir}
-            onChange={(e) => setKasir(e.target.value.slice(0, 40))}
+            onChange={(e) => simpanKasir(e.target.value)}
             className="h-10 w-full rounded-[0.625rem] border border-bersih-200 bg-bersih-100 px-3 text-[0.8125rem] text-tinta-900 outline-none focus:border-forest-700"
           />
         </div>

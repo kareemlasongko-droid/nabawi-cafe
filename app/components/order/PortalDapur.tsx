@@ -28,6 +28,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { menitTunggu, sejak } from "@/app/lib/order/tipe";
+import { BilahKoneksi } from "./BilahKoneksi";
 import { BilahStaf } from "./Kerangka";
 import { TombolKepala } from "./TombolKepala";
 import { IkonBel, IkonHabis, IkonKanan, IkonKembali, IkonSegar } from "./IkonDapur";
@@ -63,6 +64,16 @@ const KOLOM = [
 export function PortalDapur() {
   const [tiket, setTiket] = useState<Tiket[] | null>(null);
   const [galat, setGalat] = useState("");
+  /*
+    Kapan pembaruan terakhir BERHASIL, dalam milidetik.
+
+    Dipakai BilahKoneksi untuk menyebut umur data ("40 detik lalu").
+    `null` = belum pernah berhasil sejak halaman dibuka — keadaan yang
+    jauh lebih gawat daripada sekadar gagal sekali, dan pesannya harus
+    berbeda.
+  */
+  const [berhasilPada, setBerhasilPada] = useState<number | null>(null);
+  const [memuatUlang, setMemuatUlang] = useState(false);
   const [suara, setSuara] = useState(true);
   const [sekarang, setSekarang] = useState(() => Date.now());
   const [ambang, setAmbang] = useState({ kuning: 10, merah: 15 });
@@ -87,6 +98,7 @@ export function PortalDapur() {
         return;
       }
       setGalat("");
+      setBerhasilPada(Date.now());
       setTiket(j.tiket);
       if (j.ambang) setAmbang(j.ambang);
       if (Array.isArray(j.menu)) setMenu(j.menu);
@@ -95,17 +107,43 @@ export function PortalDapur() {
     }
   }, []);
 
+  /*
+    ── BERHENTI MENEMBAK SAAT GAGAL ──────────────────────────────────
+
+    Polling 3 detik dulu berjalan terus apa pun yang terjadi: server yang
+    sudah menjawab 500 akan ditembak 20 kali per menit, dari setiap layar
+    dapur yang terbuka. Itu tidak mempercepat pemulihan — ia menambah
+    beban pada server yang sedang bermasalah dan menghabiskan kuota data
+    tablet yang memakai hotspot.
+
+    Sekarang: saat galat, jadwalnya melambat ke 15 detik (tetap mencoba
+    pulih sendiri, tanpa perlu ada yang menekan apa pun), dan tombol
+    "Muat ulang" di bilah peringatan memberi jalan pulih seketika.
+  */
   useEffect(() => {
     muat();
-    const t = setInterval(muat, 3000);
+    const t = setInterval(muat, galat ? 15000 : 3000);
     const jam = setInterval(() => setSekarang(Date.now()), 10000);
     return () => {
       clearInterval(t);
       clearInterval(jam);
     };
-  }, [muat]);
+  }, [muat, galat]);
 
   const baru = useMemo(() => (tiket ?? []).filter((t) => t.status === "diterima"), [tiket]);
+
+  /** Umur data terakhir, dihitung ulang tiap `sekarang` berdetak (10 dtk). */
+  const umurData =
+    berhasilPada === null ? null : Math.max(0, Math.floor((sekarang - berhasilPada) / 1000));
+
+  async function muatUlangManual() {
+    setMemuatUlang(true);
+    try {
+      await muat();
+    } finally {
+      setMemuatUlang(false);
+    }
+  }
   const habis = useMemo(() => menu.filter((m) => !m.tersedia), [menu]);
 
   // Bunyi pesanan baru. Pesanan TAMBAHAN di meja yang sudah punya tiket
@@ -243,6 +281,24 @@ export function PortalDapur() {
           </div>
         </div>
       </header>
+
+      {/*
+        Peringatan koneksi DI ATAS papan tiket, bukan di dalam kepala.
+
+        Kepala dapur penuh (tiga tombol alat + logo), dan di ponsel
+        ruangnya tinggal beberapa piksel. Menaruh peringatan di sana
+        berarti ia kembali jadi satu karakter "!" yang tidak dibaca
+        siapa pun. Bilah penuh di sini tidak mungkin terlewat, dan ia
+        mendorong papan ke bawah dengan sengaja: papan yang beku harus
+        terlihat beku.
+      */}
+      <BilahKoneksi
+        galat={galat}
+        tema="gelap"
+        sejakBerhasil={umurData}
+        onMuatUlang={muatUlangManual}
+        sibuk={memuatUlang}
+      />
 
       {/*
         Panel ketersediaan (D-07). Diletakkan di ATAS papan tiket tapi

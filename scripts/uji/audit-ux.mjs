@@ -210,6 +210,116 @@ async function main() {
     `tersisa ${sempit.length} (sebelum redesain: 52) — sisanya ikon & chip bertumpuk`,
   );
 
+  // ═══ 9. Jalan dari katalog menu ke pemesanan ════════════════════════
+  console.log("\n── 9. /menu punya jalan ke pemesanan ──");
+
+  const menuHtml = await teks("/menu");
+
+  cek(
+    "menu: ada tombol tetap menuju portal pesanan",
+    menuHtml.includes("Pesan dari meja Anda"),
+    "sebelumnya satu-satunya tautan ke /order di seluruh aplikasi ada di halaman invoice",
+  );
+  cek(
+    "menu: tiap kartu punya tombol pesan",
+    (menuHtml.match(/aria-label="Pesan /g) ?? []).length >= 100,
+    `${(menuHtml.match(/aria-label="Pesan /g) ?? []).length} tombol`,
+  );
+  cek(
+    "menu: menu yang habis TIDAK diberi tombol pesan",
+    !/Habis<\/p>[\s\S]{0,900}aria-label="Pesan /.test(menuHtml),
+    "tombol pesan pada menu habis hanya menghasilkan penolakan",
+  );
+  cek(
+    "menu: ada kotak cari",
+    menuHtml.includes("Cari menu"),
+    "126 menu tanpa pencarian memaksa menggulir seluruh daftar",
+  );
+  cek(
+    "menu: hasil pencarian nol dijelaskan, bukan layar kosong",
+    (await gabungBundel(menuHtml)).includes("Tidak ada menu yang cocok"),
+    "daftar kosong tanpa penjelasan terbaca sebagai halaman rusak",
+  );
+  cek(
+    "menu: pencarian membaca teks dari kartu, bukan props",
+    !menuHtml.includes("data-cari="),
+    "props dan atribut sama-sama berakhir di payload RSC — teks yang sudah tampil dibaca saja",
+  );
+
+  // ═══ 10. Fitur: kartu mati mengaku mati ═════════════════════════════
+  console.log("\n── 10. /fitur: kartu tanpa tujuan mengaku ──");
+
+  const fiturHtml = await teks("/fitur");
+  cek(
+    "fitur: kartu tanpa tujuan diberi label 'Segera'",
+    fiturHtml.includes("Segera"),
+    "kartu mati yang tampak hidup membuat dua kartu lain ikut diragukan",
+  );
+  cek(
+    "fitur: kartu tanpa tujuan ditandai aria-disabled",
+    fiturHtml.includes('aria-disabled="true"'),
+  );
+
+  // ═══ 11. Portal staf: kegagalan koneksi kelihatan ───────────────────
+  console.log("\n── 11. Dapur & pelayan mengaku saat berhenti diperbarui ──");
+
+  for (const [jalur, nama] of [
+    ["/order/dapur", "dapur"],
+    ["/order/pelayan", "pelayan"],
+  ]) {
+    const bundel = await gabungBundel(await teks(jalur));
+    cek(
+      `${nama}: ada bilah "berhenti diperbarui"`,
+      bundel.includes("Layar ini berhenti diperbarui"),
+      "sebelumnya kegagalan hanya jadi satu karakter '!' di samping logo",
+    );
+    cek(
+      `${nama}: ada tombol muat ulang saat gagal`,
+      bundel.includes("Muat ulang"),
+      "pesan tanpa tindakan menyisakan satu pilihan: menunggu",
+    );
+    cek(
+      `${nama}: umur data disebut, bukan hanya "gagal"`,
+      bundel.includes("detik lalu"),
+      "'data 40 detik lalu' lebih menggerakkan daripada 'koneksi terputus'",
+    );
+  }
+
+  // ═══ 12. Checkout: tombol menyebut apa yang kurang ══════════════════
+  console.log("\n── 12. Tombol kirim menyebut sebabnya ──");
+
+  const orderBundel = await gabungBundel(await teks("/order?meja=1"));
+  cek(
+    "order: sebab tombol mati disebut satu per satu",
+    orderBundel.includes("Lengkapi dulu") || orderBundel.includes("isi nomor WhatsApp"),
+    "label lama hanya menyebut metode pembayaran; nama & WA tidak pernah disebut",
+  );
+  /*
+    Nama variabel ter-minify, jadi yang dicari POLANYA: pembacaan query
+    `menu` dari location.search. Literalnya bertahan karena ia nama
+    parameter URL, bukan nama variabel.
+  */
+  cek(
+    "order: ?menu= dari katalog dibaca",
+    /URLSearchParams\(window\.location\.search\)\.get\("menu"\)/.test(orderBundel),
+    "tanpa ini tombol di /menu mendaratkan tamu tanpa pilihannya",
+  );
+
+  // ═══ 13. Kasir: nama diingat │ Menu: ikon kategori ══════════════════
+  console.log("\n── 13. Kasir & kartu menu ──");
+
+  const kasirBundel = await gabungBundel(await teks("/order/kasir"));
+  cek(
+    "kasir: nama kasir diingat per perangkat",
+    kasirBundel.includes("nabawi.kasir"),
+    "nama masuk kolom `oleh` tiap pembayaran; salah nama = jejak kas hilang",
+  );
+  cek(
+    "order: kartu tanpa foto memakai ikon kategori",
+    orderBundel.includes("IkonKategoriMenu") || /kategoriId/.test(orderBundel),
+    "inisial 'CH' mewakili 8 menu berbeda — 99 dari 126 kartu bertabrakan",
+  );
+
   console.log(`\n═══ ${lulus} lulus, ${gagal} gagal ═══`);
   if (gagal > 0) {
     console.log("Yang gagal: " + kegagalan.join(", "));
