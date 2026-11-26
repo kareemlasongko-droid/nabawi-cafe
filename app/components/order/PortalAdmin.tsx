@@ -22,7 +22,23 @@ import { rupiah } from "@/app/lib/order/tipe";
 import { BilahStaf } from "./Kerangka";
 import type { KategoriMenu, Meja, Menu, PilihanMenu } from "@/app/lib/order/tipe";
 import type { AturanBiaya } from "@/app/lib/order/aturan";
-import { IkonCentang, IkonSilang, IkonTambah, IkonHapus, IkonBintang, IkonCari, IkonCariHapus } from "./Ikon";
+import {
+  IkonCentang,
+  IkonSilang,
+  IkonTambah,
+  IkonHapus,
+  IkonBintang,
+  IkonCari,
+  IkonCariHapus,
+  IkonBill,
+  IkonJam,
+  IkonMeja,
+  IkonMenu,
+  IkonMuatUlang,
+  IkonPajak,
+  IkonStok,
+} from "./Ikon";
+import { TombolKepala } from "./TombolKepala";
 import { saringMenu, hitungPerKategori, type SaringanStatus } from "@/app/lib/order/saring";
 import { TabMeja } from "./TabMeja";
 import { TabStok } from "./TabStok";
@@ -281,97 +297,27 @@ export function PortalAdmin({
         }
         ringkasan={{ layar: "Admin", keteranganPonsel: `${menu.length}` }}
         kanan={
+          /*
+            Kepala admin SEKARANG TIDAK LAGI memuat enam tab.
+
+            Dulu keenam tab berdesakan di sini: di ponsel 360px sisa ruangnya
+            hanya 10px, dan label "Pajak & layanan" harus dipendekkan jadi
+            "Pajak" supaya muat. Itu kompromi yang mahal untuk navigasi
+            utama sebuah dashboard.
+
+            Tab pindah ke PANEL KIRI (di bawah), sehingga kepala kembali
+            tipis dan label tab boleh utuh di semua lebar.
+          */
           <div className="flex gap-1.5">
-            {/*
-              Tab di kepala memakai label PENDEK di ponsel. "Pajak & layanan"
-              butuh 99px, sedangkan "Pajak" hanya 31px — dan kepala admin
-              harus memuat identitas + dua tab dalam 336px. Di tablet
-              labelnya kembali penuh.
-            */}
-            {/*
-              "Penjualan" paling kiri: pemilik membuka portal ini dengan
-              pertanyaan "hari ini sudah berapa", bukan "harga ayam berapa".
-              Tab lain tetap satu ketukan jauhnya, jadi tidak ada yang hilang.
-            */}
-            <button
-              type="button"
+            <TombolKepala
+              tema="gelap"
               onClick={() => {
                 setTab("penjualan");
                 muatPenjualan();
               }}
-              className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
-                tab === "penjualan"
-                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
-                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
-              ].join(" ")}
-            >
-              Penjualan
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("menu")}
-              className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
-                tab === "menu"
-                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
-                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
-              ].join(" ")}
-            >
-              Menu
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("biaya")}
-              className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
-                tab === "biaya"
-                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
-                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
-              ].join(" ")}
-            >
-              <span className="sm:hidden">Pajak</span>
-              <span className="hidden sm:inline">Pajak &amp; layanan</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("meja")}
-              className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
-                tab === "meja"
-                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
-                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
-              ].join(" ")}
-            >
-              Meja
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("stok")}
-              className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
-                tab === "stok"
-                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
-                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
-              ].join(" ")}
-            >
-              Stok
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTab("jam");
-                muatJam();
-              }}
-              className={[
-                "h-10 shrink-0 rounded-[0.625rem] px-2.5 text-[0.8125rem] font-bold transition-colors sm:px-3",
-                tab === "jam"
-                  ? "bg-cream-50 text-forest-900 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]"
-                  : "text-cream-50/70 hover:bg-cream-50/10 hover:text-cream-50",
-              ].join(" ")}
-            >
-              Jam buka
-            </button>
+              ikon={<IkonMuatUlang className="size-4" />}
+              label="Muat ulang"
+            />
           </div>
         }
       />
@@ -398,8 +344,64 @@ export function PortalAdmin({
         </div>
       )}
 
+      {/*
+        ── DASHBOARD DUA PANEL ────────────────────────────────────────────
+
+        Kiri: navigasi (6 tab, ikon + label, bisa tumbuh jadi 9 tanpa
+        memakan ruang kepala). Kanan: isi tab.
+
+        Di ponsel panel kiri berubah menjadi baris tab yang digeser
+        horizontal — bukan laci tersembunyi, karena admin sering membuka
+        portal ini satu tangan sambil memegang ponsel. Tab yang tidak
+        terlihat tetap terjangkau dengan menggeser, dan gradien tepi
+        memberi tahu bahwa masih ada tab di kanan.
+      */}
+      <div className="mx-auto flex max-w-[100rem] flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:gap-5 lg:p-6">
+        <nav
+          aria-label="Bagian admin"
+          className="lg:w-[13.5rem] lg:shrink-0"
+        >
+          <ul className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0">
+            {(
+              [
+                { kunci: "penjualan", label: "Penjualan", Ikon: IkonBill, muat: muatPenjualan },
+                { kunci: "menu", label: "Menu", Ikon: IkonMenu, muat: null },
+                { kunci: "biaya", label: "Pajak & layanan", Ikon: IkonPajak, muat: null },
+                { kunci: "meja", label: "Meja", Ikon: IkonMeja, muat: null },
+                { kunci: "stok", label: "Stok", Ikon: IkonStok, muat: null },
+                { kunci: "jam", label: "Jam buka", Ikon: IkonJam, muat: muatJam },
+              ] as const
+            ).map(({ kunci, label, Ikon, muat }) => {
+              const aktif = tab === kunci;
+              return (
+                <li key={kunci} className="shrink-0 lg:shrink">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTab(kunci);
+                      if (muat) muat();
+                    }}
+                    aria-current={aktif ? "page" : undefined}
+                    className={[
+                      "flex h-10 w-full items-center gap-2 rounded-[0.625rem] px-3 text-[0.8125rem] font-bold transition-colors lg:h-11",
+                      "whitespace-nowrap",
+                      aktif
+                        ? "bg-forest-900 text-cream-50 shadow-[0_6px_16px_-10px_rgb(20_35_26/0.8)]"
+                        : "text-tinta-700 hover:bg-bersih-100",
+                    ].join(" ")}
+                  >
+                    <Ikon className="size-4 shrink-0 opacity-80" />
+                    {label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        <div className="min-w-0 flex-1">
       {tab === "penjualan" && (
-        <div className="grid gap-4 p-4 sm:p-6">
+        <div className="grid gap-4">
           <section aria-labelledby="rangkuman-admin">
             <div className="mb-2 flex items-center gap-2">
               <h2
@@ -913,6 +915,8 @@ export function PortalAdmin({
           {tersimpan}
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }

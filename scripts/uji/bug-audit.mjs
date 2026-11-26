@@ -36,6 +36,38 @@ const kirim = (body) =>
     body: JSON.stringify(body),
   });
 
+
+/**
+ * Tagihan milik SATU pesanan, dibaca lewat /api/order/invoice.
+ *
+ * Dipakai alih-alih menebak dari daftar meja: satu meja bisa punya beberapa
+ * pesanan (prabayar = satu tagihan per pesanan), jadi "tagihan meja 8"
+ * bukan pertanyaan yang punya satu jawaban.
+ */
+async function bacaTagihan(idTagihan) {
+  if (!idTagihan) return null;
+  const r = await json(`/api/order/kasir`);
+  for (const m of r.data.meja ?? []) {
+    if (m.tagihan?.id === idTagihan) return m.tagihan;
+    for (const t of m.tagihan_terbuka ?? []) {
+      if (t.id === idTagihan) return t;
+    }
+  }
+  return null;
+}
+
+/** Jumlah baris item yang masih dihitung pada tagihan pesanan ini. */
+async function bacaItemTagihan(idPesanan) {
+  const r = await json("/api/order/kasir");
+  for (const m of r.data.meja ?? []) {
+    const milikPesanan = (m.items_tagihan ?? []).filter(
+      (i) => i.pesanan_id === idPesanan,
+    );
+    if (milikPesanan.length > 0) return milikPesanan.length;
+  }
+  return 0;
+}
+
 async function main() {
   console.log(`\n── Bug audit @ ${BASE} ──`);
 
@@ -62,25 +94,80 @@ async function main() {
   });
   cek("jumlah desimal ditolak", desimal.status === 400, desimal.data.pesan);
 
+  /*
+    Sejak alur prabayar, `nama` dan `no_wa` WAJIB. Uji ini ditulis sebelum
+    aturan itu ada, jadi permintaan sahnya ditolak 400 dengan pesan "Nama
+    pemesan wajib diisi" — bukan karena jumlahnya salah. Data tamu
+    dilengkapi di sini supaya yang diuji tetap JUMLAH, bukan validasi nama.
+  */
+  const tamu = { nama: "Tamu Audit", no_wa: "081200009090", lewatiJamBuka: true };
   const bulat = await kirim({
     meja: "1",
     sesi: "audit-bulat-" + Date.now(),
+    ...tamu,
     items: [{ menu_id: contoh.id, jumlah: 2 }],
   });
   cek("jumlah bulat tetap diterima", bulat.status === 200);
+
+  /*
+    Pesanan itu DIBATALKAN lagi sebelum uji selesai.
+
+    Uji ini memang harus membuat pesanan sungguhan untuk membuktikan jumlah
+    bulat diterima. Tetapi pesanan yang ditinggalkan dalam status "menunggu
+    bayar" ikut terhitung di ringkasan kasir — dan uji lain
+    (`riwayat:http`) membaca jumlah "belum dibayar" dari database yang sama.
+    Akibatnya uji ini, yang seharusnya tidak meninggalkan jejak, membuat uji
+    lain gagal dengan selisih tepat satu.
+
+    Membatalkannya juga menguji jalur yang sudah ada: pesanan batal tidak
+    dihitung sebagai belum dibayar.
+  */
+  if (bulat.status === 200) {
+    await json("/api/order/status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: bulat.data.pesanan?.id,
+        ke: "dibatalkan",
+        alasan: "pembersihan uji bug-audit",
+      }),
+    });
+  }
 
   // ── 3. tagihan setelah pesanan dibatalkan ───────────────────────
   // Dulu total tetap Rp91.000 dengan daftar item kosong.
   const mejaUji = "8";
   const sesi = "audit-batal-" + Date.now();
-  const buat = await kirim({ meja: mejaUji, sesi, items: [{ menu_id: contoh.id, jumlah: 2 }] });
+  const buat = await kirim({
+    meja: mejaUji,
+    sesi,
+    ...tamu,
+    items: [{ menu_id: contoh.id, jumlah: 2 }],
+  });
   if (buat.status !== 200) {
     cek("pesanan uji untuk pembatalan dibuat", false, buat.data.pesan);
   } else {
     const idPesanan = buat.data.pesanan.id;
-    const sebelum = await fetch(BASE + "/api/order/kasir").then((r) => r.json());
-    const tagA = sebelum.meja.find((m) => m.nomor === mejaUji)?.tagihan;
-    cek("tagihan terbentuk sebelum pembatalan", Boolean(tagA) && tagA.total > 0, `Rp${tagA?.total}`);
+    const idTagihan = buat.data.pesanan.tagihan_id;
+
+    /*
+      ── MEMBACA TAGIHAN MILIK PESANAN INI, BUKAN "TAGIHAN MEJA 8" ─────
+
+      Versi lama mengambil `meja.find(...).tagihan` dari /api/order/kasir.
+      Itu bekerja selama meja uji hanya punya SATU pesanan. Begitu ada
+      pesanan lain di meja yang sama (cukup satu putaran uji sebelumnya),
+      yang terbaca adalah tagihan pesanan orang lain — dan uji gagal
+      padahal pembatalannya benar.
+
+      Sekarang yang diperiksa adalah tagihan yang ID-nya dikembalikan
+      server untuk pesanan ini. Itu memang yang dibatalkan.
+    */
+    const tagihanAwal = await bacaTagihan(idTagihan);
+    cek(
+      "tagihan terbentuk sebelum pembatalan",
+      Boolean(tagihanAwal) && tagihanAwal.total > 0,
+      `Rp${tagihanAwal?.total}`,
+    );
 
     await json("/api/order/status", {
       method: "PATCH",
@@ -88,17 +175,18 @@ async function main() {
       body: JSON.stringify({ id: idPesanan, ke: "dibatalkan", alasan: "uji audit" }),
     });
 
-    const sesudah = await fetch(BASE + "/api/order/kasir").then((r) => r.json());
-    const m = sesudah.meja.find((x) => x.nomor === mejaUji);
+    const tagihanAkhir = await bacaTagihan(idTagihan);
+    const itemTersisa = await bacaItemTagihan(idPesanan);
+
     cek(
       "tagihan ikut nol setelah pesanan dibatalkan",
-      m?.tagihan?.total === 0 && m?.items_tagihan?.length === 0,
-      `total Rp${m?.tagihan?.total ?? "?"}, ${m?.items_tagihan?.length ?? "?"} item`,
+      tagihanAkhir?.total === 0 && itemTersisa === 0,
+      `total Rp${tagihanAkhir?.total ?? "?"}, ${itemTersisa} item`,
     );
     cek(
       "biaya layanan tidak muncul di tagihan kosong",
-      m?.tagihan?.layanan === 0 && m?.tagihan?.pajak === 0,
-      `layanan ${m?.tagihan?.layanan}, pajak ${m?.tagihan?.pajak}`,
+      tagihanAkhir?.layanan === 0 && tagihanAkhir?.pajak === 0,
+      `layanan ${tagihanAkhir?.layanan}, pajak ${tagihanAkhir?.pajak}`,
     );
   }
 

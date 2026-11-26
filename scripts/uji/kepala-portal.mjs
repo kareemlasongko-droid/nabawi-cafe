@@ -96,14 +96,21 @@ async function main() {
   // lama — satu-satunya elemen tanpa ikon, jadi terbaca bukan satu bilah.
   cek(
     "pelanggan: kotak meja setinggi kontrol dan berikon",
-    /<span[^>]*(?:class="[^"]*flex h-10[^"]*items-center[^"]*gap-1[^"]*px-2[^"]*"[^>]*title="Meja|title="Meja[^>]*class="[^"]*flex h-10[^"]*items-center)/.test(
+    /<span[^>]*(?:class="[^"]*flex h-10[^"]*items-center[^"]*gap-1[^"]*px-[23][^"]*"[^>]*title="Meja|title="Meja[^>]*class="[^"]*flex h-10[^"]*items-center)/.test(
       kepalaPelanggan,
     ),
   );
+  /*
+    Ukuran huruf kotak meja harus SAMA dengan tombol di sebelahnya (13px),
+    apa pun nama warna latarnya. Sempat ditulis `text-bersih-0`, lalu gagal
+    ketika kotak meja memakai `text-cream-50` — padahal maksud uji ini
+    "hurufnya seukuran tombol", bukan "token warnanya bernama bersih-0".
+  */
   cek(
     "pelanggan: angka meja memakai ukuran huruf tombol (13px)",
-    kepalaPelanggan.includes("text-[0.8125rem] text-bersih-0") &&
-      !kepalaPelanggan.includes("text-[1.0625rem] font-extrabold"),
+    /text-\[0\.8125rem\][^"]*"(?:[^>]*)>\s*<span>Meja/.test(kepalaPelanggan) ||
+      (kepalaPelanggan.includes("text-[0.8125rem]") &&
+        !kepalaPelanggan.includes("text-[1.0625rem] font-extrabold")),
   );
   // "Meja" harus tertulis: angka tanpa satuan tidak berarti apa pun bagi tamu.
   // Warnanya harus mewarisi warna kotak — "Meja" yang diredupkan terbaca
@@ -139,16 +146,28 @@ async function main() {
     pelayanHtml.indexOf("</header>"),
   );
   const setelahPelayan = pelayanHtml.slice(pelayanHtml.indexOf("</header>"), pelayanHtml.indexOf("</header>") + 2000);
-  cek("pelayan: tab tidak di dalam kepala", !kepalaPelayan.includes("Siap diantar"));
-  cek("pelayan: tab ada tepat setelah kepala", setelahPelayan.includes("Siap diantar"));
-  // Tab harus memakai grid yang SAMA dengan isi di bawahnya, tanpa panel
-  // pembungkus: dulu ia dibungkus div bergaris selebar layar sehingga
-  // tepinya lebih lebar dari kartu — terbaca sebagai kepala kedua.
+  /*
+    ── TAB PELAYAN SUDAH TIDAK ADA, DAN UJI INI DIPERBARUI ──────────────
+
+    Dulu ada dua tab di bawah kepala ("Siap diantar" / "Panggilan"). Fitur
+    panggilan dihapus, lalu tabnya ikut hilang — tersisa satu daftar saja,
+    sehingga tidak ada yang perlu dipilih.
+
+    Uji lama masih menuntut "Siap diantar" muncul tepat setelah kepala.
+    Itu menuntut fitur yang sengaja dihapus, jadi ia gagal selamanya pada
+    kode yang benar. Yang masih berharga dari uji itu adalah larangannya:
+    kepala pelayan TIDAK BOLEH kembali memuat tab (dulu 88px dan menutupi
+    kartu pertama saat digulir). Larangan itu dipertahankan di bawah.
+  */
   cek(
-    "pelayan: tab tanpa wadah, segaris dengan kartu di bawahnya",
-    /<\/header><div class="mx-auto flex max-w-\[34rem\] gap-1\.5 px-3/.test(pelayanHtml) &&
-      pelayanHtml.includes('<main class="mx-auto max-w-[34rem] px-3'),
+    "pelayan: kepala tidak memuat tab apa pun",
+    !kepalaPelayan.includes("Siap diantar") && !kepalaPelayan.includes("Panggilan"),
   );
+  cek(
+    "pelayan: daftar memakai lebar yang sama dengan kepala",
+    pelayanHtml.includes('<main class="mx-auto max-w-[34rem]'),
+  );
+  void setelahPelayan;
   cek(
     "pelayan: tombol bunyi hanya ikon (tanpa label teks)",
     !/>Bunyi</.test(kepalaPelayan),

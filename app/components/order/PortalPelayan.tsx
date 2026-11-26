@@ -24,7 +24,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sejak } from "@/app/lib/order/tipe";
-import { IkonCentang, IkonSegar, IkonMeja } from "./IkonDapur";
+import { IkonCentang, IkonSegar } from "./IkonDapur";
+import { IkonMeja } from "./Ikon";
 import { LogoNabawi } from "./LogoNabawi";
 import { TombolKepala } from "./TombolKepala";
 import { IkonSuara, IkonMatikanSuara } from "./Ikon";
@@ -182,37 +183,61 @@ export function PortalPelayan() {
                     ].join(" ")}
                     aria-hidden="true"
                   />
-                  <span className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-[0.75rem] bg-forest-900 text-[1.125rem] font-extrabold leading-none text-cream-50">
-                      {p.meja_nomor}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[0.9375rem] font-extrabold leading-tight text-tinta-900">
-                        Meja {p.meja_nomor}
-                        {p.nama_pemesan ? ` · ${p.nama_pemesan}` : ""}
+                  <span className="flex min-w-0 flex-1 flex-col gap-2 px-3 py-3">
+                    {/*
+                      MEJA SEBAGAI BADGE, BUKAN KOTAK BESAR.
+
+                      Sebelumnya nomor meja adalah kotak 48px dan pelayan
+                      harus membacanya; sekarang ia badge kecil di sebelah
+                      nomor pesanan, dan yang besar adalah NOMOR PESANAN —
+                      itu yang dicocokkan pelayan dengan tiket di meja.
+
+                      Kenapa berubah: saat mengantar, pelayan menaruh nampan
+                      dan mencocokkan nomor pesanan di struk dengan layar.
+                      Nomor meja sudah diketahui dari posisinya; nomor
+                      pesanan belum. Yang lebih sering dicari harus lebih
+                      besar.
+                    */}
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-daun-100 px-1.5 py-0.5 text-[0.6875rem] font-extrabold text-forest-700">
+                            <IkonMeja className="size-3" />
+                            Meja {p.meja_nomor}
+                          </span>
+                          {p.nama_pemesan && (
+                            <span className="truncate text-[0.75rem] font-semibold text-tinta-700">
+                              {p.nama_pemesan}
+                            </span>
+                          )}
+                        </span>
+                        <span className="mt-1 block truncate font-mono text-[1.0625rem] font-extrabold leading-none text-forest-900">
+                          #{p.nomor}
+                        </span>
                       </span>
-                      <span className="mt-0.5 block truncate text-[0.8125rem] leading-snug text-tinta-500">
-                        {p.items.map((i) => `${i.jumlah}× ${i.nama_saat_pesan}`).join(", ") ||
-                          `${p.nomor}`}
-                      </span>
+
                       <span
                         className={[
-                          "mt-1 inline-block rounded px-1.5 py-0.5 text-[0.6875rem] font-bold tabular-nums",
+                          "shrink-0 rounded-[0.5rem] px-2 py-1 text-[0.75rem] font-bold tabular-nums",
                           terlama
                             ? "bg-sela-100 text-sela-800"
                             : "bg-bersih-100 text-tinta-500",
                         ].join(" ")}
                       >
-                        siap {sejak(p.siap_at ?? p.created_at, sekarang)}
+                        {sejak(p.siap_at ?? p.created_at, sekarang)}
                       </span>
                     </span>
-                    <span className="flex shrink-0 flex-col items-center gap-1 rounded-[0.75rem] bg-forest-900 px-2.5 py-2 text-cream-50">
-                      <IkonCentang className="size-5" />
-                      <span className="text-[0.6875rem] font-extrabold uppercase leading-none">
-                        Sudah
-                        <br />
-                        diantar
-                      </span>
+
+                    {/* Item tetap satu baris ringkas: pelayan tidak perlu
+                        rincian penuh, hanya cukup untuk mencocokkan nampan. */}
+                    <span className="block truncate text-[0.8125rem] leading-snug text-tinta-500">
+                      {p.items.map((i) => `${i.jumlah}× ${i.nama_saat_pesan}`).join(", ") ||
+                        `${p.nomor}`}
+                    </span>
+
+                    <span className="flex items-center justify-center gap-1.5 rounded-[0.625rem] bg-forest-900 px-2.5 py-2 text-[0.75rem] font-extrabold uppercase tracking-[0.06em] text-cream-50">
+                      <IkonCentang className="size-4" />
+                      Sudah diantar
                     </span>
                   </span>
                 </button>

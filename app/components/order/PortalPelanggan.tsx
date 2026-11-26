@@ -52,6 +52,11 @@ import {
   IkonKiri,
   IkonBintang,
   IkonJam,
+  IkonDaun,
+  IkonBeranda,
+  IkonPesanan,
+  IkonPromo,
+  IkonAkun,
 } from "./Ikon";
 
 type Baris = {
@@ -638,8 +643,29 @@ export function PortalPelanggan({
               */}
               <span>Meja</span>
               <span className="font-bold tabular-nums">{mejaNomor}</span>
-              <span className="sr-only">, area {mejaArea}</span>
+                <span className="sr-only">, area {mejaArea}</span>
             </span>
+
+            {/*
+              Keranjang sebagai IKON BERBADGE, seperti acuan. Di ponsel
+              bilah keranjang mengambang sudah menampilkan total, tetapi
+              ikon ini tetap perlu: saat tamu menggulir jauh ke bawah di
+              kategori terakhir, ia bisa membuka keranjang tanpa mencari
+              bilahnya. Angka kecil di pojok memberi tahu ada isi.
+            */}
+            <button
+              type="button"
+              onClick={() => setBukaKeranjang(true)}
+              aria-label={`Buka keranjang${totalItem > 0 ? `, ${totalItem} item` : ""}`}
+              className="relative grid size-10 shrink-0 place-items-center rounded-full text-forest-900 transition hover:bg-cream-100 active:scale-95"
+            >
+              <IkonKeranjang className="size-5" />
+              {totalItem > 0 && (
+                <span className="absolute right-0.5 top-0.5 grid min-w-4 place-items-center rounded-full bg-sela-500 px-1 text-[0.625rem] font-extrabold leading-4 text-forest-950">
+                  {totalItem}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -679,11 +705,40 @@ export function PortalPelanggan({
       <main
         className={[
           "mx-auto max-w-[45rem] px-4",
+          // Ruang bawah = tinggi nav (≈68px) + bilah keranjang (≈76px) bila
+          // ada isi. Tanpa ini, menu terakhir tertutup bilah keranjang —
+          // dan tamu mengira menunya habis.
           totalItem > 0 && !bukaKeranjang
-            ? "pb-[calc(6.5rem+env(safe-area-inset-bottom))]"
-            : "pb-20",
+            ? "pb-[calc(10rem+env(safe-area-inset-bottom))]"
+            : "pb-[calc(6rem+env(safe-area-inset-bottom))]",
         ].join(" ")}
       >
+        {/*
+          ── HERO: SAPAAN, BUKAN JUDUL ─────────────────────────────────
+          Satu baris besar + satu baris kecil. Tujuannya menjawab "saya di
+          mana dan harus apa" dalam sekali lihat: nama kafe, sapaan, lalu
+          petunjuk memilih menu. Tidak ada gambar besar di sini — foto besar
+          di atas layar 360px memakan seluruh tinggi lipatan dan mendorong
+          menu pertama ke bawah, padahal menu itulah yang dicari tamu.
+        */}
+        <section className="flex items-start justify-between gap-3 pt-4">
+          <div className="min-w-0">
+            <h1 className="text-[1.375rem] font-extrabold leading-tight tracking-[-0.01em] text-forest-900">
+              Selamat datang di Nabawi
+            </h1>
+            <p className="mt-1 text-[0.8125rem] leading-snug text-tinta-500">
+              Pilih menu favoritmu — pesanan langsung masuk ke dapur.
+            </p>
+          </div>
+          {/* Daun = penanda segar; warnanya hijau hutan, bukan hijau baru. */}
+          <span
+            aria-hidden="true"
+            className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-daun-100 text-forest-700"
+          >
+            <IkonDaun className="size-5" />
+          </span>
+        </section>
+
         {/* ── PESANAN TERSIMPAN, BAYAR DI KASIR ──
             Ini layar yang paling penting untuk metode kasir. Tanpa
             konfirmasi, tamu yang sudah menekan kirim melihat keranjangnya
@@ -925,124 +980,138 @@ export function PortalPelanggan({
                   {isi.length} menu
                 </span>
               </h2>
-              <ul className="divide-y divide-bersih-100 overflow-hidden rounded-[1rem] border border-bersih-200/80 bg-bersih-0 shadow-[0_1px_2px_rgb(22_19_15/0.03),0_10px_24px_-18px_rgb(22_19_15/0.25)]">
+              <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {isi.map((m) => {
                   const opsi = opsiDari(m);
                   /*
                     Baris keranjang untuk menu ini. Bila menu punya pilihan,
                     hanya baris dengan pilihan PERTAMA yang ditampilkan sebagai
                     penghitung cepat, supaya tombol +/- tetap satu tempat.
-                    Pilihan lain diatur di dalam keranjang (bisa dihapus).
                   */
                   const diKeranjang = keranjang.find((b) => b.menu.id === m.id);
-                  const kunciPertama = diKeranjang ? kunciBaris(diKeranjang.menu.id, diKeranjang.pilihan) : "";
+                  const kunciPertama = diKeranjang
+                    ? kunciBaris(diKeranjang.menu.id, diKeranjang.pilihan)
+                    : "";
                   const habis = !m.tersedia;
                   return (
                     <li
                       key={m.id}
-                      className={["flex items-start gap-3 p-3", habis ? "opacity-55" : ""].join(" ")}
+                      className={[
+                        "group relative flex flex-col overflow-hidden rounded-[1rem] border border-bersih-200/80 bg-bersih-0",
+                        "shadow-[0_1px_2px_rgb(22_19_15/0.04),0_10px_24px_-20px_rgb(22_19_15/0.35)]",
+                        habis ? "opacity-60" : "",
+                      ].join(" ")}
                     >
-                      {/* Foto kecil 64px. Bukan hiasan: pelanggan memilih
-                          dengan mata, dan sebagian nama menu Maroko tidak
-                          dikenal. Ukuran dijaga kecil supaya hemat sinyal. */}
-                      <div className="relative size-16 shrink-0 overflow-hidden rounded-[0.875rem] bg-bersih-100">
+                      {/*
+                        FOTO DI ATAS, TEKS DI BAWAH — kartu, bukan baris.
+
+                        Kenapa berubah dari baris + thumbnail 64px: tamu memilih
+                        dengan mata, dan sebagian nama menu (Maroko) tidak
+                        dikenali. Foto 64px hanya cukup untuk membedakan warna;
+                        foto selebar kartu membuat orang berhenti dan memutuskan.
+                        Rasio 4:3 menjaga dua kolom tetap muat di layar 360px.
+
+                        `aspect-[4/3]` + `object-cover` (bukan tinggi tetap)
+                        supaya foto landscape dan portrait tidak menggeser
+                        tinggi kartu di satu baris grid.
+                      */}
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-bersih-100">
                         {m.foto_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={m.foto_url}
                             alt=""
                             loading="lazy"
-                            className="size-full object-cover"
+                            className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
                           />
                         ) : (
-                          <span className="grid size-full place-items-center text-[0.6875rem] font-bold uppercase tracking-wider text-tinta-500">
+                          /* Tanpa foto: inisial besar, bukan kotak kosong —
+                             kotak abu-abu kosong terbaca sebagai gambar gagal. */
+                          <span
+                            aria-hidden="true"
+                            className="grid size-full place-items-center bg-daun-100 text-[1.75rem] font-extrabold tracking-tight text-forest-700/70"
+                          >
                             {m.nama.slice(0, 2)}
                           </span>
                         )}
+
+                        {m.rekomendasi === true && !habis && (
+                          <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-cream-50/95 px-1.5 py-0.5 text-[0.625rem] font-bold text-sela-800 shadow-sm backdrop-blur">
+                            <IkonBintang className="size-2.5" />
+                            Rekomendasi
+                          </span>
+                        )}
+
                         {habis && (
-                          <span className="absolute inset-0 grid place-items-center bg-forest-950/65 text-[0.6875rem] font-bold uppercase tracking-wider text-cream-50">
+                          <span className="absolute inset-0 grid place-items-center bg-forest-950/70 text-[0.6875rem] font-extrabold uppercase tracking-[0.14em] text-cream-50">
                             Habis
                           </span>
                         )}
                       </div>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <p className="text-[0.9375rem] font-extrabold leading-tight text-tinta-900">
-                            {m.nama}
-                          </p>
-                          {/* Lencana rekomendasi. Warna sela-50 yang sama
-                              dipakai chip "perlu perhatian" di portal staf —
-                              satu aksen untuk "perhatikan ini", bukan warna
-                              baru tiap fitur. */}
-                          {m.rekomendasi === true && (
-                            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-sela-100 px-1.5 py-0.5 text-[0.6875rem] font-bold text-sela-800">
-                              <IkonBintang className="size-3" />
-                              Rekomendasi
-                            </span>
-                          )}
-                        </div>
-                        {/* Deskripsi satu baris (PRD P-03). Dua baris membuat
-                            satu layar hanya memuat 4 menu, padahal pelanggan
-                            perlu melihat lebih banyak untuk memutuskan. */}
-                        <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-snug text-tinta-500">
+                      <div className="flex min-w-0 flex-1 flex-col p-2.5">
+                        <p className="line-clamp-2 text-[0.8125rem] font-extrabold leading-snug text-tinta-900">
+                          {m.nama}
+                        </p>
+                        <p className="mt-0.5 line-clamp-1 text-[0.6875rem] leading-snug text-tinta-500">
                           {m.deskripsi}
                         </p>
-                        <p className="mt-1 text-[0.8125rem] font-bold text-tinta-900">
-                          {rupiah(m.harga)}
-                          {opsi.some((p) => p.tambah > 0) && (
-                            <span className="ml-1 text-[0.6875rem] font-semibold text-tinta-500">
-                              + pilihan
-                            </span>
-                          )}
-                        </p>
-                      </div>
 
-                      {habis ? (
-                        <span className="shrink-0 self-center text-[0.6875rem] font-semibold text-tinta-500">
-                          Habis
-                        </span>
-                      ) : diKeranjang ? (
-                        <div className="flex shrink-0 items-center gap-0.5 self-center rounded-full bg-forest-900 p-0.5 text-cream-50 shadow-[0_4px_12px_-6px_rgb(20_35_26/0.7)]">
-                          <button
-                            type="button"
-                            onClick={() => ubahJumlah(kunciPertama, -1)}
-                            aria-label={`Kurangi ${m.nama}`}
-                            className="grid size-8 place-items-center rounded-full transition hover:bg-cream-50/15 active:bg-cream-50/25"
-                          >
-                            <IkonKurang />
-                          </button>
-                          <span className="min-w-5 text-center text-[0.8125rem] font-extrabold text-tinta-900">
-                            {diKeranjang.jumlah}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => ubahJumlah(kunciPertama, 1)}
-                            aria-label={`Tambah ${m.nama}`}
-                            className="grid size-8 place-items-center rounded-full transition hover:bg-cream-50/15 active:bg-cream-50/25"
-                          >
-                            <IkonTambah />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => (opsi.length > 0 ? setPilihUntuk(m) : tambah(m))}
-                          disabled={!bukaSekarang}
-                          aria-label={
-                            opsi.length > 0
-                              ? `Pilih ${m.nama}`
-                              : `Tambah ${m.nama} ke keranjang`
-                          }
-                          className="grid size-11 shrink-0 place-items-center self-center rounded-full bg-forest-900 text-cream-50 shadow-[0_4px_12px_-6px_rgb(20_35_26/0.7)] transition hover:bg-forest-800 active:scale-95 disabled:opacity-40"
-                        >
-                          {opsi.length > 0 ? (
-                            <span className="px-2 text-[0.6875rem] font-bold">Pilih</span>
+                        {/* Harga + tombol satu baris, rata bawah (`mt-auto`):
+                            semua kartu di satu baris grid jadi sejajar. */}
+                        <div className="mt-auto flex items-end justify-between gap-1.5 pt-2">
+                          <p className="min-w-0 text-[0.8125rem] font-extrabold leading-none text-sela-700">
+                            {rupiah(m.harga)}
+                            {opsi.some((p) => p.tambah > 0) && (
+                              <span className="ml-0.5 align-middle text-[0.5625rem] font-semibold text-tinta-500">
+                                +
+                              </span>
+                            )}
+                          </p>
+
+                          {habis ? (
+                            <span className="shrink-0 pb-0.5 text-[0.625rem] font-bold text-tinta-500">
+                              —
+                            </span>
+                          ) : diKeranjang ? (
+                            <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-forest-900 p-0.5 text-cream-50">
+                              <button
+                                type="button"
+                                onClick={() => ubahJumlah(kunciPertama, -1)}
+                                aria-label={`Kurangi ${m.nama}`}
+                                className="grid size-7 place-items-center rounded-full transition hover:bg-cream-50/15 active:bg-cream-50/25"
+                              >
+                                <IkonKurang className="size-3.5" />
+                              </button>
+                              <span className="min-w-4 text-center text-[0.75rem] font-extrabold tabular-nums">
+                                {diKeranjang.jumlah}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => (opsi.length > 0 ? setPilihUntuk(m) : tambah(m))}
+                                aria-label={`Tambah ${m.nama}`}
+                                className="grid size-7 place-items-center rounded-full transition hover:bg-cream-50/15 active:bg-cream-50/25"
+                              >
+                                <IkonTambah className="size-3.5" />
+                              </button>
+                            </div>
                           ) : (
-                            <IkonTambah className="size-5" />
+                            <button
+                              type="button"
+                              onClick={() => (opsi.length > 0 ? setPilihUntuk(m) : tambah(m))}
+                              disabled={!bukaSekarang}
+                              aria-label={
+                                opsi.length > 0
+                                  ? `Pilih ${m.nama}`
+                                  : `Tambah ${m.nama} ke keranjang`
+                              }
+                              className="grid size-8 shrink-0 place-items-center rounded-full bg-forest-900 text-cream-50 shadow-[0_4px_12px_-6px_rgb(20_35_26/0.7)] transition hover:bg-forest-800 active:scale-95 disabled:opacity-40"
+                            >
+                              <IkonTambah className="size-4" />
+                            </button>
                           )}
-                        </button>
-                      )}
+                        </div>
+                      </div>
                     </li>
                   );
                 })}
@@ -1072,29 +1141,100 @@ export function PortalPelanggan({
           untuk iPhone berponi. Satu tombol besar: seluruh bilah adalah tombol
           buka keranjang, jadi tidak ada ketukan meleset. */}
       {totalItem > 0 && !bukaKeranjang && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-bersih-200 bg-bersih-0/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
-          <div className="mx-auto max-w-[45rem]">
+        <div className="fixed inset-x-0 bottom-[4.25rem] z-30 px-3 pb-2">
+          <div className="mx-auto flex max-w-[45rem] items-center gap-3 rounded-[1rem] border border-forest-950/30 bg-forest-900 p-2 pl-3 text-cream-50 shadow-[0_14px_34px_-16px_rgb(20_35_26/0.9)]">
+            {/*
+              DUA BAGIAN, BUKAN SATU TOMBOL BESAR.
+
+              Kiri: ringkasan (jumlah + total) — informasi, tidak bisa ditekan.
+              Kanan: satu tombol "Lihat keranjang" yang jelas batasnya.
+              Ini mengikuti acuan dan memperbaiki satu hal nyata: sebelumnya
+              seluruh bilah adalah tombol, sehingga tamu yang ingin sekadar
+              membaca total ikut membuka keranjang.
+            */}
+            <span className="relative grid size-9 shrink-0 place-items-center rounded-[0.625rem] bg-cream-50/12">
+              <IkonKeranjang className="size-4.5" />
+              <span className="absolute -right-1 -top-1 grid min-w-4 place-items-center rounded-full bg-sela-500 px-1 text-[0.625rem] font-extrabold leading-4 text-forest-950">
+                {totalItem}
+              </span>
+            </span>
+
+            <span className="min-w-0 flex-1">
+              <span className="block text-[0.6875rem] font-semibold leading-none text-cream-200/75">
+                Total pesanan
+              </span>
+              <span className="mt-0.5 block text-[0.9375rem] font-extrabold leading-none tabular-nums">
+                {rupiah(rincian.total)}
+              </span>
+            </span>
+
             <button
               type="button"
               onClick={() => setBukaKeranjang(true)}
-              className="flex h-14 w-full items-center gap-3 rounded-[0.875rem] bg-forest-900 px-4 text-cream-50 shadow-[0_12px_30px_-14px_rgb(20_35_26/0.85)] transition hover:bg-forest-800 active:scale-[0.99]"
+              className="flex h-11 shrink-0 items-center gap-1.5 rounded-[0.75rem] bg-cream-50 px-3.5 text-[0.8125rem] font-extrabold text-forest-900 transition hover:bg-cream-100 active:scale-[0.98]"
             >
-              <span className="grid size-9 place-items-center rounded-[0.625rem] bg-bersih-0/15">
-                <IkonKeranjang className="size-4.5" />
-              </span>
-              <span className="flex-1 text-left">
-                <span className="block text-[0.8125rem] font-extrabold leading-tight">
-                  Lihat keranjang · {totalItem} item
-                </span>
-                <span className="block text-[0.6875rem] leading-tight text-cream-200/80">
-                  {rupiah(rincian.total)} termasuk pajak
-                </span>
-              </span>
-              <IkonKanan className="size-4" />
+              Lihat keranjang
+              <IkonKanan className="size-3.5" />
             </button>
           </div>
         </div>
       )}
+
+      {/*
+        ── NAVIGASI BAWAH ────────────────────────────────────────────────
+        Empat tab seperti acuan. Yang benar-benar berfungsi hari ini hanya
+        "Beranda" dan "Pesanan"; "Promo" dan "Akun" DIMATIKAN (bukan
+        disembunyikan) dengan label "segera" supaya tidak menjadi tombol
+        mati yang membingungkan. Menampilkan tab yang tidak melakukan apa
+        pun lebih buruk daripada tidak menampilkannya.
+
+        Tab "Pesanan" membuka panel riwayat yang sudah ada — jadi nav ini
+        menggantikan tombol "Riwayat pesanan" yang dulu mengambang.
+      */}
+      <nav
+        aria-label="Navigasi utama"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-bersih-200 bg-cream-50/95 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-md print:hidden"
+      >
+        <ul className="mx-auto flex max-w-[45rem] items-stretch justify-around px-2">
+          {[
+            { kunci: "beranda", label: "Beranda", Ikon: IkonBeranda, aktif: !riwayatBuka },
+            { kunci: "pesanan", label: "Pesanan", Ikon: IkonPesanan, aktif: riwayatBuka },
+          ].map(({ kunci, label, Ikon, aktif }) => (
+            <li key={kunci} className="flex-1">
+              <button
+                type="button"
+                onClick={() =>
+                  kunci === "beranda" ? setRiwayatBuka(false) : setRiwayatBuka(true)
+                }
+                aria-current={aktif ? "page" : undefined}
+                className={[
+                  "flex w-full flex-col items-center gap-1 rounded-[0.625rem] py-1.5 text-[0.625rem] font-bold transition",
+                  aktif ? "text-forest-900" : "text-tinta-500 hover:text-tinta-700",
+                ].join(" ")}
+              >
+                <Ikon className={aktif ? "size-5" : "size-5 opacity-70"} />
+                {label}
+              </button>
+            </li>
+          ))}
+          {[
+            { kunci: "promo", label: "Promo", Ikon: IkonPromo },
+            { kunci: "akun", label: "Akun", Ikon: IkonAkun },
+          ].map(({ kunci, label, Ikon }) => (
+            <li key={kunci} className="flex-1">
+              <span
+                aria-disabled="true"
+                title={`${label} — segera hadir`}
+                className="flex w-full cursor-default flex-col items-center gap-1 py-1.5 text-[0.625rem] font-bold text-tinta-500/45"
+              >
+                <Ikon className="size-5" />
+                {label}
+                <span className="sr-only">(segera hadir)</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
 
       {/* ── Lembar pilih opsi (sambal / saus / rasa) ──

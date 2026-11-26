@@ -52,10 +52,24 @@ const WARNA_BAYAR: Record<string, string> = {
   menunggu: "bg-sela-100 text-sela-800",
 };
 
+/**
+ * Lima nomor halaman di sekitar halaman aktif.
+ *
+ * Selalu memuat halaman pertama dan terakhir, karena keduanya yang dicari
+ * saat ingin melompat ("saya mau lihat transaksi paling awal"). Jendela di
+ * tengah bergeser supaya halaman aktif tidak pernah jatuh di luar layar.
+ */
+function geserJendela(semua: number[], aktif: number): number[] {
+  if (semua.length <= 5) return semua;
+  let mulai = Math.max(0, aktif - 3);
+  if (mulai + 5 > semua.length) mulai = semua.length - 5;
+  return semua.slice(mulai, mulai + 5);
+}
+
 export function DaftarRiwayat({
   riwayat,
   galat,
-  /** Batas baris yang ditampilkan sebelum "lihat semua" ditekan. */
+  /** Jumlah baris per halaman. */
   awal = 12,
 }: {
   riwayat: BarisRiwayat[];
@@ -63,7 +77,7 @@ export function DaftarRiwayat({
   awal?: number;
 }) {
   const [invoiceId, setInvoiceId] = useState<number | null>(null);
-  const [semua, setSemua] = useState(false);
+  const [halaman, setHalaman] = useState(1);
   const [cari, setCari] = useState("");
 
   /*
@@ -80,7 +94,27 @@ export function DaftarRiwayat({
     );
   }, [riwayat, cari]);
 
-  const tampil = semua ? tersaring : tersaring.slice(0, awal);
+  /*
+    ── HALAMAN, BUKAN "LIHAT SEMUA" ────────────────────────────────────
+
+    Dulu tombol "Lihat semua (60)" menggulung SELURUH riwayat jadi satu
+    kolom tak berujung. Di ponsel itu berarti menggulir ratusan baris untuk
+    menemukan transaksi pagi, dan kasir kehilangan tempatnya begitu daftar
+    dimuat ulang.
+
+    Acuan desain admin memakai pola yang lebih lazim untuk tabel: sejumlah
+    baris per halaman, keterangan "Menampilkan 1–10 dari 60", dan tombol
+    nomor halaman. Pola itu yang dipakai sekarang, dan jarak antarhalaman
+    tetap terlihat — sesuatu yang tidak bisa dilakukan oleh daftar panjang.
+
+    Pindah halaman dikerjakan di memori: riwayat sudah termuat seluruhnya,
+    jadi tidak ada permintaan jaringan dan tidak ada kedipan.
+  */
+  const jumlahHalaman = Math.max(1, Math.ceil(tersaring.length / awal));
+  const halamanAman = Math.min(halaman, jumlahHalaman);
+  const mulai = (halamanAman - 1) * awal;
+  const tampil = tersaring.slice(mulai, mulai + awal);
+  const nomorHalaman = Array.from({ length: jumlahHalaman }, (_, i) => i + 1);
 
   if (galat) {
     return (
@@ -107,7 +141,12 @@ export function DaftarRiwayat({
         <span className="sr-only">Cari nomor pesanan atau nama tamu</span>
         <input
           value={cari}
-          onChange={(e) => setCari(e.target.value)}
+          onChange={(e) => {
+              setCari(e.target.value);
+              // Pencarian baru selalu mulai dari halaman 1: halaman 4 dari
+              // hasil yang tinggal 2 baris adalah layar kosong.
+              setHalaman(1);
+            }}
           placeholder="Cari nomor pesanan atau nama tamu"
           inputMode="search"
           className="w-full bg-transparent text-[0.8125rem] text-tinta-900 outline-none placeholder:text-tinta-500/70"
@@ -115,7 +154,10 @@ export function DaftarRiwayat({
         {cari && (
           <button
             type="button"
-            onClick={() => setCari("")}
+            onClick={() => {
+              setCari("");
+              setHalaman(1);
+            }}
             className="shrink-0 text-[0.6875rem] font-bold text-tinta-500"
           >
             Hapus
@@ -180,15 +222,84 @@ export function DaftarRiwayat({
             ))}
           </ul>
 
-          {!semua && tersaring.length > awal && (
-            <button
-              type="button"
-              onClick={() => setSemua(true)}
-              className="tombol-tenang mt-2 h-10 w-full text-[0.8125rem]"
-            >
-              Lihat semua ({tersaring.length})
-            </button>
-          )}
+          {/*
+            Keterangan jangkauan ditaruh SEBELUM tombol: mata membaca
+            "Menampilkan 11–20 dari 37" lalu mencari tombol yang arahnya
+            cocok. Tanpa keterangan itu, nomor halaman tidak berarti apa-apa
+            saat hasil pencarian menyusut menjadi satu halaman.
+          */}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[0.75rem] tabular-nums text-tinta-500">
+              Menampilkan{" "}
+              <span className="font-bold text-tinta-900">
+                {tersaring.length === 0 ? 0 : mulai + 1}–{Math.min(mulai + awal, tersaring.length)}
+              </span>{" "}
+              dari <span className="font-bold text-tinta-900">{tersaring.length}</span> data
+            </p>
+
+            {jumlahHalaman > 1 && (
+              <nav aria-label="Halaman riwayat" className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setHalaman(halamanAman - 1)}
+                  disabled={halamanAman === 1}
+                  aria-label="Halaman sebelumnya"
+                  className="tombol-tenang size-9 p-0 text-[0.8125rem] disabled:opacity-35"
+                >
+                  ‹
+                </button>
+
+                {/*
+                  Maksimal 5 nomor ditampilkan; selebihnya jendela ikut
+                  halaman aktif. Puluhan tombol sekaligus lebih sulit
+                  ditekan di ponsel daripada bergeser beberapa kali.
+                */}
+                {nomorHalaman.length <= 5
+                  ? nomorHalaman.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setHalaman(n)}
+                        aria-current={n === halamanAman ? "page" : undefined}
+                        className={[
+                          "size-9 rounded-[0.5rem] text-[0.8125rem] font-bold tabular-nums transition",
+                          n === halamanAman
+                            ? "bg-forest-900 text-cream-50"
+                            : "bg-cream-100 text-tinta-700 hover:bg-cream-200",
+                        ].join(" ")}
+                      >
+                        {n}
+                      </button>
+                    ))
+                  : geserJendela(nomorHalaman, halamanAman).map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setHalaman(n)}
+                        aria-current={n === halamanAman ? "page" : undefined}
+                        className={[
+                          "size-9 rounded-[0.5rem] text-[0.8125rem] font-bold tabular-nums transition",
+                          n === halamanAman
+                            ? "bg-forest-900 text-cream-50"
+                            : "bg-cream-100 text-tinta-700 hover:bg-cream-200",
+                        ].join(" ")}
+                      >
+                        {n}
+                      </button>
+                    ))}
+
+                <button
+                  type="button"
+                  onClick={() => setHalaman(halamanAman + 1)}
+                  disabled={halamanAman === jumlahHalaman}
+                  aria-label="Halaman berikutnya"
+                  className="tombol-tenang size-9 p-0 text-[0.8125rem] disabled:opacity-35"
+                >
+                  ›
+                </button>
+              </nav>
+            )}
+          </div>
         </>
       )}
 
