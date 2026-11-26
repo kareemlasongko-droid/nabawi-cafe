@@ -1,5 +1,20 @@
 /**
- * Uji NAV BAWAH di portal staf (kasir & admin).
+ * Uji NAVIGASI portal staf — admin memakai nav bawah, kasir memakai sidebar.
+ *
+ * ── KASIR PINDAH KE SIDEBAR (2026-11-02) ───────────────────────────────
+ *
+ * Kasir dulu memakai nav bawah yang sama dengan admin. Ia diganti sidebar
+ * karena nav bawah menyembunyikan empat tujuan di balik ikon kecil sambil
+ * membuang 72px tinggi layar yang justru paling sempit di tablet — dan
+ * karena kasir bekerja sambil berdiri: tujuan yang selalu terlihat di
+ * samping lebih cepat dijangkau daripada bilah yang harus dicari di kaki
+ * layar.
+ *
+ * Uji ini TIDAK dihapus, hanya dibelah: bagian admin tetap mengunci nav
+ * bawah, bagian kasir mengunci sifat-sifat sidebar yang membuatnya layak
+ * dipakai (menempel, tidak mencetak, tujuan lengkap, satu aktif, tidak
+ * memicu gulir horizontal). Kalau sidebar diperbaiki dengan menghapus
+ * salah satu sifat itu, uji ini gagal.
  *
  * ── MENGAPA UJI INI ADA ────────────────────────────────────────────────
  *
@@ -40,20 +55,88 @@ const cek = (nama, syarat, detail = "") => {
 
 const HARAPAN = [
   {
-    jalur: "/order/kasir",
-    label: "kasir",
-    // Tujuan yang harus terlihat bersamaan — tanpa digeser.
-    tab: ["Antrean", "Meja", "Laporan", "Riwayat"],
-  },
-  {
     jalur: "/order/admin",
     label: "admin",
     tab: ["Penjualan", "Menu", "Biaya", "Meja", "Stok", "Jam"],
   },
 ];
 
+/** Tujuan sidebar kasir, dalam urutan tampil. */
+const TAB_KASIR = ["Antrean", "Meja", "Menu", "Laporan", "Riwayat"];
+
 async function main() {
-  console.log(`\n── Nav bawah portal staf @ ${BASE} ──`);
+  console.log(`\n── Navigasi portal staf @ ${BASE} ──`);
+
+  // ═══ KASIR: SIDEBAR ══════════════════════════════════════════════
+  const kasirHtml = await (await fetch(BASE + "/order/kasir")).text();
+  cek("kasir: halaman terbuka", kasirHtml.length > 0, `${kasirHtml.length} byte`);
+
+  const bukaNav = kasirHtml.search(/<nav[^>]*aria-label="Navigasi Kasir"/i);
+  const navKasir = bukaNav === -1 ? "" : kasirHtml.slice(bukaNav, kasirHtml.indexOf("</nav>", bukaNav) + 6);
+
+  cek("kasir: sidebar berlabel untuk pembaca layar", /aria-label="Navigasi Kasir"/i.test(navKasir));
+
+  /*
+    Menempel di samping, bukan mengambang. `sticky top-0 h-dvh` membuat
+    sidebar tetap terlihat saat isi digulir — kalau `h-dvh` hilang,
+    sidebar setinggi isi (ribuan piksel) dan tombol di kakinya tidak
+    pernah terjangkau.
+  */
+  cek(
+    "kasir: sidebar menempel setinggi layar",
+    navKasir.includes("sticky") && navKasir.includes("h-dvh"),
+    "tanpa h-dvh, tombol di kaki sidebar tidak terjangkau",
+  );
+
+  /*
+    Rail 72px di ponsel: cukup untuk ikon 24px + sasaran sentuh 44px,
+    tidak memakan lebar isi. Angka ini yang diuji karena kalau melebar,
+    360px menyisakan <290px untuk kartu antrean.
+  */
+  cek(
+    "kasir: rail 72px di ponsel, melebar di tablet",
+    navKasir.includes("w-[4.5rem]") && navKasir.includes("md:w-[14.5rem]"),
+    "72px < 768px, 232px ≥ 768px",
+  );
+
+  cek("kasir: sidebar tidak ikut tercetak", navKasir.includes("print:hidden"));
+
+  cek(
+    "kasir: sidebar tidak memakai baris geser horizontal",
+    !navKasir.includes("overflow-x-auto"),
+    "tujuan harus terlihat semua tanpa digeser",
+  );
+
+  const hilangKasir = TAB_KASIR.filter((t) => !navKasir.includes(">" + t + "<"));
+  cek(
+    `kasir: ${TAB_KASIR.length} tujuan semuanya ada (${TAB_KASIR.join(", ")})`,
+    hilangKasir.length === 0,
+    hilangKasir.length ? `tidak ada: ${hilangKasir.join(", ")}` : "",
+  );
+
+  cek(
+    "kasir: tepat satu tujuan ditandai aktif",
+    (navKasir.match(/aria-current="page"/g) ?? []).length === 1,
+  );
+
+  /*
+    Isi tidak boleh dipaksa selebar layar + lebar sidebar. `min-w-0` pada
+    kolom isi adalah satu-satunya hal yang mencegah flex item melebar
+    mengikuti grid kartu — penyebab gulir horizontal paling sering saat
+    sidebar dipasang.
+  */
+  cek(
+    "kasir: kolom isi memakai min-w-0",
+    kasirHtml.includes("min-w-0 flex-1") || /min-w-0[^"]{0,40}flex-1/.test(kasirHtml),
+    "tanpa ini grid kartu melebar melewati layar",
+  );
+
+  cek(
+    "kasir: nav bawah lama sudah tidak dipakai",
+    !kasirHtml.includes('aria-label="Navigasi kasir" data-nav') &&
+      !/fixed[^"]{0,60}inset-x-0[^"]{0,40}bottom-0/.test(kasirHtml),
+    "kasir memakai sidebar, bukan bilah bawah",
+  );
 
   for (const { jalur, label, tab } of HARAPAN) {
     const html = await (await fetch(BASE + jalur)).text();

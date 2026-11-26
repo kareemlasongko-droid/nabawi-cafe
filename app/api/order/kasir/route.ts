@@ -77,9 +77,21 @@ export async function GET() {
       masuk belum?". Dapur TIDAK menerima daftar ini — hanya yang lunas.
     */
     db<Pesanan[]>("pesanan", {
+      /*
+        ── HANYA YANG MASIH BISA DITAGIH ────────────────────────────────
+
+        Dulu filternya `status=neq.dibatalkan` saja, jadi pesanan yang
+        DITOLAK tetap muncul di "Belum dibayar". Karena tagihannya sudah
+        dihitung ulang saat ditolak (totalnya jadi kosong), kartunya tampil
+        TANPA nominal — kartu "Belum dibayar" yang tidak bisa ditagih dan
+        tidak bisa dijelaskan.
+
+        `ditolak` dan `dibatalkan` sama-sama status akhir: tidak ada uang
+        yang akan masuk, jadi keduanya tidak boleh menagih perhatian kasir.
+      */
       q:
         "select=*&status_bayar=eq.menunggu" +
-        "&status=neq.dibatalkan&order=created_at.asc&limit=50",
+        "&status=not.in.(dibatalkan,ditolak)&order=created_at.asc&limit=50",
     }),
   ]);
 
@@ -190,6 +202,13 @@ export async function GET() {
       };
     }),
     menu: menuRes.ok ? demoMenuDenganStatus(menuRes.data.menu) : [],
+    /*
+      Kategori ikut dikirim karena panel Menu kasir menampilkan nama
+      kategori di tiap kartu produk. Menyalinnya ke setiap baris menu
+      berarti mengulang satu nama puluhan kali di respons; satu daftar
+      kecil di sini jauh lebih murah.
+    */
+    kategori: menuRes.ok ? menuRes.data.kategori : [],
     aturan,
     /*
       `demo` tetap dikirim supaya portal tidak perlu tahu cara menentukan

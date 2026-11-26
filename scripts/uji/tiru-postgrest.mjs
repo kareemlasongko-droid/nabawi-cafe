@@ -202,6 +202,16 @@ tabel.pengaturan.push(
   { id: 2, kunci: "layanan_persen", nilai: "0" },
   { id: 3, kunci: "layanan_rp", nilai: "2000" },
   { id: 4, kunci: "pembulatan", nilai: "100" },
+  /*
+    ── JAM BUKA: 24 JAM DI TIRUAN ────────────────────────────────────
+    Uji yang membuat pesanan gagal total di luar 09.00–20.00 WIB — dan
+    sejak itu setiap uji yang menjalankan alur pesanan ikut merah tanpa
+    ada kode yang berubah. Waktu berjalan tidak boleh menjadi dependensi
+    uji: tiruan sengaja dibuka sepanjang hari supaya hasilnya sama pagi,
+    siang, dan lewat tengah malam. Jam yang sebenarnya diuji tersendiri
+    di `uji:prabayar` dan `uji:aturan`.
+  */
+  { id: 5, kunci: "jam_mingguan", nilai: "00.00-24.00,00.00-24.00" },
 );
 
 /*
