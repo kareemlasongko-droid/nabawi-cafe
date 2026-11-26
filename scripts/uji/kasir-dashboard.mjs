@@ -179,6 +179,56 @@ async function main() {
     (nav.match(/href="#(\w+)"/g) ?? []).every((h) => html.includes(`id="${h.slice(7, -1)}"`)),
     "tautan mati = tombol yang tidak melakukan apa pun",
   );
+  /*
+    ── TIDAK ADA PANEL YANG BERSARANG DI PANEL LAIN ──────────────────
+
+    Bug yang membuat dashboard terlihat kacau: `<section id="menu">`
+    berada DI DALAM `<section id="meja">`. Akibatnya kolom kanan
+    memanjang 126 kartu produk sementara kolom kiri selesai di layar
+    pertama — sisa halaman jadi satu kolom kosong di kiri.
+
+    Yang diperiksa: saat tag `<section` dibuka, tidak boleh ada `<section`
+    lain yang masih terbuka. Dihitung dengan menyusuri dokumen, bukan
+    dengan mencocokkan teks — bersarang bisa terjadi dengan `id` apa pun.
+  */
+  {
+    const tumpukan = [];
+    let bersarang = "";
+    for (const m of html.matchAll(/<(\/?)section\b[^>]*?(?:id="([^"]+)")?[^>]*>/g)) {
+      const tutup = m[1] === "/";
+      if (!tutup) {
+        if (tumpukan.length > 0 && !bersarang) {
+          bersarang = `#${m[2] ?? "?"} di dalam #${tumpukan[tumpukan.length - 1]}`;
+        }
+        tumpukan.push(m[2] ?? "?");
+      } else {
+        tumpukan.pop();
+      }
+    }
+    cek(
+      "tidak ada panel yang bersarang di panel lain",
+      bersarang === "",
+      bersarang || "antrean, meja, menu sejajar sebagai anak grid",
+    );
+    cek(
+      "semua <section> tertutup rapi",
+      tumpukan.length === 0,
+      `${tumpukan.length} section tidak ditutup`,
+    );
+  }
+
+  cek(
+    "panel menu punya tinggi sendiri (tidak memanjangkan halaman)",
+    /lg:max-h-\[calc\(100dvh/.test(html),
+    "126 kartu tanpa batas tinggi = halaman sepanjang ribuan piksel",
+  );
+
+  cek(
+    "strip status menampilkan empat angka",
+    ["Baru", "Belum bayar", "Berjalan", "Meja terisi"].every((t) => html.includes(t)),
+    "kasir tidak perlu membaca tiga panel untuk tahu keadaan",
+  );
+
   cek(
     "navigasi kasir tidak lagi memakai bilah bawah",
     !/fixed[^"]{0,80}bottom-0/.test(html),

@@ -85,13 +85,27 @@ export function KartuProduk({
   return (
     <li
       className={[
-        "group relative flex flex-col overflow-hidden rounded-[0.875rem] border bg-bersih-0 transition",
+        "group relative flex flex-col overflow-hidden rounded-[0.625rem] border bg-bersih-0 transition",
         tersedia ? "border-bersih-200" : "border-sela-200",
         "shadow-[0_1px_2px_rgb(22_19_15/0.04),0_8px_20px_-16px_rgb(22_19_15/0.3)]",
       ].join(" ")}
     >
       {/* ── Slot gambar ── */}
-      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-daun-100">
+      {/*
+        ── GAMBAR 3:2, BUKAN 4:3 ──────────────────────────────────────
+        Pada 126 menu, tiap 20px tinggi gambar berarti ~2.500px gulir
+        tambahan. 3:2 memangkas seperempat tinggi gambar dan kartu tetap
+        terbaca. Kalau menunya belum punya foto sama sekali (kondisi
+        sekarang: 126 dari 126 `foto_url` null), slotnya menyusut jadi
+        pita ikon 44px — tidak ada gunanya menyediakan kotak kosong
+        sebesar telapak tangan untuk ikon 20px.
+      */}
+      <div
+        className={[
+          "relative w-full shrink-0 overflow-hidden bg-daun-100",
+          foto_url ? "aspect-[3/2]" : "grid h-11 place-items-center",
+        ].join(" ")}
+      >
         {foto_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -107,7 +121,7 @@ export function KartuProduk({
           <span aria-hidden="true" className="grid size-full place-items-center">
             <IkonKategori
               kategoriId={kategori_id}
-              className={tersedia ? "size-9 text-forest-700/45" : "size-9 text-tinta-500/30"}
+              className={tersedia ? "size-5 text-forest-700/55" : "size-5 text-tinta-500/30"}
             />
           </span>
         )}
@@ -134,18 +148,22 @@ export function KartuProduk({
       </div>
 
       {/* ── Isi ── */}
-      <div className="flex min-w-0 flex-1 flex-col p-2.5">
-        <p className="line-clamp-2 text-[0.875rem] font-extrabold leading-snug text-tinta-900">
+      <div className="flex min-w-0 flex-1 flex-col gap-1 p-2">
+        <p className="line-clamp-2 text-[0.8125rem] font-bold leading-snug text-tinta-900">
           {nama}
         </p>
 
-        <p className="mt-0.5 flex items-center gap-1 truncate text-[0.6875rem] text-tinta-500">
-          {kategori || "Tanpa kategori"}
+        {/*
+          Kategori & jumlah pilihan jadi SATU baris kecil. Di kartu padat,
+          dua baris teks abu-abu di bawah nama menghabiskan ruang yang
+          lebih berguna untuk harga dan tombol.
+        */}
+        <p className="flex items-center gap-1 truncate text-[0.625rem] leading-none text-tinta-500">
+          <span className="truncate">{kategori || "Tanpa kategori"}</span>
           {jumlahPilihan > 0 && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="font-semibold">{jumlahPilihan} pilihan</span>
-            </>
+            <span className="shrink-0 rounded bg-bersih-200 px-1 py-0.5 font-bold">
+              {jumlahPilihan} pilihan
+            </span>
           )}
         </p>
 
@@ -154,8 +172,8 @@ export function KartuProduk({
           kartu di satu baris grid sejajar walau nama menunya 1 atau 2
           baris. Harga tidak pernah dipotong: `whitespace-nowrap`.
         */}
-        <div className="mt-auto flex items-end justify-between gap-1 pt-2">
-          <p className="min-w-0 whitespace-nowrap text-[1rem] font-extrabold leading-none tabular-nums text-forest-900">
+        <div className="mt-auto flex items-center justify-between gap-1 pt-1">
+          <p className="min-w-0 whitespace-nowrap text-[0.875rem] font-extrabold leading-none tabular-nums text-forest-900">
             {rupiah(harga)}
           </p>
 
@@ -173,7 +191,7 @@ export function KartuProduk({
               aria-label={tersedia ? `Tandai ${nama} habis` : `Tandai ${nama} tersedia`}
               aria-pressed={tersedia}
               className={[
-                "grid size-11 place-items-center rounded-[0.5rem] border transition disabled:opacity-50",
+                "grid size-10 place-items-center rounded-[0.375rem] border transition disabled:opacity-50",
                 tersedia
                   ? "border-daun-100 bg-daun-100 text-forest-700 hover:bg-daun-100/70"
                   : "border-sela-200 bg-sela-50 text-sela-800 hover:bg-sela-100",
@@ -186,7 +204,7 @@ export function KartuProduk({
               type="button"
               onClick={onUbah}
               aria-label={`Ubah ${nama}`}
-              className="grid size-11 place-items-center rounded-[0.5rem] border border-bersih-200 bg-bersih-100 text-tinta-700 transition hover:bg-bersih-200"
+              className="grid size-10 place-items-center rounded-[0.375rem] border border-bersih-200 bg-bersih-100 text-tinta-700 transition hover:bg-bersih-200"
             >
               <IkonUbah />
             </button>
