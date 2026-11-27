@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { aksiTiketDapur, TAHAP_DAPUR, tiketPadaTahap } from "../../app/lib/order/tahap-dapur.ts";
+import { saringMenuDapur } from "../../app/lib/order/filter-menu-dapur.ts";
 
 let lulus = 0;
 let gagal = 0;
@@ -43,6 +44,33 @@ const ui = readFileSync(new URL("../../app/components/order/PortalDapur.tsx", im
 cek("sidebar dapur memakai dua tujuan saja", /kunci: "antrean"[\s\S]*kunci: "menu"/.test(ui));
 cek("tiga tahap dirender bersama sebagai grid, bukan tab", ui.includes("TAHAP_DAPUR.map") && !ui.includes("tabAktif"));
 cek("halaman Menu punya aksi pulihkan ketersediaan", ui.includes("Aktifkan tersedia") && ui.includes("setTersedia(m.id, !m.tersedia)"));
+
+console.log("\n── Filter kategori menu dapur ──");
+const menuUji = [
+  { id: 1, nama: "Americano Panas", kategori_id: 3 },
+  { id: 2, nama: "Kopi Susu", kategori_id: 3 },
+  { id: 3, nama: "Matcha Latte", kategori_id: 4 },
+  { id: 4, nama: "Croissant", kategori_id: 2 },
+];
+cek(
+  "filter kategori mengembalikan hanya item kategori terpilih",
+  saringMenuDapur(menuUji, { cari: "", kategoriId: 3 }).map((m) => m.id).join(",") === "1,2",
+);
+cek(
+  "pencarian dan kategori bekerja bersama",
+  saringMenuDapur(menuUji, { cari: "latte", kategoriId: 3 }).length === 0,
+);
+cek(
+  "pencarian nama tetap tidak peka huruf besar/kecil",
+  saringMenuDapur(menuUji, { cari: "AMERICANO", kategoriId: "semua" }).length === 1,
+);
+cek(
+  "Semua mengembalikan seluruh item ketika kata kunci kosong",
+  saringMenuDapur(menuUji, { cari: " ", kategoriId: "semua" }).length === menuUji.length,
+);
+const apiDapur = readFileSync(new URL("../../app/api/order/dapur/route.ts", import.meta.url), "utf8");
+cek("endpoint dapur mengirim daftar kategori dari database", /kategori:\s*menuRes\.ok\s*\?\s*menuRes\.data\.kategori/.test(apiDapur));
+cek("menu menampilkan label kategori", ui.includes("petaKategoriMenu.get(m.kategori_id)"));
 
 console.log(`\n═══ ${lulus} lulus, ${gagal} gagal ═══`);
 if (gagal) process.exit(1);
