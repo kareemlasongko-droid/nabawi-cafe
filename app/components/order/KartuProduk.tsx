@@ -5,7 +5,7 @@
  *
  * ── BENTUKNYA MENGIKUTI KARTU PELANGGAN ───────────────────────────────
  *
- * Slot gambar di atas (4:3), teks di bawah, harga tebal di kiri-bawah,
+ * Slot gambar persegi (1:1) di atas, teks di bawah, harga tebal di kiri-bawah,
  * aksi di kanan-bawah. Staf dan tamu melihat produk yang sama dengan
  * bahasa visual yang sama — jadi pelatihan staf baru tidak perlu
  * menerjemahkan dua tata letak.
@@ -79,8 +79,7 @@ export function KartuProduk({
   onTersedia: () => void;
   sibuk?: boolean;
 }) {
-  const { nama, harga, kategori, tersedia, rekomendasi, foto_url, kategori_id, jumlahPilihan } =
-    produk;
+  const { nama, harga, kategori, tersedia, rekomendasi, kategori_id, jumlahPilihan } = produk;
 
   return (
     <li
@@ -90,41 +89,14 @@ export function KartuProduk({
         "shadow-[0_1px_2px_rgb(22_19_15/0.04),0_8px_20px_-16px_rgb(22_19_15/0.3)]",
       ].join(" ")}
     >
-      {/* ── Slot gambar ── */}
-      {/*
-        ── GAMBAR 3:2, BUKAN 4:3 ──────────────────────────────────────
-        Pada 126 menu, tiap 20px tinggi gambar berarti ~2.500px gulir
-        tambahan. 3:2 memangkas seperempat tinggi gambar dan kartu tetap
-        terbaca. Kalau menunya belum punya foto sama sekali (kondisi
-        sekarang: 126 dari 126 `foto_url` null), slotnya menyusut jadi
-        pita ikon 44px — tidak ada gunanya menyediakan kotak kosong
-        sebesar telapak tangan untuk ikon 20px.
-      */}
-      <div
-        className={[
-          "relative w-full shrink-0 overflow-hidden bg-daun-100",
-          foto_url ? "aspect-[3/2]" : "grid h-11 place-items-center",
-        ].join(" ")}
-      >
-        {foto_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={foto_url}
-            alt=""
-            loading="lazy"
-            className={[
-              "size-full object-cover transition duration-300",
-              tersedia ? "group-hover:scale-[1.03]" : "opacity-40 grayscale",
-            ].join(" ")}
+      {/* Slot produk persegi dengan ikon sementara sampai foto asli tersedia. */}
+      <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-daun-100">
+        <span aria-hidden="true" className="grid size-full place-items-center">
+          <IkonKategori
+            kategoriId={kategori_id}
+            className={tersedia ? "size-9 text-forest-700/55" : "size-9 text-tinta-500/30"}
           />
-        ) : (
-          <span aria-hidden="true" className="grid size-full place-items-center">
-            <IkonKategori
-              kategoriId={kategori_id}
-              className={tersedia ? "size-5 text-forest-700/55" : "size-5 text-tinta-500/30"}
-            />
-          </span>
-        )}
+        </span>
 
         {rekomendasi && tersedia && (
           <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-cream-50/95 px-1.5 py-0.5 text-[0.625rem] font-bold text-sela-800 shadow-sm backdrop-blur">

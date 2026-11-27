@@ -1079,53 +1079,14 @@ export function PortalPelanggan({
                         habis ? "opacity-60" : "",
                       ].join(" ")}
                     >
-                      {/*
-                        FOTO DI ATAS, TEKS DI BAWAH — kartu, bukan baris.
-
-                        Kenapa berubah dari baris + thumbnail 64px: tamu memilih
-                        dengan mata, dan sebagian nama menu (Maroko) tidak
-                        dikenali. Foto 64px hanya cukup untuk membedakan warna;
-                        foto selebar kartu membuat orang berhenti dan memutuskan.
-                        Rasio 4:3 menjaga dua kolom tetap muat di layar 360px.
-
-                        `aspect-[4/3]` + `object-cover` (bukan tinggi tetap)
-                        supaya foto landscape dan portrait tidak menggeser
-                        tinggi kartu di satu baris grid.
-                      */}
-                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-bersih-100">
-                        {m.foto_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={m.foto_url}
-                            alt=""
-                            loading="lazy"
-                            className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                      {/* Ikon kategori sementara; foto asli dapat dipasang nanti di slot 1:1 ini. */}
+                      <div className="relative aspect-square w-full overflow-hidden bg-bersih-100">
+                        <span aria-hidden="true" className="grid size-full place-items-center bg-daun-100">
+                          <IkonKategoriMenu
+                            kategoriId={m.kategori_id}
+                            className="size-9 text-forest-700/60"
                           />
-                        ) : (
-                          /* ── TANPA FOTO: IKON KATEGORI, BUKAN INISIAL ──
-
-                             Sebelumnya di sini ada dua huruf pertama nama
-                             menu. Terukur pada 126 menu: hanya ada 59
-                             inisial unik, dan 32 di antaranya dipakai
-                             lebih dari satu menu — "CH" mewakili 8 menu
-                             (Chicken Bite, Choco Soft Cookie, Cheese
-                             Latte, …), "NA" 6, "MA" 6. Total 99 dari 126
-                             kartu menampilkan huruf yang sama dengan kartu
-                             lain, dan huruf itu tidak membantu satu pun
-                             keputusan.
-
-                             Ikon kategori menjawab pertanyaan yang benar:
-                             ini minuman atau makanan? Ikon juga menjelaskan
-                             mengapa kategorinya bernama begitu, sesuatu yang
-                             inisial tidak pernah lakukan.
-                          */
-                          <span aria-hidden="true" className="grid size-full place-items-center bg-daun-100">
-                            <IkonKategoriMenu
-                              kategoriId={m.kategori_id}
-                              className="size-8 text-forest-700/60"
-                            />
-                          </span>
-                        )}
+                        </span>
 
                         {m.rekomendasi === true && !habis && (
                           <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-cream-50/95 px-1.5 py-0.5 text-[0.625rem] font-bold text-sela-800 shadow-sm backdrop-blur">
