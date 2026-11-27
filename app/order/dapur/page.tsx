@@ -8,6 +8,11 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function HalamanDapur() {
-  return <PortalDapur />;
+export default async function HalamanDapur({
+  searchParams,
+}: {
+  searchParams: Promise<{ layar?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  return <PortalDapur layarAwal={params.layar === "menu" ? "menu" : "antrean"} />;
 }

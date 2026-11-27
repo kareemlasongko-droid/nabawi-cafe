@@ -87,7 +87,7 @@ export function Sidebar({
 }) {
   return (
     <nav
-      id="navigasi-kasir"
+      id="navigasi-portal-staf"
       aria-label={`Navigasi ${judul}`}
       className={[
         "sticky top-0 z-30 flex h-dvh shrink-0 flex-col",
@@ -170,7 +170,7 @@ export function Sidebar({
             type="button"
             onClick={onToggle}
             aria-expanded={terbuka}
-            aria-controls="navigasi-kasir"
+            aria-controls="navigasi-portal-staf"
             title={terbuka ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
             className={[
               /*
