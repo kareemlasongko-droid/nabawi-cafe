@@ -102,7 +102,6 @@ export async function GET() {
     tiket,
     ambang: { kuning, merah },
     menu: menuRes.ok ? menuRes.data.menu : [],
-    kategori: menuRes.ok ? menuRes.data.kategori : [],
     pajak: aturan.pajakPersen,
     demo: false,
   });
