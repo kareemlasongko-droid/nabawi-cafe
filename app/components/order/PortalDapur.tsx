@@ -28,18 +28,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { menitTunggu, sejak } from "@/app/lib/order/tipe";
+import { saringMenuDapur, type KategoriFilterDapur } from "@/app/lib/order/filter-menu-dapur";
 import { aksiTiketDapur, TAHAP_DAPUR, tiketPadaTahap } from "@/app/lib/order/tahap-dapur";
 import { BilahKoneksi } from "./BilahKoneksi";
 import { BilahStaf } from "./Kerangka";
 import { TombolKepala } from "./TombolKepala";
 import { Sidebar } from "./Sidebar";
-import { IkonHabis, IkonKanan, IkonSegar } from "./IkonDapur";
+import { IkonAntrian, IkonHabis, IkonKanan, IkonSegar } from "./IkonDapur";
 import {
   IkonCari,
+  IkonKategoriMenu,
   IkonMenu,
   IkonMatikanSuara,
   IkonMuatUlang,
-  IkonPesanan,
   IkonSilang,
   IkonSuara,
 } from "./Ikon";
@@ -52,7 +53,8 @@ type Item = {
   pilihan?: { nama: string; tambah: number }[] | null;
 };
 
-type MenuRingkas = { id: number; nama: string; tersedia: boolean };
+type MenuRingkas = { id: number; nama: string; tersedia: boolean; kategori_id: number | null };
+type KategoriDapur = { id: number; nama: string; urutan: number };
 
 type Tiket = {
   id: number;
@@ -87,6 +89,8 @@ export function PortalDapur({ layarAwal = "antrean" }: { layarAwal?: LayarDapur 
   const [sekarang, setSekarang] = useState(() => Date.now());
   const [ambang, setAmbang] = useState({ kuning: 10, merah: 15 });
   const [menu, setMenu] = useState<MenuRingkas[]>([]);
+  const [kategoriMenu, setKategoriMenu] = useState<KategoriDapur[]>([]);
+  const [kategoriMenuAktif, setKategoriMenuAktif] = useState<KategoriFilterDapur>("semua");
   const [menuSibuk, setMenuSibuk] = useState(0);
   const [cariMenu, setCariMenu] = useState("");
   const [layar, setLayar] = useState<LayarDapur>(layarAwal);
@@ -137,6 +141,7 @@ export function PortalDapur({ layarAwal = "antrean" }: { layarAwal?: LayarDapur 
       setTiket(j.tiket);
       if (j.ambang) setAmbang(j.ambang);
       if (Array.isArray(j.menu)) setMenu(j.menu);
+      if (Array.isArray(j.kategori)) setKategoriMenu(j.kategori);
     } catch {
       setGalat("Koneksi terputus. Tiket tidak diperbarui sampai pulih.");
     }
@@ -180,10 +185,24 @@ export function PortalDapur({ layarAwal = "antrean" }: { layarAwal?: LayarDapur 
     }
   }
   const habis = useMemo(() => menu.filter((m) => !m.tersedia), [menu]);
-  const menuTersaring = useMemo(() => {
-    const kata = cariMenu.trim().toLocaleLowerCase("id-ID");
-    return kata ? menu.filter((m) => m.nama.toLocaleLowerCase("id-ID").includes(kata)) : menu;
-  }, [menu, cariMenu]);
+  const idKategori = useMemo(() => new Set(kategoriMenu.map((k) => k.id)), [kategoriMenu]);
+  const kategoriTerpakai = useMemo(
+    () => kategoriMenu.filter((k) => menu.some((m) => m.kategori_id === k.id)),
+    [kategoriMenu, menu],
+  );
+  const jumlahMenuLainnya = useMemo(
+    () => menu.filter((m) => m.kategori_id === null || !idKategori.has(m.kategori_id)).length,
+    [menu, idKategori],
+  );
+  const menuTersaring = useMemo(
+    () =>
+      saringMenuDapur(menu, {
+        cari: cariMenu,
+        kategoriId: kategoriMenuAktif,
+        kategoriValid: idKategori,
+      }),
+    [menu, cariMenu, kategoriMenuAktif, idKategori],
+  );
 
   // Bunyi pesanan baru. Pesanan TAMBAHAN di meja yang sudah punya tiket
   // memakai nada berbeda (D-06) supaya dapur tahu ini bukan meja baru.
@@ -259,7 +278,7 @@ export function PortalDapur({ layarAwal = "antrean" }: { layarAwal?: LayarDapur 
             kunci: "antrean",
             label: "Antrean",
             href: "#antrean",
-            Ikon: IkonPesanan,
+            Ikon: IkonAntrian,
             lencana: (tiket ?? []).length,
             warna: "sela",
           },
@@ -347,13 +366,75 @@ export function PortalDapur({ layarAwal = "antrean" }: { layarAwal?: LayarDapur 
             )}
           </label>
 
+          <div
+            role="group"
+            aria-label="Filter kategori menu"
+            className="mb-3 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <button
+              type="button"
+              onClick={() => setKategoriMenuAktif("semua")}
+              aria-pressed={kategoriMenuAktif === "semua"}
+              className={[
+                "h-9 shrink-0 rounded px-3 text-xs font-extrabold transition",
+                kategoriMenuAktif === "semua"
+                  ? "bg-cream-50 text-forest-900"
+                  : "border border-cream-50/15 text-gelap-redup hover:bg-cream-50/10",
+              ].join(" ")}
+            >
+              Semua ({menu.length})
+            </button>
+            {kategoriTerpakai.map((kategori) => {
+              const jumlah = menu.filter((m) => m.kategori_id === kategori.id).length;
+              const aktif = kategoriMenuAktif === kategori.id;
+              return (
+                <button
+                  key={kategori.id}
+                  type="button"
+                  onClick={() => setKategoriMenuAktif(aktif ? "semua" : kategori.id)}
+                  aria-pressed={aktif}
+                  className={[
+                    "h-9 shrink-0 rounded px-3 text-xs font-extrabold transition",
+                    aktif
+                      ? "bg-cream-50 text-forest-900"
+                      : "border border-cream-50/15 text-gelap-redup hover:bg-cream-50/10",
+                  ].join(" ")}
+                >
+                  {kategori.nama} ({jumlah})
+                </button>
+              );
+            })}
+            {jumlahMenuLainnya > 0 && (
+              <button
+                type="button"
+                onClick={() => setKategoriMenuAktif(kategoriMenuAktif === "lainnya" ? "semua" : "lainnya")}
+                aria-pressed={kategoriMenuAktif === "lainnya"}
+                className={[
+                  "h-9 shrink-0 rounded px-3 text-xs font-extrabold transition",
+                  kategoriMenuAktif === "lainnya"
+                    ? "bg-cream-50 text-forest-900"
+                    : "border border-cream-50/15 text-gelap-redup hover:bg-cream-50/10",
+                ].join(" ")}
+              >
+                Lainnya ({jumlahMenuLainnya})
+              </button>
+            )}
+          </div>
+
           {menu.length === 0 ? (
             <p className="rounded-md border border-dashed border-cream-50/15 px-4 py-8 text-center text-sm text-gelap-samar">
               Menu tidak terbaca.
             </p>
           ) : menuTersaring.length === 0 ? (
             <p className="rounded-md border border-dashed border-cream-50/15 px-4 py-8 text-center text-sm text-gelap-samar">
-              Tidak ada menu yang cocok dengan “{cariMenu}”.
+              {kategoriMenuAktif === "semua" ? (
+                <>Tidak ada menu yang cocok dengan “{cariMenu}”.</>
+              ) : (
+                <>
+                  Tidak ada menu pada {kategoriMenuAktif === "lainnya" ? "kategori Lainnya" : kategoriMenu.find((k) => k.id === kategoriMenuAktif)?.nama ?? "kategori ini"}
+                  {cariMenu ? <> yang cocok dengan “{cariMenu}”</> : ""}.
+                </>
+              )}
             </p>
           ) : (
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -362,7 +443,15 @@ export function PortalDapur({ layarAwal = "antrean" }: { layarAwal?: LayarDapur 
                   key={m.id}
                   className="flex min-w-0 items-center justify-between gap-2 rounded-md border border-cream-50/10 bg-forest-900/70 p-2.5"
                 >
-                  <div className="min-w-0">
+                  <div
+                    aria-hidden="true"
+                    className="relative aspect-square size-16 shrink-0 overflow-hidden rounded bg-cream-50/10"
+                  >
+                    <span className="grid size-full place-items-center">
+                      <IkonKategoriMenu kategoriId={m.kategori_id} className="size-7 text-cream-50/75" />
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
                     <p className="break-words text-sm font-bold text-cream-50">{m.nama}</p>
                     <p className={[
                       "mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.6875rem] font-bold",

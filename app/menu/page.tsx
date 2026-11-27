@@ -287,20 +287,10 @@ export default async function HalamanMenu() {
                         className="flex flex-col overflow-hidden rounded-[1rem] [contain-intrinsic-size:auto_210px] [content-visibility:auto]"
                       >
                         <article className={["flex h-full flex-col rounded-[1rem]", GAYA.kartu, m.tersedia ? "" : "opacity-75"].join(" ")}>
-                          <div className="relative aspect-[4/3] shrink-0 overflow-hidden rounded-t-[1rem] bg-forest-950/10">
-                            {m.foto_url ? (
-                              <Image
-                                src={m.foto_url}
-                                alt=""
-                                fill
-                                sizes="(max-width: 440px) 45vw, 198px"
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div aria-hidden="true" className="grid size-full place-items-center bg-cream-50/10">
-                                <Ikon className="size-[1.75rem] text-cream-50/85" />
-                              </div>
-                            )}
+                          <div className="relative aspect-square shrink-0 overflow-hidden rounded-t-[1rem] bg-forest-950/10">
+                            <div aria-hidden="true" className="grid size-full place-items-center bg-cream-50/10">
+                              <Ikon className="size-9 text-cream-50/85" />
+                            </div>
                             {!m.tersedia && (
                               <p className="absolute bottom-[0.25rem] left-[0.25rem] rounded-full bg-forest-950/85 px-[0.4375rem] py-[0.1875rem] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-cream-50">
                                 Habis

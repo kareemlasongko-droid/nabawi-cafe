@@ -116,19 +116,13 @@ export function Sidebar({
       */}
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-cream-50/10 px-3 md:px-4">
         {/*
-          ── LOGO SAAT TERBUKA, IKON LIPAT SAAT DISEMBUNYIKAN ──────────
+          ── LOGO DAN TOMBOL LIPAT ──────────────────────────────────────
 
-          Saat rel 72px, logo diganti tombol lipat itu sendiri — dan
-          tombolnya diberi bentuk logo, bukan dibiarkan sebagai panah
-          kecil. Alasannya ruang: di 72px, logo 32px + tombol 36px tidak
-          bisa berdampingan tanpa salah satunya terpotong.
+          Saat sidebar dilipat, logo disembunyikan agar tombol tetap muat
+          di rel 72px. Ikon sidebar tetap tampil di kedua keadaan; panah
+          hanya berubah arah sesuai aksi berikutnya.
 
-          Konsekuensi yang harus dijaga: tombol ini jadi satu-satunya
-          isyarat "klik untuk membuka", jadi ia harus TERLIHAT seperti
-          tombol (latar, cincin) — bukan logo mati. Panahnya kecil di
-          sudut, dan `title` + `sr-only` tetap menyebut aksinya.
-
-          Saat terbuka, tombol panah pindah ke ujung kanan seperti biasa.
+          Saat terbuka, tombol berada di ujung kanan seperti biasa.
         */}
         {terbuka || !onToggle ? (
           <LogoNabawi tema="gelap" ukuran={32} hanyaLogo label="Nabawi Cafe" />
@@ -174,16 +168,9 @@ export function Sidebar({
             title={terbuka ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
             className={[
               /*
-                Dua bentuk, satu tombol.
-
-                TERBUKA: ikon 36px di ujung kanan kepala, tanpa latar —
-                ia alat, bukan identitas.
-
-                TERTUTUP: kotak 40px berisi logo, karena di rel 72px ia
-                satu-satunya hal yang tersisa di kepala. Latar `cream-50/10`
-                + cincin membuatnya terbaca sebagai tombol yang bisa
-                ditekan, bukan sebagai logo mati. Panah kecil menempel di
-                sudut kanan bawah supaya arah aksinya tetap terbaca.
+                Satu ikon sidebar untuk kedua keadaan. Saat sidebar
+                tertutup, latar dan cincin memberi isyarat bahwa tombol
+                tetap bisa ditekan di rel 72px.
               */
               "relative shrink-0 text-cream-50/60 transition hover:text-cream-50",
               terbuka
@@ -191,42 +178,23 @@ export function Sidebar({
                 : "grid size-10 place-items-center rounded-[0.625rem] bg-cream-50/10 ring-1 ring-inset ring-cream-50/15 hover:bg-cream-50/20",
             ].join(" ")}
           >
-            {terbuka ? (
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="size-[1.125rem]"
-              >
-                <path d="M4 5.5h16M4 12h7M4 18.5h16M20.5 8.5 17 12l3.5 3.5" />
-              </svg>
-            ) : (
-              /*
-                Logo, bukan panah. `next/image` dipakai ulang lewat
-                LogoNabawi supaya ukuran optiknya sama dengan logo di
-                sidebar terbuka — logo yang tampak berbeda ukuran saat
-                dilipat akan terlihat seperti gambar yang salah muat.
-              */
-              <span className="relative grid place-items-center">
-                <LogoNabawi tema="gelap" ukuran={26} hanyaLogo label="Nabawi Cafe" />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  className="absolute -bottom-1 -right-1.5 size-3 rounded-full bg-forest-950 text-cream-50"
-                >
-                  <path d="M9 6l6 6-6 6" />
-                </svg>
-              </span>
-            )}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="size-[1.125rem]"
+            >
+              <path d="M4 5.5h16M4 12h7M4 18.5h16" />
+              {terbuka ? (
+                <path d="M20.5 8.5 17 12l3.5 3.5" />
+              ) : (
+                <path d="M17 8.5 20.5 12 17 15.5" />
+              )}
+            </svg>
             <span className="sr-only">
               {terbuka ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
             </span>

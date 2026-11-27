@@ -16,6 +16,17 @@ const garis = {
   "aria-hidden": true,
 };
 
+/** Tumpukan tiket pesanan untuk tujuan Antrean dapur. */
+export function IkonAntrian({ className = "size-5" }: P) {
+  return (
+    <svg {...garis} className={className}>
+      <path d="M8 3.5h10a2 2 0 0 1 2 2v10" />
+      <path d="M5 7.5h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z" />
+      <path d="M7 11.5h6M7 15h6" />
+    </svg>
+  );
+}
+
 export function IkonBel({ className = "size-4" }: P) {
   return (
     <svg {...garis} className={className}>
