@@ -56,6 +56,7 @@ import { KartuRingkasan } from "./KartuRingkasan";
 import { DaftarRiwayat } from "./DaftarRiwayat";
 import type { BarisRiwayat, RingkasanPenjualan } from "@/app/lib/order/riwayat";
 import { DiagramPenjualan } from "./DiagramPenjualan";
+import { saringMenuKasir } from "@/app/lib/order/filter-kasir";
 
 type ItemPesanan = {
   id: number;
@@ -260,8 +261,9 @@ export function PortalKasir() {
   const [berhasilPada, setBerhasilPada] = useState<number | null>(null);
   const [memuatUlang, setMemuatUlang] = useState(false);
   const [detak, setDetak] = useState(() => Date.now());
-  /** Kata kunci panel Menu. */
+  /** Pencarian berdasarkan nama item; kategori dipilih lewat chip terpisah. */
   const [cariMenu, setCariMenu] = useState("");
+  const [kategoriMenuAktif, setKategoriMenuAktif] = useState<number | "semua">("semua");
   /*
     ── SIAPA YANG MENERIMA UANG ────────────────────────────────────────
 
@@ -697,13 +699,12 @@ export function PortalKasir() {
     [menu, petaKategori],
   );
 
-  const menuTersaring = useMemo(() => {
-    const k = cariMenu.trim().toLowerCase();
-    if (!k) return menuProduk;
-    return menuProduk.filter(
-      (m) => m.nama.toLowerCase().includes(k) || m.kategori.toLowerCase().includes(k),
-    );
-  }, [menuProduk, cariMenu]);
+  const menuTersaring = useMemo(
+    () => saringMenuKasir(menuProduk, { cari: cariMenu, kategoriId: kategoriMenuAktif }),
+    [menuProduk, cariMenu, kategoriMenuAktif],
+  );
+  const namaKategoriAktif =
+    kategoriMenuAktif === "semua" ? "" : petaKategori.get(kategoriMenuAktif) ?? "kategori ini";
 
   return (
     /*
@@ -1665,19 +1666,19 @@ export function PortalKasir() {
           */}
           {/*
             ── PIL KATEGORI ────────────────────────────────────────────
-            Kasir mencari "yang di kategori Kopi" jauh lebih sering
-            daripada mengetik nama hidangan. Satu baris pil yang bisa
-            digeser mengubah 126 kartu jadi belasan — tanpa membuka
-            apa pun.
+            Chip kategori memfilter memakai ID kategori yang tepat, bukan
+            mencari nama kategori sebagai substring. Kalau memakai
+            `.includes("kopi")`, chip Kopi juga menampilkan Non-Kopi karena
+            "kopi" memang bagian dari nama kategori itu.
           */}
           <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
-              onClick={() => setCariMenu("")}
-              aria-pressed={cariMenu.trim() === ""}
+              onClick={() => setKategoriMenuAktif("semua")}
+              aria-pressed={kategoriMenuAktif === "semua"}
               className={[
                 "h-8 shrink-0 rounded-full px-3 text-[0.75rem] font-bold transition",
-                cariMenu.trim() === ""
+                kategoriMenuAktif === "semua"
                   ? "bg-forest-900 text-cream-50"
                   : "bg-bersih-200 text-tinta-700 hover:bg-bersih-200/70",
               ].join(" ")}
@@ -1688,11 +1689,13 @@ export function PortalKasir() {
               <button
                 key={k.id}
                 type="button"
-                onClick={() => setCariMenu(cariMenu.trim() === k.nama ? "" : k.nama)}
-                aria-pressed={cariMenu.trim() === k.nama}
+                onClick={() =>
+                  setKategoriMenuAktif(kategoriMenuAktif === k.id ? "semua" : k.id)
+                }
+                aria-pressed={kategoriMenuAktif === k.id}
                 className={[
                   "h-8 shrink-0 rounded-full px-3 text-[0.75rem] font-bold transition",
-                  cariMenu.trim() === k.nama
+                  kategoriMenuAktif === k.id
                     ? "bg-forest-900 text-cream-50"
                     : "bg-bersih-200 text-tinta-700 hover:bg-bersih-200/70",
                 ].join(" ")}
@@ -1756,7 +1759,15 @@ export function PortalKasir() {
 
           {menuTersaring.length === 0 && (
             <p className="rounded-[0.75rem] border border-dashed border-bersih-200 bg-bersih-100 px-4 py-8 text-center text-[0.8125rem] text-tinta-500">
-              Tidak ada menu yang cocok dengan &ldquo;{cariMenu}&rdquo;.
+              {namaKategoriAktif ? (
+                cariMenu.trim() ? (
+                  <>Tidak ada menu di kategori {namaKategoriAktif} yang cocok dengan &ldquo;{cariMenu}&rdquo;.</>
+                ) : (
+                  <>Tidak ada menu di kategori {namaKategoriAktif}.</>
+                )
+              ) : (
+                <>Tidak ada menu yang cocok dengan &ldquo;{cariMenu}&rdquo;.</>
+              )}
             </p>
           )}
         </section>
