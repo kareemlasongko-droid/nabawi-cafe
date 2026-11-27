@@ -37,7 +37,8 @@
     "uji:nav": "node scripts/uji/nav-bawah.mjs",
     "uji:audit": "node scripts/uji/audit-ux.mjs",
     "uji:kasir": "node scripts/uji/kasir-dashboard.mjs",
-    "uji:kasir-kategori": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/kasir-kategori.mjs"
+    "uji:kasir-kategori": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/kasir-kategori.mjs",
+    "uji:dapur": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/dapur-layar.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
