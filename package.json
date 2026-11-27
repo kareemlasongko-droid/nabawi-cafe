@@ -36,7 +36,8 @@
     "uji:hpp:http": "node scripts/uji/stok-http.mjs",
     "uji:nav": "node scripts/uji/nav-bawah.mjs",
     "uji:audit": "node scripts/uji/audit-ux.mjs",
-    "uji:kasir": "node scripts/uji/kasir-dashboard.mjs"
+    "uji:kasir": "node scripts/uji/kasir-dashboard.mjs",
+    "uji:kasir-kategori": "node --experimental-strip-types --no-warnings --import ./scripts/uji/ts-hook.mjs scripts/uji/kasir-kategori.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
