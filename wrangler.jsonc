@@ -6,6 +6,18 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
 
   /*
+    Env publik untuk `wrangler preview` (preview PR), terpisah dari Worker
+    produksi. Hanya Supabase URL + publishable/anon key; JANGAN taruh
+    SUPABASE_SERVICE_KEY di sini.
+  */
+  "previews": {
+    "vars": {
+      "SUPABASE_URL": "https://mvuqdakfzffhrnzxnmke.supabase.co",
+      "SUPABASE_ANON_KEY": "sb_publishable_gBDLdz_xr_2zGA85dWaAvg_8k0pXMVz"
+    }
+  },
+
+  /*
     `name` di atas menentukan alamat gratisnya:
         https://nabawi-cafe.<subdomain-akun>.workers.dev
 
